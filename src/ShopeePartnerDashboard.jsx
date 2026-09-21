@@ -10,6 +10,66 @@ import {
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
 } from "lucide-react";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// API cache — stale-while-revalidate untuk GET ke api.qukis.id.
+// Tujuan: pindah tab / buka ulang tab yang sudah pernah dimuat = INSTAN (dari
+// cache di memori), tidak menarik ulang dari backend. Data lama ditampilkan
+// dulu, lalu di-refresh diam-diam di background. Tidak mengubah satu pun call
+// site fetch — cukup mem-patch window.fetch sekali di awal.
+// ─────────────────────────────────────────────────────────────────────────────
+(function installApiCache() {
+  if (typeof window === "undefined" || window.__mpApiCache) return;
+  const orig = window.fetch.bind(window);
+  const store = new Map(); // url -> { ts, body, inflight }
+  const ttlFor = (url) => {
+    if (url.includes("/ads/realtime")) return 20000;
+    if (url.includes("/ads/")) return 45000;
+    if (url.includes("/orders/recent")) return 30000;
+    return 60000; // export/summary, orders/daily, income/summary, dst.
+  };
+  const jsonRes = (body, status = 200) =>
+    new Response(body, { status, headers: { "Content-Type": "application/json" } });
+
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input && input.url;
+    const method = ((init && init.method) || "GET").toUpperCase();
+    if (!url || method !== "GET" || !url.startsWith("https://api.qukis.id/"))
+      return orig(input, init);
+
+    const now = Date.now();
+    const ent = store.get(url);
+    const ttl = ttlFor(url);
+
+    const revalidate = () => {
+      if (ent && ent.inflight) return ent.inflight;
+      const p = orig(url, init)
+        .then(async (r) => {
+          const text = await r.clone().text();
+          if (r.ok) store.set(url, { ts: Date.now(), body: text, inflight: null });
+          else if (ent) ent.inflight = null;
+          return jsonRes(text, r.status);
+        })
+        .catch((e) => {
+          if (ent) ent.inflight = null;
+          throw e;
+        });
+      store.set(url, { ...(ent || {}), inflight: p });
+      return p;
+    };
+
+    // Ada cache & masih segar → langsung, tanpa jaringan.
+    if (ent && ent.body != null && now - ent.ts < ttl) return Promise.resolve(jsonRes(ent.body));
+    // Ada cache tapi basi → tampilkan yang lama seketika + refresh di background.
+    if (ent && ent.body != null) {
+      revalidate().catch(() => {});
+      return Promise.resolve(jsonRes(ent.body));
+    }
+    // Belum ada cache → tarik betulan (hanya sekali; cold load).
+    return revalidate();
+  };
+  window.__mpApiCache = true;
+})();
+
 const fmtRp = (n) =>
   "Rp " + Math.round(n).toLocaleString("id-ID");
 
