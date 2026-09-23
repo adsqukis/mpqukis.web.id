@@ -52,6 +52,58 @@ punya tiga sumber yang dipakai berurutan (`src/affiliate/model.js`):
 Kalau tidak ada sumber yang berhasil, kartu menampilkan `—`, **bukan 0**. Nol
 adalah angka; tidak ada data bukan.
 
+### Membuktikannya sendiri: `scripts/shopee-probe.mjs`
+
+Klaim "AMS tidak ada di Open Platform" tidak perlu dipercaya begitu saja —
+skrip diagnosa di `scripts/shopee-probe.mjs` mengujinya langsung. Tanpa
+dependensi, Node 18+ saja. **Jalankan dari server/laptop yang punya akses
+keluar, jangan dari browser** — skrip ini butuh partner key.
+
+```bash
+export SHOPEE_PARTNER_ID=2045868          # bukan rahasia; ikut di setiap URL request
+export SHOPEE_PARTNER_KEY=...             # RAHASIA — dari environment, jangan ditulis di file
+
+# 1. otorisasi toko (sekali saja)
+node scripts/shopee-probe.mjs auth-url https://api.qukis.id/shopee/callback
+node scripts/shopee-probe.mjs token <code> <shop_id>
+
+# 2. uji modul mana yang terbuka
+SHOPEE_SHOP_ID=... SHOPEE_ACCESS_TOKEN=... node scripts/shopee-probe.mjs probe
+
+# 3. uji apakah kredensial ini dikenali Affiliate Open API (platform terpisah)
+node scripts/shopee-probe.mjs affiliate
+```
+
+`probe` menjalankan dua kelompok:
+
+- **KONTROL** (`shop/get_shop_info`, `ads/get_total_balance`) — membuktikan
+  partner ID, partner key, tanda tangan, dan token memang benar.
+- **KANDIDAT AMS** — daftar jalur hipotesis. Ini tebakan yang sedang diuji,
+  bukan endpoint terdokumentasi.
+
+Cara bacanya: **kontrol hijau + semua kandidat `TIDAK ADA`** = AMS memang tidak
+terbuka untuk aplikasi ini. Kalau kontrolnya sendiri merah, yang salah
+kredensial/otorisasi — hasil kandidat belum bisa dipercaya, dan skrip menolak
+menarik kesimpulan.
+
+Shopee membalas HTTP 200 dengan field `error` di body bahkan saat gagal. Jadi
+balasan non-JSON atau status non-2xx berarti request tidak sampai ke Shopee
+(proxy/firewall), dan dilaporkan `TIDAK KONKLUSIF` — bukan sebagai bukti
+endpoint ada.
+
+### Partner ID vs partner key
+
+| | `SHOPEE_PARTNER_ID` = `2045868` | `SHOPEE_PARTNER_KEY` (`shpk…`) |
+|---|---|---|
+| Sifat | pengenal aplikasi, **bukan rahasia** | **rahasia** |
+| Terlihat di | query string setiap request | tidak pernah keluar dari server |
+| Kalau bocor | tidak apa-apa sendirian | putar ulang segera |
+| Boleh di repo frontend | sebaiknya tetap lewat env | **tidak pernah** |
+
+Keduanya sepasang untuk **satu** platform: Open Platform Seller API. Menambah
+partner ID tidak menambah modul — ia hanya menandai aplikasi mana yang
+menandatangani request.
+
 ### Opsi menuju data live
 
 - **Export CSV berkala** (jalan sekarang, tanpa risiko). Bisa dinaikkan jadi
@@ -136,6 +188,8 @@ dipakai sebagai gantinya.
 ## 5. Struktur file
 
 ```
+scripts/
+  shopee-probe.mjs   diagnosa akses API (dev tool, tidak ikut ter-bundel)
 src/
   shared/
     format.js          formatter angka/tanggal, preset rentang (tanpa React)
