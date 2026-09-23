@@ -1245,7 +1245,7 @@ function TabPenghasilan() {
 // ---------- Card KPI Ads (spec "Cron Iklan") ----------
 // Setiap card punya ID unik → metric resmi Shopee (get_all_cpc_ads_daily_performance).
 // Iklan Toko+ (Shop Ads) TIDAK punya endpoint publik terpisah di Open Platform, jadi
-// SHOP_* dihitung backend sebagai ESTIMASI (total iklan dikurangi Iklan Produk — lihat
+// SHOP_* dihitung backend sebagai ESTIMASI (total iklan dikurangi iklan pencarian — lihat
 // _ads_shop_estimate_daily di backend/app.py), ditandai is_estimate:true di response API.
 // SOV & Produk Terjual tetap TIDAK BISA diestimasi sama sekali (lihat _SHOP_UNAVAILABLE_METRICS
 // di backend) → dua card ini selalu tampil "—", tidak pernah dikarang jadi angka.
@@ -1338,8 +1338,8 @@ function TabAds() {
   };
 
   // Realtime load: hanya card yang aktif; request per-card ke backend (cache 30 detik).
-  // Sumber tab "product": get_all_cpc_ads_daily_performance (sama dgn "Iklan Produk" Seller Centre).
-  // Sumber tab "shop": ESTIMASI backend (total iklan dikurangi Iklan Produk) — respons
+  // Sumber tab "product": get_all_cpc_ads_daily_performance (sama dgn "iklan pencarian" Seller Centre).
+  // Sumber tab "shop": ESTIMASI backend (total iklan dikurangi iklan pencarian) — respons
   // API selalu bawa is_estimate:true di sini, dipakai untuk badge "EST" di card & chart.
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
@@ -1362,7 +1362,7 @@ function TabAds() {
       setBusy(false);
     });
     // Iklan Toko+ (shop) tidak punya versi per-jam → selalu harian.
-    // Iklan Produk: per jam kalau rentang 1 hari, harian kalau lebih.
+    // iklan pencarian: per jam kalau rentang 1 hari, harian kalau lebih.
     const seriesIntervalForTab = adTab === "shop" ? "day" : seriesInterval;
     fetch(`https://api.qukis.id/api/ads/series?metric=${seriesMetric}&interval=${seriesIntervalForTab}&tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}`)
       .then((r) => r.json())
@@ -1396,9 +1396,9 @@ function TabAds() {
 
   return (
     <>
-      {/* Sub-tab: Iklan Produk | Iklan Toko+ */}
+      {/* Sub-tab: iklan pencarian | Iklan Toko+ */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[{ key: "product", label: "Iklan Produk" }, { key: "shop", label: "Iklan Toko+" }].map((t) => {
+        {[{ key: "product", label: "iklan pencarian" }, { key: "shop", label: "Iklan Toko+" }].map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
@@ -1457,7 +1457,7 @@ function TabAds() {
             <span style={{ fontWeight: 600 }}>Angka Iklan Toko+ di bawah ini estimasi, bukan data resmi Shopee.</span>
           </div>
           Shopee Open Platform tidak punya endpoint Shop Ads terpisah — dihitung dari selisih
-          total iklan dikurangi Iklan Produk. SOV dan Produk Terjual tetap tidak bisa dihitung
+          total iklan dikurangi iklan pencarian. SOV dan Produk Terjual tetap tidak bisa dihitung
           sama sekali (card tampil "—"), bukan dikarang jadi nol.
         </InfoNote>
       )}
@@ -1502,7 +1502,7 @@ function TabAds() {
                     <span style={{
                       fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,0.28)",
                       padding: "2px 5px", borderRadius: 5, letterSpacing: 0.4, fontFamily: "Inter, sans-serif", flexShrink: 0,
-                    }} title="Estimasi: total iklan dikurangi Iklan Produk">EST</span>
+                    }} title="Estimasi: total iklan dikurangi iklan pencarian">EST</span>
                   )}
                 </div>
                 <div style={{
@@ -1529,7 +1529,7 @@ function TabAds() {
         })}
       </div>
 
-      {/* Chart time-series — per jam kalau rentang 1 hari (Iklan Produk); Iklan Toko+ selalu harian */}
+      {/* Chart time-series — per jam kalau rentang 1 hari (iklan pencarian); Iklan Toko+ selalu harian */}
       {(adTab === "product" || adTab === "shop") && (
         <Card
           title={`Tren ${adTab === "product" && isSingleDay ? "per jam" : "harian"} — ${metricLabel(seriesMetric)}${adTab === "shop" && !SHOP_UNAVAILABLE_METRICS.includes(seriesMetric) ? " (estimasi)" : ""}`}
