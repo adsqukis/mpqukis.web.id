@@ -1284,6 +1284,82 @@ function AdsSourceNote({ adTab, rt, busy }) {
   );
 }
 
+// ---------- KPI turunan (dihitung dari data resmi Shopee, bukan dikarang) ----------
+// Ambil angka mentah dari response metric. Prioritas m.value (numerik); fallback
+// parse formatted_value format id-ID (Rp / persen / ribuan pakai titik). Kalau
+// formatnya ambigu (mis. ada suffix "rb"/"jt") → return null → tampil "—".
+function adsRawNum(m) {
+  if (!m || !m.success) return null;
+  if (typeof m.value === "number" && Number.isFinite(m.value)) return m.value;
+  const s = m.value != null ? m.value : m.formatted_value;
+  if (typeof s !== "string") return null;
+  let t = s.replace(/rp/i, "").replace(/\s/g, "").replace(/%/g, "");
+  if (/[a-z]/i.test(t)) return null; // ada "rb"/"jt"/"M" → ambigu, jangan tebak
+  t = t.replace(/\./g, "").replace(/,/g, "."); // id-ID: titik=ribuan, koma=desimal
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : null;
+}
+// Bagi aman: butuh pembilang & penyebut valid, penyebut > 0.
+function adsSafeDiv(a, b) {
+  if (a == null || b == null || !Number.isFinite(a) || !Number.isFinite(b) || b === 0) return null;
+  return a / b;
+}
+
+function AdsDerivedKpis({ metrics, adTab, busy }) {
+  const val = (metricName) => {
+    // cari card dengan metric ini di tab aktif
+    const list = adTab === "shop" ? SHOP_CARDS : PRODUCT_CARDS;
+    const card = list.find((c) => c.metric === metricName);
+    return card ? adsRawNum(metrics[card.id]) : null;
+  };
+  const impressions = val("impressions");
+  const clicks = val("clicks");
+  const orders = val("orders");
+  const sales = val("sales");
+  const spend = val("ad_spend");
+
+  const cpc = adsSafeDiv(spend, clicks);
+  const cpm = (() => { const d = adsSafeDiv(spend, impressions); return d == null ? null : d * 1000; })();
+  const acos = (() => { const d = adsSafeDiv(spend, sales); return d == null ? null : d * 100; })();
+  const cr = (() => { const d = adsSafeDiv(orders, clicks); return d == null ? null : d * 100; })();
+  const aov = adsSafeDiv(sales, orders);
+  const cpo = adsSafeDiv(spend, orders);
+
+  const fmtPct = (v) => (v == null ? "—" : `${v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
+  const isEst = adTab === "shop";
+  const items = [
+    { label: "CPC", hint: "Biaya per klik = Biaya ÷ Klik", value: cpc == null ? "—" : fmtRp(Math.round(cpc)) },
+    { label: "CPM", hint: "Biaya per 1.000 tayang = Biaya ÷ Tayang × 1.000", value: cpm == null ? "—" : fmtRp(Math.round(cpm)) },
+    { label: "ACOS", hint: "Biaya iklan ÷ Penjualan (makin kecil makin efisien)", value: fmtPct(acos) },
+    { label: "Conv. Rate", hint: "Pesanan ÷ Klik", value: fmtPct(cr) },
+    { label: "AOV", hint: "Nilai rata-rata order = Penjualan ÷ Pesanan", value: aov == null ? "—" : fmtRp(Math.round(aov)) },
+    { label: "Cost / Order", hint: "Biaya iklan per pesanan = Biaya ÷ Pesanan", value: cpo == null ? "—" : fmtRp(Math.round(cpo)) },
+  ];
+
+  return (
+    <Card
+      title="Efisiensi iklan"
+      subtitle={`Dihitung otomatis dari metrik Shopee di atas${isEst ? " · berbasis angka estimasi Iklan Toko+" : ""} · "—" berarti data mentahnya belum tersedia`}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))", gap: 10 }}>
+        {items.map((it) => (
+          <div key={it.label} title={it.hint} style={{
+            background: "#FAFAFB", border: "1px solid #EEEEF1", borderRadius: 10,
+            padding: "11px 12px", display: "flex", flexDirection: "column", gap: 4, minWidth: 0,
+            opacity: busy ? 0.7 : 1, transition: "opacity .2s ease",
+          }}>
+            <span style={{ fontSize: 11, color: "#8A8A82", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>{it.label}</span>
+            <span style={{
+              fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16.5, color: "#17171A",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}>{busy ? "…" : it.value}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function TabAds() {
   const [adTab, setAdTabState] = useState(() => {
     try { return localStorage.getItem("mp_adtab") === "shop" ? "shop" : "product"; } catch { return "product"; }
@@ -1543,6 +1619,11 @@ function TabAds() {
             </div>
           );
         })}
+      </div>
+
+      {/* KPI turunan (CPC, CPM, ACOS, CR, AOV, Cost/Order) — dari data resmi Shopee */}
+      <div style={{ marginBottom: 16 }}>
+        <AdsDerivedKpis metrics={metrics} adTab={adTab} busy={busy} />
       </div>
 
       {/* Chart time-series — per jam kalau rentang 1 hari (Iklan Produk); Iklan Toko+ selalu harian */}
