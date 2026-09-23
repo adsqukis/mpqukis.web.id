@@ -5,10 +5,17 @@ import {
 } from "recharts";
 import {
   Package, Wallet, Megaphone, Users2, Radio, ChevronRight,
-  ArrowUpRight, ArrowDownRight, Circle, Search, Bell, Store,
+  Search, Bell, Store,
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
 } from "lucide-react";
+
+import {
+  fmtRp, fmtRpShort, isoDaysAgo, fmtDmy, downloadCsv, lightenHex,
+  RANGE_PRESETS, RANGE_FILTERS,
+} from "./shared/format.js";
+import { StatCard, Card, Badge, InfoNote, RangeCalendar } from "./shared/ui.jsx";
+import TabAffiliate from "./affiliate/TabAffiliate.jsx";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API cache — stale-while-revalidate untuk GET ke api.qukis.id.
@@ -70,14 +77,6 @@ import {
   window.__mpApiCache = true;
 })();
 
-const fmtRp = (n) =>
-  "Rp " + Math.round(n).toLocaleString("id-ID");
-
-const fmtRpShort = (n) => {
-  if (Math.abs(n) >= 1_000_000) return "Rp " + (n / 1_000_000).toFixed(1) + "jt";
-  if (Math.abs(n) >= 1_000) return "Rp " + (n / 1_000).toFixed(0) + "rb";
-  return fmtRp(n);
-};
 
 // ---------- mock data ----------
 
@@ -119,13 +118,6 @@ const adsSpendTrend = [
   { d: "Minggu 3", spend: 3.1, gmv: 15.7 }, { d: "Minggu 4", spend: 2.6, gmv: 11.1 },
 ];
 
-const affiliates = [
-  { rank: 1, name: "@dinaskincarereview", followers: "128rb", klik: 3420, order: 214, komisi: 4_280_000 },
-  { rank: 2, name: "@fashiontips.id", followers: "84rb", klik: 2650, order: 156, komisi: 3_120_000 },
-  { rank: 3, name: "@budgetgadget", followers: "61rb", klik: 1980, order: 98, komisi: 1_960_000 },
-  { rank: 4, name: "@homeandliving_ta", followers: "45rb", klik: 1340, order: 71, komisi: 1_420_000 },
-  { rank: 5, name: "@review_jujur99", followers: "37rb", klik: 990, order: 52, komisi: 980_000 },
-];
 
 const liveSessions = [
   { d: "18 Agu", gmv: 4.2 }, { d: "19 Agu", gmv: 2.1 }, { d: "20 Agu", gmv: 6.8 },
@@ -138,94 +130,6 @@ const liveTopProducts = [
   { name: "Lip Cream Matte", qty: 140, gmv: 5_460_000 },
 ];
 
-// ---------- shared bits ----------
-
-// Terang-kan hex (buat gradient card colored-box ala template Fusion)
-const lightenHex = (hex, f = 0.32) => {
-  const n = parseInt(hex.slice(1), 16);
-  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  r = Math.round(r + (255 - r) * f);
-  g = Math.round(g + (255 - g) * f);
-  b = Math.round(b + (255 - b) * f);
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-};
-
-function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accent = "#7C5CBF", active = true, onClick = null }) {
-  return (
-    <div
-      onClick={onClick}
-      title={onClick ? (active ? "Klik untuk sembunyikan dari Total" : "Klik untuk tampilkan lagi") : undefined}
-      style={{
-        background: active ? `linear-gradient(135deg, ${accent} 0%, ${lightenHex(accent)} 100%)` : `linear-gradient(135deg, ${accent} 0%, ${lightenHex(accent)} 100%)`,
-        border: active ? "1px solid rgba(255,255,255,0.18)" : "1px dashed rgba(255,255,255,0.6)",
-        borderRadius: 14,
-        boxShadow: active ? `0 8px 20px ${accent}38` : "none",
-        padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0,
-        opacity: active ? 1 : 0.45,
-        cursor: onClick ? "pointer" : "default",
-        transition: "opacity .15s ease, box-shadow .15s ease",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.88)", fontFamily: "Inter, sans-serif" }}>{label}</span>
-        <div style={{
-          width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,0.22)",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          border: "1px solid rgba(255,255,255,0.25)",
-        }}>
-          <Icon size={16} color="#fff" strokeWidth={2.3} />
-        </div>
-      </div>
-      <div style={{
-        fontFamily: "'Space Grotesk', sans-serif", fontSize: 23, fontWeight: 600,
-        color: "#fff", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-      }}>{value}</div>
-      {delta && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 3, fontSize: 12,
-          color: "rgba(255,255,255,0.92)", fontFamily: "Inter, sans-serif", fontWeight: 500,
-        }}>
-          {deltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-          {delta}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Card({ title, subtitle, children, right }) {
-  return (
-    <div className="mp-card" style={{ background: "#fff", border: "1px solid #ECECEF", borderRadius: 14, boxShadow: "0 1px 2px rgba(23,23,26,0.03), 0 4px 14px rgba(23,23,26,0.04)", padding: "18px 20px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-        <div>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14.5, color: "#17171A" }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{subtitle}</div>}
-        </div>
-        {right}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Badge({ text, color }) {
-  return (
-    <span style={{
-      fontSize: 11.5, fontWeight: 600, color, background: color + "17",
-      padding: "3px 9px", borderRadius: 6, fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
-    }}>{text}</span>
-  );
-}
-
-function InfoNote({ children }) {
-  return (
-    <div style={{
-      fontSize: 12, color: "#8A6A3B", background: "#FFF6E6", border: "1px solid #F5E3BE",
-      borderRadius: 10, padding: "9px 12px", marginBottom: 16, fontFamily: "Inter, sans-serif", lineHeight: 1.5,
-    }}>{children}</div>
-  );
-}
 
 // ---------- tab content ----------
 
@@ -403,30 +307,6 @@ function TabOverview() {
   );
 }
 
-// Helper tanggal lokal (bukan UTC, biar gak geser 1 hari pas malam)
-const isoDaysAgo = (n) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
-
-// Preset rentang tanggal — dipakai row filter & side panel kalender.
-const RANGE_PRESETS = {
-  today: () => ({ from: isoDaysAgo(0), to: isoDaysAgo(0) }),
-  yesterday: () => ({ from: isoDaysAgo(1), to: isoDaysAgo(1) }),
-  "7d": () => ({ from: isoDaysAgo(6), to: isoDaysAgo(0) }),
-  month: () => ({ from: isoDaysAgo(29), to: isoDaysAgo(0) }),
-  year: () => ({ from: isoDaysAgo(364), to: isoDaysAgo(0) }),
-};
-const RANGE_FILTERS = [
-  { key: "today", label: "Hari ini" },
-  { key: "yesterday", label: "Kemarin" },
-  { key: "7d", label: "7 hari terakhir" },
-  { key: "month", label: "Bulan" },
-  { key: "year", label: "Tahun" },
-];
 
 // Produk (dropdown filter). key = pilihan UI, group = nama produk (backend by_produk).
 // Generos Klasik = QKS-GEN01/02/03, 1 Botol = QKS-GEN1, Milk = GenMilk*/nama "Generos Milk".
@@ -474,192 +354,6 @@ const shortProduk = (name) => {
     .replace(/\s*-\s*Generos Official Store.*$/i, "")
     .trim() || name;
 };
-
-// Trigger download CSV client-side.
-function downloadCsv(filename, rows) {
-  const esc = (v) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ---------- Date range calendar (2 bulan, pilih rentang) ----------
-const _BLN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const _HR = ["M", "S", "S", "R", "K", "J", "S"]; // Senin pertama (kalender ala Shopee)
-
-const fmtDmy = (iso) => {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-};
-const parseDmy = (s) => {
-  const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return null;
-  const d = +m[1], mo = +m[2], y = +m[3];
-  if (!(d >= 1 && d <= 31 && mo >= 1 && mo <= 12)) return null;
-  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-};
-
-function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
-  const today = new Date();
-  const base = from ? new Date(+from.slice(0, 4), +from.slice(5, 7) - 1, 1)
-    : new Date(today.getFullYear(), today.getMonth(), 1);
-  const [view, setView] = useState({ y: base.getFullYear(), m: base.getMonth() });
-  const [selFrom, setSelFrom] = useState(from || null);
-  const [selTo, setSelTo] = useState(to || null);
-  const [fromTxt, setFromTxt] = useState(fmtDmy(from));
-  const [toTxt, setToTxt] = useState(fmtDmy(to));
-
-  const shift = (delta) => {
-    let m = view.m + delta;
-    let y = view.y;
-    while (m < 0) { m += 12; y -= 1; }
-    while (m > 11) { m -= 12; y += 1; }
-    setView({ y, m });
-  };
-
-  const pickDay = (y, m, d) => {
-    const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    if (maxDate && iso > maxDate) return;
-    if (!selFrom || (selFrom && selTo)) {
-      setSelFrom(iso);
-      setSelTo(null);
-      setFromTxt(fmtDmy(iso));
-      setToTxt("");
-    } else {
-      const a = iso < selFrom ? iso : selFrom;
-      const b = iso < selFrom ? selFrom : iso;
-      setSelFrom(a);
-      setSelTo(b);
-      setFromTxt(fmtDmy(a));
-      setToTxt(fmtDmy(b));
-      // Range lengkap → langsung apply, tanpa klik Terapkan
-      onApply(a, b);
-      onClose();
-    }
-  };
-
-  const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-
-  const renderMonth = (y, m) => {
-    const dim = daysInMonth(y, m);
-    // offset per-bulan: Senin=0 (getDay: 0=Min..6=Sab → (firstDow+6)%7)
-    const firstDow = new Date(y, m, 1).getDay();
-    const offset = (firstDow + 6) % 7;
-    const cells = [];
-    for (let i = 0; i < offset; i++) {
-      cells.push(<div key={`sp${i}`} style={{ width: 34, height: 30, margin: 1 }} />);
-    }
-    for (let d = 1; d <= dim; d++) {
-      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      let bg = "#fff", color = "#17171A", radius = 0;
-      const inRange = selFrom && selTo && iso >= selFrom && iso <= selTo;
-      const isStart = selFrom === iso;
-      const isEnd = selTo === iso;
-      if (inRange) { bg = "#FDECEA"; }
-      if (isStart || isEnd) { bg = "#7C5CBF"; color = "#fff"; radius = 8; }
-      const disabled = maxDate && iso > maxDate;
-      cells.push(
-        <div key={iso} onClick={() => !disabled && pickDay(y, m, d)}
-          style={{
-            width: 34, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontFamily: "'JetBrains Mono', monospace", cursor: disabled ? "default" : "pointer",
-            background: bg, color: disabled ? "#D8D2CE" : color, borderRadius: radius, margin: 1,
-          }}>{d}</div>
-      );
-    }
-    return (
-      <div>
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13.5, marginBottom: 8, color: "#17171A", fontFamily: "'Space Grotesk', sans-serif" }}>
-          {_BLN[m]} {y}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,34px)", gap: 1, justifyContent: "center" }}>
-          {_HR.map((h, i) => <div key={i} style={{ width: 34, textAlign: "center", fontSize: 10.5, color: "#8A8A82", paddingBottom: 4 }}>{h}</div>)}
-          {cells}
-        </div>
-      </div>
-    );
-  };
-
-  const view2 = view.m === 11 ? { y: view.y + 1, m: 0 } : { y: view.y, m: view.m + 1 };
-
-  const quickApply = (key) => {
-    const fn = RANGE_PRESETS[key];
-    if (!fn) return;
-    const { from: f, to: t } = fn();
-    if (maxDate && t > maxDate) return;
-    setSelFrom(f);
-    setSelTo(t);
-    setFromTxt(fmtDmy(f));
-    setToTxt(fmtDmy(t));
-    onApply(f, t);
-    onClose();
-  };
-
-  return (
-    <div style={{
-      position: "absolute", zIndex: 50, top: "calc(100% + 6px)", left: 0,
-      background: "#fff", border: "1px solid #E4E4E8", borderRadius: 14, boxShadow: "0 10px 30px rgba(23,23,26,.12)",
-      padding: "14px 16px", width: 700, maxWidth: "94vw",
-    }}>
-      <div style={{ display: "flex", gap: 14 }}>
-        {/* Side panel preset — klik langsung terapkan (gaya Shopee) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 118, borderRight: "1px solid #ECECEF", paddingRight: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#8A8A82", marginBottom: 4, fontFamily: "Inter, sans-serif", letterSpacing: 0.4 }}>PRESET</div>
-          {RANGE_FILTERS.map((f) => {
-            const pd = RANGE_PRESETS[f.key]();
-            const active = from === pd.from && to === pd.to;
-            return (
-              <button key={f.key} onClick={() => quickApply(f.key)} style={{
-                textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer",
-                background: active ? "linear-gradient(135deg,#7C5CBF,#5B7CFA)" : "transparent",
-                color: active ? "#fff" : "#3A3A40", fontSize: 12, fontWeight: active ? 700 : 500,
-                fontFamily: "Inter, sans-serif",
-              }}>{f.label}</button>
-            );
-          })}
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <button onClick={() => shift(-1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#7C5CBF" }}>‹</button>
-            <div style={{ display: "flex", gap: 24 }}>
-              <div>{renderMonth(view.y, view.m)}</div>
-              <div>{renderMonth(view2.y, view2.m)}</div>
-            </div>
-            <button onClick={() => shift(1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#7C5CBF" }}>›</button>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#8A8A82" }}>Dari</span>
-            <input value={fromTxt} onChange={(e) => setFromTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #E4E4E8", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
-            <span style={{ fontSize: 12, color: "#8A8A82" }}>sampai</span>
-            <input value={toTxt} onChange={(e) => setToTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #E4E4E8", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
-            <button onClick={onClose} style={{
-              padding: "7px 12px", borderRadius: 9, border: "1px solid #E4E4E8", background: "#fff",
-              color: "#6B7280", fontSize: 12.5, cursor: "pointer",
-            }}>Batal</button>
-          </div>
-          <div style={{ fontSize: 11, color: "#8A8A82", textAlign: "center", marginTop: 8, fontFamily: "Inter, sans-serif" }}>
-            Klik tanggal awal & akhir di kalender — rentang langsung diterapkan.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function TabPesanan() {
   const [range, setRange] = useState("7d");
@@ -1558,51 +1252,6 @@ function TabAds() {
           )}
         </Card>
       )}
-    </>
-  );
-}
-
-function TabAffiliate() {
-  return (
-    <>
-      <InfoNote>
-        Data tidak tersedia — data affiliate berasal dari program terpisah (Shopee Affiliate / Program Terbuka Kreator), bukan Open Platform standar. Perlu akses API tersendiri untuk data klik dan komisi; akses tersebut belum tersedia untuk aplikasi ini.
-      </InfoNote>
-      {false && (<>
-      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard icon={Users2} label="Affiliate aktif" value="37" delta="+4 bulan ini" accent="#7C5CBF" />
-        <StatCard icon={Package} label="Pesanan dari affiliate" value="591" delta="+22% MoM" accent="#2E6BE0" />
-        <StatCard icon={ArrowUpRight} label="Klik link affiliate" value="10.4rb" delta="+8.9% MoM" accent="#B8860B" />
-        <StatCard icon={Wallet} label="Total komisi dibayar" value={fmtRpShort(11_760_000)} accent="#1E9E6F" />
-      </div>
-
-      <Card title="Papan peringkat affiliate" subtitle="Berdasarkan komisi bulan ini">
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: "#8A8A82", fontSize: 11.5 }}>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>#</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>Kreator</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pengikut</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Klik</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pesanan</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Komisi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {affiliates.map((a) => (
-              <tr key={a.name} style={{ borderTop: "1px solid #F1F1F4" }}>
-                <td style={{ padding: "9px 0", color: "#8A8A82", fontFamily: "'JetBrains Mono', monospace" }}>{a.rank}</td>
-                <td style={{ padding: "9px 0", color: "#17171A", fontWeight: 500 }}>{a.name}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", color: "#4A4A45" }}>{a.followers}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.klik.toLocaleString("id-ID")}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.order}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtRp(a.komisi)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      </>)}
     </>
   );
 }
