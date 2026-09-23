@@ -1211,6 +1211,79 @@ const SHOP_CARDS = [
   { id: "SHOP_AD_SPEND", label: "Biaya Iklan", metric: "ad_spend", icon: Wallet, accent: "#B8860B" },
 ];
 
+// ---------- Panel keterangan sumber data (realtime) ----------
+// Menjelaskan SECARA EKSPLISIT dari mana tiap angka di tab Ads ditarik:
+// endpoint dashboard → metode Shopee Open Platform → status real/estimasi → kesegaran.
+// Sengaja tidak mengarang: kalau backend belum kasih freshness (rt), baris itu tampil "—".
+function AdsSourceNote({ adTab, rt, busy }) {
+  const isShop = adTab === "shop";
+  const freshHour = rt && rt.latest_hour != null ? `${String(rt.latest_hour).padStart(2, "0")}:00 WIB` : null;
+  const src = isShop
+    ? {
+        chan: "Iklan Toko+",
+        ChanIcon: Store,
+        method: "Turunan: total belanja iklan − Iklan Produk (get_all_cpc_ads_*_performance)",
+        real: false,
+      }
+    : {
+        chan: "Iklan Produk (tampil di Pencarian & Rekomendasi)",
+        ChanIcon: Search,
+        method: "Shopee Open Platform · get_all_cpc_ads_daily / hourly_performance",
+        real: true,
+      };
+  const rowStyle = { display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, fontFamily: "Inter, sans-serif", color: "#4B4B52", lineHeight: 1.5 };
+  const keyStyle = { color: "#8A8A82", flexShrink: 0, width: 118, fontWeight: 500 };
+  const mono = { fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#2E6BE0", wordBreak: "break-word" };
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #ECECEF", borderRadius: 12,
+      boxShadow: "0 1px 2px rgba(23,23,26,0.03)", padding: "13px 15px", marginBottom: 14,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: "#7C5CBF14", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Radio size={14} color="#7C5CBF" strokeWidth={2.2} />
+        </div>
+        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 13.5, color: "#17171A" }}>
+          Sumber data · realtime
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: "auto", fontSize: 11, color: busy ? "#B8860B" : "#1E9E6F", fontFamily: "Inter, sans-serif", fontWeight: 600 }}>
+          <Circle size={7} fill="currentColor" strokeWidth={0} />
+          {busy ? "menarik…" : "aktif · auto refresh 30 dtk"}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        <div style={rowStyle}>
+          <span style={keyStyle}>Channel</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <src.ChanIcon size={13} color="#5F6368" strokeWidth={2.1} />
+            <span style={{ fontWeight: 600, color: "#17171A" }}>{src.chan}</span>
+            <Badge text={src.real ? "DATA RESMI" : "ESTIMASI"} color={src.real ? "#1E9E6F" : "#B8860B"} />
+          </span>
+        </div>
+        <div style={rowStyle}>
+          <span style={keyStyle}>Metode Shopee</span>
+          <span>{src.method}</span>
+        </div>
+        <div style={rowStyle}>
+          <span style={keyStyle}>Endpoint app</span>
+          <span style={mono}>GET api.qukis.id/api/ads/metric · /series · /realtime</span>
+        </div>
+        <div style={rowStyle}>
+          <span style={keyStyle}>Kesegaran</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span>{freshHour ? `Data s.d. ${freshHour}` : "Jam data terakhir —"}</span>
+            <span style={{ color: "#D0D0D4" }}>|</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Wallet size={12} color="#8A8A82" strokeWidth={2.1} />
+              Saldo iklan {rt && rt.balance != null ? fmtRp(rt.balance) : "—"}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TabAds() {
   const [adTab, setAdTabState] = useState(() => {
     try { return localStorage.getItem("mp_adtab") === "shop" ? "shop" : "product"; } catch { return "product"; }
@@ -1389,6 +1462,9 @@ function TabAds() {
           {displayLabel} · auto refresh 30 detik
         </span>
       </div>
+
+      {/* Keterangan sumber data realtime — dari mana tiap angka ditarik */}
+      <AdsSourceNote adTab={adTab} rt={rt} busy={busy} />
 
       {adTab === "shop" && (
         <InfoNote>
