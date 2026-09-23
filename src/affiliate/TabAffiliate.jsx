@@ -10,7 +10,8 @@ import { fmtDmyDash, isoDaysAgo, fmtRp, fmtNum } from "../shared/format.js";
 import {
   METRICS, AFFILIATE_CHANNELS, ORDER_TYPES, PERIODS,
   formatMetric, computeDelta, fetchAffiliateMetrics,
-  parseAffiliateCsv, snapshotFromCsvRows, demoSnapshot,
+  parseAffiliateCsv, rowsToAffiliate, mergeAffiliateRows,
+  snapshotFromCsvRows, demoSnapshot,
 } from "./model.js";
 
 const LS = {
@@ -77,8 +78,8 @@ function SourceBanner({ resolved, error, csvMeta, onClearCsv }) {
           <span style={{ fontWeight: 600 }}>Angka di bawah ini bukan data toko kamu.</span>
         </div>
         Dipakai untuk menilai tata letak saja. Ganti ke <b>File CSV</b> (import hasil export
-        Metrik Utama dari Seller Centre) atau <b>Live API</b> kalau endpoint AMS sudah tersedia
-        di backend.
+        .xlsx/.csv Metrik Utama dari Seller Centre) atau <b>Live API</b> kalau endpoint AMS
+        sudah tersedia di backend.
       </InfoNote>
     );
   }
@@ -119,7 +120,7 @@ function SourceBanner({ resolved, error, csvMeta, onClearCsv }) {
       backend perlu menyediakan <code>/api/affiliate/metrics</code> lebih dulu.
       {error ? <div style={{ marginTop: 4, opacity: .85 }}>Status percobaan live: {error}</div> : null}
       <div style={{ marginTop: 6 }}>
-        Jalan tercepat sekarang: <b>Import CSV</b> hasil export dari halaman Metrik Utama.
+        Jalan tercepat sekarang: <b>Import</b> hasil export (.xlsx / .csv) dari halaman Metrik Utama.
       </div>
     </InfoNote>
   );
@@ -204,37 +205,66 @@ export default function TabAffiliate() {
   const previous = snap?.previous || null;
   const series = snap?.series || null;
 
-  const onFile = (e) => {
+  // Pesan ramah untuk kegagalan baca .xlsx — kode teknis tidak berguna di layar.
+  const XLSX_ERR = {
+    BUKAN_ZIP: "File ini bukan .xlsx yang valid.",
+    ZIP64_TIDAK_DIDUKUNG: "Format file terlalu besar (ZIP64). Buka di Excel lalu simpan ulang sebagai CSV.",
+    BROWSER_TANPA_DECOMPRESSION: "Browser ini belum bisa membaca .xlsx langsung. Simpan sebagai CSV dulu.",
+    SHEET_TIDAK_DITEMUKAN: "Tidak ada sheet yang bisa dibaca di file ini.",
+    CENTRAL_DIR_RUSAK: "File .xlsx-nya rusak. Coba download ulang dari Seller Centre.",
+    HEADER_LOKAL_RUSAK: "File .xlsx-nya rusak. Coba download ulang dari Seller Centre.",
+  };
+
+  const onFile = async (e) => {
     const f = e.target.files && e.target.files[0];
+    e.target.value = "";
     if (!f) return;
     setCsvError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = parseAffiliateCsv(String(reader.result || ""));
-      if (!parsed.rows.length) {
-        setCsvError(parsed.warnings.join(" ") || "File tidak bisa dibaca.");
-        return;
+
+    let parsed;
+    try {
+      const buf = await f.arrayBuffer();
+      // Dikenali dari isi file, bukan ekstensinya — nama bisa salah, isi tidak.
+      const head = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+      const isZip = head[0] === 0x50 && head[1] === 0x4b;
+      if (isZip) {
+        // Dimuat saat dibutuhkan saja, jadi tidak menambah berat halaman awal.
+        const { readXlsxRows } = await import("./xlsx.js");
+        parsed = rowsToAffiliate(await readXlsxRows(buf));
+      } else {
+        parsed = parseAffiliateCsv(new TextDecoder("utf-8").decode(buf));
       }
-      const dates = parsed.rows.map((r) => r.date).filter(Boolean).sort();
-      const payload = {
-        rows: parsed.rows,
-        name: f.name,
-        rowCount: parsed.rows.length,
-        matched: parsed.matched,
-        warnings: parsed.warnings,
-        dateFrom: dates[0] || null,
-        dateTo: dates[dates.length - 1] || null,
-      };
-      setCsv(payload);
-      setSource("csv");
-      // Lompat ke tanggal terakhir di file supaya langsung kelihatan isinya.
-      if (payload.dateTo) setDate(payload.dateTo);
-      try { localStorage.setItem(LS.csv, JSON.stringify(payload)); }
-      catch { setCsvError("Data terbaca, tapi terlalu besar untuk disimpan di browser — hilang saat refresh."); }
+    } catch (err) {
+      setCsvError(XLSX_ERR[err.message] || `Gagal membaca file: ${err.message}`);
+      return;
+    }
+
+    if (!parsed.rows.length) {
+      setCsvError(parsed.warnings.join(" ") || "File tidak bisa dibaca.");
+      return;
+    }
+
+    // Riwayat ditumpuk antar import, bukan ditimpa — sekali export harian,
+    // grafik trennya ikut memanjang.
+    const merged = mergeAffiliateRows(csv?.rows || [], parsed.rows);
+    const dates = merged.map((r) => r.date).filter(Boolean).sort();
+    const payload = {
+      rows: merged,
+      name: f.name,
+      rowCount: merged.length,
+      addedCount: parsed.rows.length,
+      matched: parsed.matched,
+      warnings: parsed.warnings,
+      dateFrom: dates[0] || null,
+      dateTo: dates[dates.length - 1] || null,
     };
-    reader.onerror = () => setCsvError("Gagal membaca file.");
-    reader.readAsText(f, "utf-8");
-    e.target.value = "";
+
+    setCsv(payload);
+    setSource("csv");
+    // Lompat ke tanggal terakhir supaya isinya langsung kelihatan.
+    if (payload.dateTo) setDate(payload.dateTo);
+    try { localStorage.setItem(LS.csv, JSON.stringify(payload)); }
+    catch { setCsvError("Data terbaca, tapi terlalu besar untuk disimpan di browser — hilang saat refresh."); }
   };
 
   const clearCsv = () => {
@@ -300,16 +330,16 @@ export default function TabAffiliate() {
 
           <button
             onClick={() => fileRef.current && fileRef.current.click()}
-            title="Import CSV hasil export Metrik Utama dari Seller Centre"
+            title="Import hasil export Metrik Utama dari Seller Centre (.xlsx atau .csv). Import berikutnya menambah riwayat, bukan menimpa."
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: "#fff", border: "1px solid #E4E4E8", borderRadius: 10,
               padding: "7px 12px", cursor: "pointer", fontSize: 12.5, fontWeight: 600,
               color: "#5F6368", fontFamily: "Inter, sans-serif",
             }}>
-            <Upload size={14} /> Import CSV
+            <Upload size={14} /> Import
           </button>
-          <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: "none" }} />
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={onFile} style={{ display: "none" }} />
 
           <button
             onClick={() => setTick((t) => t + 1)}

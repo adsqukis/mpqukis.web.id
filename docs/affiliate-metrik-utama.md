@@ -163,9 +163,11 @@ Aturan:
 
 ---
 
-## 4. Import CSV
+## 4. Import file export
 
-Tombol **Import CSV** membaca hasil export dari halaman Metrik Utama.
+Tombol **Import** membaca hasil export dari halaman Metrik Utama, **.xlsx maupun
+.csv**. Jenis file dikenali dari isinya (magic bytes `PK`), bukan dari
+ekstensinya — nama file bisa salah, isinya tidak.
 
 Parser (`parseAffiliateCsv`) dibuat toleran karena nama kolom export berubah
 antar versi dan antar bahasa:
@@ -179,8 +181,32 @@ antar versi dan antar bahasa:
 - Tanggal: `21-09-2026`, `21/09/2026`, `2026-09-21`.
 - `ROI` diturunkan kalau kolomnya tidak ada.
 
-Hasil parsing disimpan di `localStorage`, jadi bertahan setelah refresh. Kalau
-tanggal yang dipilih tidak ada di file, UI memberi tahu tanggal mana yang
+### .xlsx tanpa dependensi
+
+`src/affiliate/xlsx.js` membaca .xlsx sendiri: format itu hanya arsip ZIP berisi
+XML, dan inflate-nya memakai `DecompressionStream` bawaan browser.
+
+Alasannya bukan menghindari pustaka demi menghindari pustaka. Paket `xlsx` di
+npm berhenti di 0.18.5 dan punya riwayat security advisory; `exceljs` berukuran
+puluhan MB. Keduanya berlebihan untuk membaca satu sheet datar. Pembaca sendiri
+ini ter-*code split* menjadi chunk ~3,6 KB (1,8 KB gzip) yang baru diunduh saat
+tombol import dipakai, jadi halaman awal tidak ikut berat.
+
+Yang ditangani: entri ZIP `stored` maupun `deflate`, `sharedStrings`, sel
+`inlineStr`, kolom kosong yang dilewat Excel, urutan sheet sesuai
+`workbook.xml`, dan **sel tanggal asli Excel** (angka serial + format tanggal
+dari `styles.xml`) yang dikonversi ke ISO. ZIP64 ditolak dengan pesan jelas,
+bukan dibaca separuh.
+
+### Riwayat menumpuk antar import
+
+Import berikutnya **menambah**, bukan menimpa. Baris dikunci `tanggal + kanal`;
+import terbaru menang, karena angka pesanan di Shopee masih bisa dikoreksi
+beberapa hari setelahnya.
+
+Efek praktisnya: export harian bikin grafik tren makin panjang, melewati batas
+rentang satu file. Semua disimpan di `localStorage`, jadi bertahan setelah
+refresh. Kalau tanggal yang dipilih tidak ada, UI memberi tahu tanggal mana yang
 dipakai sebagai gantinya.
 
 ---
@@ -196,6 +222,7 @@ src/
     ui.jsx             StatCard, Card, Badge, InfoNote, MetricTile, RangeCalendar
   affiliate/
     model.js           metrik, parser CSV, normalisasi API, data contoh
+    xlsx.js            pembaca .xlsx tanpa dependensi (lazy-loaded)
     TabAffiliate.jsx   layar Metrik Utama
 ```
 

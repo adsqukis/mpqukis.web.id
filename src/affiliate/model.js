@@ -213,9 +213,13 @@ function channelKeyOf(raw) {
 }
 
 // CSV → baris ternormalisasi {date, channel, ...metrik}.
-// Hanya kolom yang benar-benar ketemu yang diisi; sisanya null.
 export function parseAffiliateCsv(text) {
-  const rows = parseCsv(text);
+  return rowsToAffiliate(parseCsv(text));
+}
+
+// Baris mentah (dari CSV maupun .xlsx) → {date, channel, ...metrik}.
+// Hanya kolom yang benar-benar ketemu yang diisi; sisanya null.
+export function rowsToAffiliate(rows) {
   if (rows.length < 2) {
     return { rows: [], matched: {}, warnings: ["File tidak punya baris data."] };
   }
@@ -262,6 +266,20 @@ export function parseAffiliateCsv(text) {
   const matched = {};
   for (const f of Object.keys(map)) matched[f] = rows[headerIdx][map[f]];
   return { rows: out, matched, warnings };
+}
+
+// Gabungkan baris lama dengan hasil import baru. Kunci = tanggal + kanal;
+// baris baru menimpa yang lama supaya koreksi dari Shopee (angka pesanan masih
+// bisa berubah beberapa hari) selalu menang. Baris tanpa tanggal tidak bisa
+// dikunci, jadi hanya yang terbaru yang disimpan.
+export function mergeAffiliateRows(existing, incoming) {
+  const key = (r) => `${r.date || ""}|${r.channel || "all"}`;
+  const map = new Map();
+  for (const r of existing || []) if (r.date) map.set(key(r), r);
+  for (const r of incoming || []) if (r.date) map.set(key(r), r);
+  const dated = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const undated = (incoming || []).filter((r) => !r.date);
+  return dated.length ? dated : undated;
 }
 
 // Ambil snapshot dari kumpulan baris CSV: baris untuk tanggal & channel terpilih,

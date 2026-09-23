@@ -16,7 +16,7 @@ Tab **Affiliate** meniru layar *Metrik Utama* di Affiliate Marketing Solution
 
 AMS **belum punya endpoint di Shopee Open Platform**, jadi layar ini punya tiga
 sumber data: `Live API` (kalau backend sudah menyediakannya), `File CSV` (import
-hasil export Seller Centre — jalur yang jalan hari ini), dan `Contoh` (berlabel
+hasil export Seller Centre, .xlsx atau .csv — jalur yang jalan hari ini), dan `Contoh` (berlabel
 `CONTOH`, untuk menilai tata letak). Tanpa data, kartu menampilkan `—`, bukan 0.
 
 > **Kredensial:** repo ini statis — apa pun di sini terkirim ke browser. Partner
