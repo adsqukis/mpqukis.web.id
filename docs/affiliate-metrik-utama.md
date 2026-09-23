@@ -70,7 +70,9 @@ node scripts/shopee-probe.mjs token <code> <shop_id>
 # 2. uji modul mana yang terbuka
 SHOPEE_SHOP_ID=... SHOPEE_ACCESS_TOKEN=... node scripts/shopee-probe.mjs probe
 
-# 3. uji apakah kredensial ini dikenali Affiliate Open API (platform terpisah)
+# 3. Affiliate Open API — platform terpisah, kredensial sendiri
+export SHOPEE_AFFILIATE_APP_ID=...
+export SHOPEE_AFFILIATE_SECRET=...        # RAHASIA
 node scripts/shopee-probe.mjs affiliate
 ```
 
@@ -90,6 +92,41 @@ Shopee membalas HTTP 200 dengan field `error` di body bahkan saat gagal. Jadi
 balasan non-JSON atau status non-2xx berarti request tidak sampai ke Shopee
 (proxy/firewall), dan dilaporkan `TIDAK KONKLUSIF` — bukan sebagai bukti
 endpoint ada.
+
+### Kredensial Affiliate Open API tanpa dokumentasi
+
+Kredensial Affiliate Open API sering diberikan tanpa dokumentasi. Perintah
+`affiliate` dirancang untuk keadaan itu dan tidak menebak apa pun:
+
+1. **Menemukan skema tanda tangan.** Dicoba dua kombinasi lazim —
+   `SHA256(appId + ts + payload + secret)` dan
+   `HMAC-SHA256(secret, appId + ts + payload)` — terhadap endpoint `.co.id`
+   dan `.com`, lalu dilaporkan mana yang diterima. Ditolak karena tanda tangan
+   salah dibedakan dari gagal karena jaringan: yang pertama membalas JSON
+   GraphQL, yang kedua tidak membalas JSON sama sekali. Tanpa pembedaan itu,
+   jaringan yang memblokir terbaca seolah kredensialnya ditolak.
+
+2. **Menanyakan isinya ke API.** Begitu satu kombinasi lolos, dijalankan
+   introspeksi GraphQL — API menyebutkan sendiri seluruh query yang tersedia
+   beserta parameter dan tipe hasilnya. Daftar kemampuan didapat tanpa dokumen.
+
+3. **Menilai relevansinya.** Query yang namanya menyiratkan sisi toko/penjual
+   ditandai, karena layar Metrik Utama butuh data penjual, bukan data konversi
+   milik satu akun affiliate.
+
+Kalau introspeksi dimatikan di sisi server, yang perlu diminta ke pemberi
+kredensial hanya daftar nama query dan parameternya — bukan dokumen lengkap.
+
+### Affiliate Open API bukan pengganti AMS
+
+Perlu ditegaskan karena mudah tertukar: Affiliate Open API melayani **akun
+affiliate** — konversi dan komisi milik akun itu sendiri. Metrik Utama adalah
+sisi **penjual**: performa toko dari seluruh affiliate yang mempromosikannya.
+
+Kredensial affiliate karena itu belum tentu membuka layar ini. Perintah
+`affiliate` ada supaya pertanyaan tersebut dijawab bukti, bukan dugaan. Kalau
+daftar query-nya ternyata seluruhnya laporan milik akun affiliate, jalur export
+tetap dipakai.
 
 ### Partner ID vs partner key
 
