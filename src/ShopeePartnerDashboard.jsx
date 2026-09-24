@@ -1628,9 +1628,52 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
   );
 }
 
+// ---------- Sub-tab Iklan CPAS ----------
+// Backend mengirim kategori "cpas" di /api/ads/detail. Selama AMS belum
+// di-approve (HTTP 403) kategori itu bawa `note` dan angka 0 — di sini
+// ditampilkan "—", bukan nol, supaya tidak terbaca "tidak ada iklan".
+// Begitu backend mengirim angka tanpa `note`, card langsung terisi.
+function TabAdsCpas({ detail, displayLabel }) {
+  const cat = detail && Array.isArray(detail.categories) ? detail.categories.find((c) => c.key === "cpas") : null;
+  const unavailable = !cat || !!cat.note;
+  const v = (fn, x) => (unavailable ? "—" : fn(x));
+  const tiles = [
+    { label: "Budget", value: v(afMoney, cat && cat.budget), accent: "#7C5CBF" },
+    { label: "Klik", value: v(afNum, cat && cat.klik), accent: "#2E6BE0" },
+    { label: "Closing", value: v(afNum, cat && cat.closing), accent: "#F09040" },
+    { label: "Box (terjual)", value: v(afNum, cat && cat.box), accent: "#1E9E6F" },
+    { label: "GMV", value: v(afMoney, cat && cat.gmv), accent: "#D04C8F" },
+    { label: "ROAS", value: v(afRoas, cat && cat.roas), accent: "#B8860B" },
+  ];
+  return (
+    <Card
+      title="Iklan CPAS"
+      subtitle={detail
+        ? `${fmtDmy(detail.from)} – ${fmtDmy(detail.to)} · ${displayLabel} · placement ${cat && cat.placement ? cat.placement : "—"} · ${afNum(cat && cat.count)} campaign · /api/ads/detail`
+        : "Memuat…"}
+    >
+      {!detail ? <AfMuted>Memuat…</AfMuted> : (
+        <>
+          {!cat && <InfoNote>Backend belum mengirim kategori CPAS di /api/ads/detail.</InfoNote>}
+          {cat && cat.note && (
+            <InfoNote>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>Data CPAS belum tersedia.</div>
+              {cat.note}. Angka di bawah tampil "—" karena API-nya belum bisa diakses — bukan karena tidak ada iklan.
+            </InfoNote>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {tiles.map((t) => <AfTile key={t.label} label={t.label} value={t.value} accent={t.accent} />)}
+          </div>
+          <AfSource text={detail.source} at={detail.generated_at} />
+        </>
+      )}
+    </Card>
+  );
+}
+
 function TabAds() {
   const [adTab, setAdTabState] = useState(() => {
-    try { return localStorage.getItem("mp_adtab") === "shop" ? "shop" : "product"; } catch { return "product"; }
+    try { const k = localStorage.getItem("mp_adtab"); return k === "shop" || k === "cpas" ? k : "product"; } catch { return "product"; }
   });
   const setAdTab = (k) => {
     setAdTabState(k);
@@ -1704,34 +1747,43 @@ function TabAds() {
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
   const loadData = (active) => {
-    setBusy(true);
-    const base = `https://api.qukis.id/api/ads/metric?tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}&timezone=Asia/Jakarta`;
-    Promise.all(
-      cards.map((c) =>
-        fetch(`${base}&card=${c.id}`)
-          .then((r) => r.json())
-          .catch(() => ({ success: false, error: "NETWORK_ERROR" }))
-          .then((res) => [c.id, res])
-      )
-    ).then((entries) => {
-      if (!active) return;
-      const obj = Object.fromEntries(entries);
-      setMetrics(obj);
-      const bad = cards.map((c) => obj[c.id]).find((m) => m && !m.success);
-      setLastErr(bad ? bad.error || "ERROR" : null);
-      setBusy(false);
-    });
-    // Iklan Toko+ (shop) tidak punya versi per-jam → selalu harian.
-    // iklan pencarian: per jam kalau rentang 1 hari, harian kalau lebih.
-    const seriesIntervalForTab = adTab === "shop" ? "day" : seriesInterval;
-    fetch(`https://api.qukis.id/api/ads/series?metric=${seriesMetric}&interval=${seriesIntervalForTab}&tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => {
+    // Sub-tab CPAS: backend /api/ads/metric & /series hanya kenal tab product|shop,
+    // jadi card KPI + chart di-skip; CPAS dirender dari kategori "cpas" di /api/ads/detail.
+    const isCpas = adTab === "cpas";
+    setBusy(!isCpas);
+    if (isCpas) {
+      setMetrics({});
+      setSeries(null);
+      setLastErr(null);
+    } else {
+      const base = `https://api.qukis.id/api/ads/metric?tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}&timezone=Asia/Jakarta`;
+      Promise.all(
+        cards.map((c) =>
+          fetch(`${base}&card=${c.id}`)
+            .then((r) => r.json())
+            .catch(() => ({ success: false, error: "NETWORK_ERROR" }))
+            .then((res) => [c.id, res])
+        )
+      ).then((entries) => {
         if (!active) return;
-        if (d && d.success) setSeries(d.points || []);
-        else setSeries([]); // metrik gak valid utk tab ini (mis. SOV/sold di shop) → jangan nampilin chart tab sebelumnya
-      })
-      .catch(() => {});
+        const obj = Object.fromEntries(entries);
+        setMetrics(obj);
+        const bad = cards.map((c) => obj[c.id]).find((m) => m && !m.success);
+        setLastErr(bad ? bad.error || "ERROR" : null);
+        setBusy(false);
+      });
+      // Iklan Toko+ (shop) tidak punya versi per-jam → selalu harian.
+      // iklan toko dan pencarian: per jam kalau rentang 1 hari, harian kalau lebih.
+      const seriesIntervalForTab = adTab === "shop" ? "day" : seriesInterval;
+      fetch(`https://api.qukis.id/api/ads/series?metric=${seriesMetric}&interval=${seriesIntervalForTab}&tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!active) return;
+          if (d && d.success) setSeries(d.points || []);
+          else setSeries([]); // metrik gak valid utk tab ini (mis. SOV/sold di shop) → jangan nampilin chart tab sebelumnya
+        })
+        .catch(() => {});
+    }
     // Freshness: saldo iklan + jam terakhir yang ada datanya (endpoint realtime, cache 30s).
     fetch("https://api.qukis.id/api/ads/realtime")
       .then((r) => r.json())
@@ -1771,7 +1823,11 @@ function TabAds() {
     <>
       {/* Sub-tab: iklan pencarian | Iklan Toko+ */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[{ key: "product", label: "iklan pencarian" }, { key: "shop", label: "Iklan Toko+" }].map((t) => {
+        {[
+          { key: "product", label: "iklan toko dan pencarian" },
+          { key: "cpas", label: "iklan CPAS" },
+          { key: "shop", label: "Iklan Toko+" },
+        ].map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
@@ -1823,6 +1879,8 @@ function TabAds() {
         </span>
       </div>
 
+      {adTab === "cpas" && <TabAdsCpas detail={detail} displayLabel={displayLabel} />}
+
       {adTab === "shop" && (
         <InfoNote>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
@@ -1846,7 +1904,8 @@ function TabAds() {
         </div>
       )}
 
-      {/* Grid card KPI */}
+      {/* Grid card KPI (product | shop) */}
+      {adTab !== "cpas" && (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
         {cards.map((c) => {
           const Icon = c.icon;
@@ -1901,8 +1960,9 @@ function TabAds() {
           );
         })}
       </div>
+      )}
 
-      {/* Chart time-series — per jam kalau rentang 1 hari (iklan pencarian); Iklan Toko+ selalu harian */}
+      {/* Chart time-series — per jam kalau rentang 1 hari (iklan toko dan pencarian); Iklan Toko+ selalu harian */}
       {(adTab === "product" || adTab === "shop") && (
         <Card
           title={`Tren ${adTab === "product" && isSingleDay ? "per jam" : "harian"} — ${metricLabel(seriesMetric)}${adTab === "shop" && !SHOP_UNAVAILABLE_METRICS.includes(seriesMetric) ? " (estimasi)" : ""}`}
@@ -1932,7 +1992,9 @@ function TabAds() {
         </Card>
       )}
 
-      <AdsFullData rt={rt} detail={detail} ov={ov} camps={camps} dRange={dRange} displayLabel={displayLabel} />
+      {adTab !== "cpas" && (
+        <AdsFullData rt={rt} detail={detail} ov={ov} camps={camps} dRange={dRange} displayLabel={displayLabel} />
+      )}
     </>
   );
 }
