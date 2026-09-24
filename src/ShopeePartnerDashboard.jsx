@@ -1271,9 +1271,409 @@ const SHOP_CARDS = [
   { id: "SHOP_AD_SPEND", label: "Biaya Iklan", metric: "ad_spend", icon: Wallet, accent: "#B8860B" },
 ];
 
+// ---------- Data lengkap Shopee Ads ----------
+// Menampilkan SEMUA field yang backend tarik dari Shopee Ads API tapi selama ini
+// tidak dirender: /api/ads/realtime (saldo, toggle, hari ini direct vs broad, per jam),
+// /api/ads/detail (total + per kategori, termasuk box/item_sold),
+// /api/ads/overview (daily mentah semua field + campaign by placement/status),
+// /api/ads/campaigns (rincian per campaign — opsional, butuh endpoint di backend).
+const afNum = (v) => (v == null || v === "" || Number.isNaN(Number(v))) ? "—" : Number(v).toLocaleString("id-ID");
+const afRoas = (v) => (v == null || v === "" || Number.isNaN(Number(v))) ? "—" : Number(v).toFixed(2).replace(".", ",") + "x";
+const afPct = (v) => (v == null || v === "" || Number.isNaN(Number(v))) ? "—" : Number(v).toFixed(2).replace(".", ",") + "%";
+const afMoney = (v) => (v == null || v === "" || Number.isNaN(Number(v))) ? "—" : fmtRp(Number(v));
+const afRaw = (v) => {
+  if (v == null || v === "") return "—";
+  if (typeof v === "number") return v.toLocaleString("id-ID", { maximumFractionDigits: 4 });
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+};
+const afDmyToIso = (s) => (typeof s === "string" && /^\d{2}-\d{2}-\d{4}$/.test(s)) ? s.split("-").reverse().join("-") : s;
+const afIsIso = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const afIsoToDm = (s) => (afIsIso(s) ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : afRaw(s));
+const afTs = (t) => {
+  const n = Number(t);
+  if (!n) return "—";
+  return new Date(n * 1000).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta", hour12: false, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  }) + " WIB";
+};
+const afOnOff = (v) => {
+  if (v == null || v === "") return "—";
+  if (v === true || v === 1 || v === "1" || v === "true" || v === "on" || v === "ON") return "Aktif";
+  if (v === false || v === 0 || v === "0" || v === "false" || v === "off" || v === "OFF") return "Nonaktif";
+  return String(v);
+};
+// Field mentah get_all_cpc_ads_daily_performance: [key, label, kind]. Field lain yang
+// muncul di response tetap ditampilkan apa adanya (kind "raw") — tidak ada yang disembunyikan.
+const AF_FIELDS = [
+  ["date", "Tanggal", "date"],
+  ["impression", "Impresi", "count"],
+  ["clicks", "Klik", "count"],
+  ["ctr", "CTR", "raw"],
+  ["expense", "Biaya", "money"],
+  ["cpc", "CPC", "money"],
+  ["direct_order", "Order direct", "count"],
+  ["broad_order", "Order broad", "count"],
+  ["direct_item_sold", "Terjual direct", "count"],
+  ["broad_item_sold", "Terjual broad", "count"],
+  ["direct_gmv", "GMV direct", "money"],
+  ["broad_gmv", "GMV broad", "money"],
+  ["direct_order_amount", "Nilai order direct", "money"],
+  ["broad_order_amount", "Nilai order broad", "money"],
+  ["direct_roas", "ROAS direct", "roas"],
+  ["broad_roas", "ROAS broad", "roas"],
+  ["direct_cr", "CR direct", "raw"],
+  ["broad_cr", "CR broad", "raw"],
+  ["direct_cir", "CIR direct", "raw"],
+  ["broad_cir", "CIR broad", "raw"],
+  ["cpdc", "CPDC", "money"],
+];
+const afKind = (kind, v) => {
+  if (kind === "date") return afIsoToDm(afDmyToIso(v));
+  if (kind === "count") return afNum(v);
+  if (kind === "money") return afMoney(v);
+  if (kind === "roas") return afRoas(v);
+  return afRaw(v);
+};
+const AF_TH = { fontSize: 10.5, color: "#8A8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", borderBottom: "1px solid #E2E2E6" };
+const AF_THL = { ...AF_TH, textAlign: "left" };
+const AF_TD = { padding: "7px 8px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "#17171A", whiteSpace: "nowrap", borderTop: "1px solid #F1F1F4" };
+const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", color: "#4A4A45" };
+const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #E2E2E6" };
+const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px solid #E2E2E6" };
+
+function AfTile({ label, value, accent = "#7C5CBF", sub }) {
+  return (
+    <div style={{ background: "#F4F5F8", border: "1px solid #F5F5F7", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, color: "#8A8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: "#17171A", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: "#8A8A82", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
+    </div>
+  );
+}
+function AfSource({ text, at }) {
+  return (
+    <div style={{ fontSize: 11, color: "#8A8A82", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
+      Sumber: {text || "—"}{at ? ` · ${afTs(at)}` : ""}
+    </div>
+  );
+}
+function AfMuted({ children }) {
+  return <div style={{ fontSize: 12.5, color: "#8A8A82", fontFamily: "Inter, sans-serif", padding: "6px 0" }}>{children}</div>;
+}
+function AfKV({ title, obj }) {
+  const entries = Object.entries(obj || {});
+  return (
+    <div>
+      <div style={AF_THL}>{title}</div>
+      {entries.length === 0 && <AfMuted>—</AfMuted>}
+      {entries.map(([k, v]) => (
+        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", borderTop: "1px solid #F1F1F4", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+          <span style={{ color: "#4A4A45" }}>{k === "null" || k === "undefined" || k === "" ? "(tidak diset)" : k}</span>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{afNum(v)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
+  const today = rt && rt.today;
+  const hourly = (rt && rt.hourly) || [];
+  const tog = (rt && rt.toggle) || {};
+  const ctrOf = (c, i) => (Number(i) > 0 ? (Number(c) / Number(i)) * 100 : null);
+  const cpcOf = (e, c) => (Number(c) > 0 ? Number(e) / Number(c) : null);
+  const roasOf = (g, e) => (Number(e) > 0 ? Number(g) / Number(e) : null);
+
+  const hSum = hourly.reduce((a, h) => ({
+    expense: a.expense + Number(h.expense || 0),
+    clicks: a.clicks + Number(h.clicks || 0),
+    impressions: a.impressions + Number(h.impressions || 0),
+    orders: a.orders + Number(h.orders || 0),
+    gmv: a.gmv + Number(h.gmv || 0),
+  }), { expense: 0, clicks: 0, impressions: 0, orders: 0, gmv: 0 });
+
+  const dTotal = (detail && detail.total) || null;
+  const cats = (detail && detail.categories) || [];
+
+  const ci = (ov && ov.campaigns) || null;
+  const rawRows = ((ov && ov.daily) || [])
+    .map((r) => ({ ...r, _iso: afDmyToIso(r.date) }))
+    .filter((r) => !afIsIso(r._iso) || (r._iso >= dRange.from && r._iso <= dRange.to))
+    .sort((a, b) => String(a._iso).localeCompare(String(b._iso)));
+  const present = new Set();
+  rawRows.forEach((r) => Object.keys(r).forEach((k) => { if (k !== "_iso") present.add(k); }));
+  const known = AF_FIELDS.filter(([k]) => present.has(k));
+  const knownKeys = new Set(known.map(([k]) => k));
+  const extra = [...present].filter((k) => !knownKeys.has(k)).sort().map((k) => [k, k, "raw"]);
+  const cols = [...known, ...extra];
+  const sum = (k) => rawRows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  // Baris Total: hanya kolom yang bisa dijumlah. Rasio dihitung ulang dari
+  // total-nya (ROAS, CPC); yang tidak bisa (CTR/CR/CIR/CPDC mentah) tampil "—".
+  const totalCell = ([k, , kind]) => {
+    if (k === "date") return "Total";
+    if (k === "direct_roas") return afRoas(roasOf(sum("direct_gmv"), sum("expense")));
+    if (k === "broad_roas") return afRoas(roasOf(sum("broad_gmv"), sum("expense")));
+    if (k === "cpc") return afMoney(cpcOf(sum("expense"), sum("clicks")));
+    if (k === "cpdc" || kind === "raw" || kind === "roas") return "—";
+    if (kind === "count" || kind === "money") return afKind(kind, sum(k));
+    return "—";
+  };
+  const beyond30 = dRange.from < isoDaysAgo(29);
+  const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: "#17171A" }}>Data lengkap Shopee Ads</span>
+        <span style={{ fontSize: 12, color: "#8A8A82", fontFamily: "Inter, sans-serif" }}>semua field yang backend tarik dari Shopee Ads API · {displayLabel}</span>
+      </div>
+
+      {/* 1. Akun iklan — realtime */}
+      <Card
+        title="Akun iklan — realtime"
+        subtitle={rt ? `Tanggal ${rt.date ? fmtDmy(rt.date) : "—"} · get_total_balance + get_shop_toggle_info` : "Memuat…"}
+      >
+        {rt ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+              <AfTile label="Saldo iklan" value={afMoney(rt.balance)} accent="#1E9E6F" sub={rt.data_timestamp ? `per ${afTs(rt.data_timestamp)}` : null} />
+              <AfTile label="Auto top-up" value={afOnOff(tog.auto_top_up)} accent="#2E6BE0" />
+              <AfTile label="Campaign surge" value={afOnOff(tog.campaign_surge)} accent="#F09040" />
+              <AfTile label="Jam data terakhir" value={rt.latest_hour != null ? String(rt.latest_hour).padStart(2, "0") + ":00" : "—"} accent="#7C5CBF" sub="WIB" />
+            </div>
+            <AfSource text={rt.source} at={rt.generated_at} />
+          </>
+        ) : <AfMuted>Memuat data realtime…</AfMuted>}
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.7fr", gap: 14 }}>
+        {/* 2. Hari ini — direct vs broad */}
+        <Card title="Hari ini — direct vs broad" subtitle="Direct = klik iklan lalu beli produk itu · Broad = klik iklan lalu beli produk apa pun">
+          {today ? (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th style={AF_THL}>Metrik</th><th style={AF_TH}>Direct</th><th style={AF_TH}>Broad</th></tr></thead>
+              <tbody>
+                <tr><td style={AF_TDL}>Pesanan</td><td style={AF_TD}>{afNum(today.direct_order)}</td><td style={AF_TD}>{afNum(today.broad_order)}</td></tr>
+                <tr><td style={AF_TDL}>GMV</td><td style={AF_TD}>{afMoney(today.direct_gmv)}</td><td style={AF_TD}>{afMoney(today.broad_gmv)}</td></tr>
+                <tr><td style={AF_TDL}>ROAS</td><td style={AF_TD}>{afRoas(today.direct_roas)}</td><td style={AF_TD}>{afRoas(today.broad_roas)}</td></tr>
+                <tr><td style={AF_TDLT}>Biaya</td><td style={AF_TDT} colSpan={2}>{afMoney(today.expense)}</td></tr>
+                <tr><td style={AF_TDL}>Impresi</td><td style={AF_TD} colSpan={2}>{afNum(today.impressions)}</td></tr>
+                <tr><td style={AF_TDL}>Klik</td><td style={AF_TD} colSpan={2}>{afNum(today.clicks)}</td></tr>
+                <tr><td style={AF_TDL}>CTR (klik ÷ impresi)</td><td style={AF_TD} colSpan={2}>{afPct(ctrOf(today.clicks, today.impressions))}</td></tr>
+                <tr><td style={AF_TDL}>CPC (biaya ÷ klik)</td><td style={AF_TD} colSpan={2}>{afMoney(cpcOf(today.expense, today.clicks))}</td></tr>
+              </tbody>
+            </table>
+          ) : <AfMuted>Memuat…</AfMuted>}
+        </Card>
+
+        {/* 3. Per jam — hari ini */}
+        <Card title="Per jam — hari ini" subtitle={`${hourly.length} jam ada data · get_all_cpc_ads_hourly_performance`}>
+          {hourly.length ? (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Jam</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
+                  <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                </tr></thead>
+                <tbody>
+                  {hourly.map((h) => (
+                    <tr key={h.hour}>
+                      <td style={AF_TDL}>{h.label || String(h.hour).padStart(2, "0") + ":00"}</td>
+                      <td style={AF_TD}>{afMoney(h.expense)}</td>
+                      <td style={AF_TD}>{afNum(h.impressions)}</td>
+                      <td style={AF_TD}>{afNum(h.clicks)}</td>
+                      <td style={AF_TD}>{afPct(ctrOf(h.clicks, h.impressions))}</td>
+                      <td style={AF_TD}>{afNum(h.orders)}</td>
+                      <td style={AF_TD}>{afMoney(h.gmv)}</td>
+                      <td style={AF_TD}>{afRoas(roasOf(h.gmv, h.expense))}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={AF_TDLT}>Total</td>
+                    <td style={AF_TDT}>{afMoney(hSum.expense)}</td>
+                    <td style={AF_TDT}>{afNum(hSum.impressions)}</td>
+                    <td style={AF_TDT}>{afNum(hSum.clicks)}</td>
+                    <td style={AF_TDT}>{afPct(ctrOf(hSum.clicks, hSum.impressions))}</td>
+                    <td style={AF_TDT}>{afNum(hSum.orders)}</td>
+                    <td style={AF_TDT}>{afMoney(hSum.gmv)}</td>
+                    <td style={AF_TDT}>{afRoas(roasOf(hSum.gmv, hSum.expense))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : <AfMuted>{rt ? "Belum ada data per jam untuk hari ini." : "Memuat…"}</AfMuted>}
+        </Card>
+      </div>
+
+      {/* 4. Rentang — total & per kategori (satu-satunya sumber box/item_sold) */}
+      <Card
+        title={`Rentang ${displayLabel} — total & per kategori`}
+        subtitle={detail ? `${fmtDmy(detail.from)} – ${fmtDmy(detail.to)} · ${afNum(detail.campaign_count)} campaign · /api/ads/detail` : "Memuat…"}
+      >
+        {dTotal ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
+              <AfTile label="Budget" value={afMoney(dTotal.budget)} accent="#7C5CBF" />
+              <AfTile label="Klik" value={afNum(dTotal.klik)} accent="#2E6BE0" />
+              <AfTile label="Closing" value={afNum(dTotal.closing)} accent="#F09040" />
+              <AfTile label="Box (terjual)" value={afNum(dTotal.box)} accent="#1E9E6F" />
+              <AfTile label="GMV" value={afMoney(dTotal.gmv)} accent="#D04C8F" />
+              <AfTile label="ROAS" value={afRoas(dTotal.roas)} accent="#B8860B" />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Kategori</th><th style={AF_THL}>Placement</th><th style={AF_TH}>Campaign</th><th style={AF_TH}>Budget</th>
+                  <th style={AF_TH}>Klik</th><th style={AF_TH}>Closing</th><th style={AF_TH}>Box</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                </tr></thead>
+                <tbody>
+                  {cats.map((c) => (
+                    <React.Fragment key={c.key}>
+                      <tr>
+                        <td style={{ ...AF_TDL, fontWeight: 600, color: "#17171A" }}>{c.label}</td>
+                        <td style={AF_TDL}>{c.placement || "—"}</td>
+                        <td style={AF_TD}>{afNum(c.count)}</td>
+                        <td style={AF_TD}>{afMoney(c.budget)}</td>
+                        <td style={AF_TD}>{afNum(c.klik)}</td>
+                        <td style={AF_TD}>{afNum(c.closing)}</td>
+                        <td style={AF_TD}>{afNum(c.box)}</td>
+                        <td style={AF_TD}>{afMoney(c.gmv)}</td>
+                        <td style={AF_TD}>{afRoas(c.roas)}</td>
+                      </tr>
+                      {c.note && (
+                        <tr><td colSpan={9} style={{ padding: "0 8px 8px", fontSize: 11.5, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>{c.note}</td></tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <AfSource text={detail.source} at={detail.generated_at} />
+          </>
+        ) : <AfMuted>Memuat…</AfMuted>}
+      </Card>
+
+      {/* 5. Campaign — jumlah per placement/status (+ rincian per campaign kalau endpoint ada) */}
+      <Card
+        title="Campaign"
+        subtitle={ci ? `${afNum(ci.count)} campaign terdeteksi · get_product_level_campaign_id_list + setting_info` : "Memuat…"}
+      >
+        {ci ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 12 }}>
+              <AfKV title="Per placement" obj={ci.by_placement} />
+              <AfKV title="Per status" obj={ci.by_status} />
+            </div>
+            {campsList ? (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Status</th><th style={AF_THL}>Tipe</th>
+                    <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
+                    <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                  </tr></thead>
+                  <tbody>
+                    {campsList.map((c) => (
+                      <tr key={c.campaign_id}>
+                        <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                        <td style={AF_TDL}>{c.placement || "—"}</td>
+                        <td style={AF_TDL}>{c.status || "—"}</td>
+                        <td style={AF_TDL}>{c.ad_type || "—"}</td>
+                        <td style={AF_TD}>{afMoney(c.budget)}</td>
+                        <td style={AF_TD}>{afMoney(c.expense)}</td>
+                        <td style={AF_TD}>{afNum(c.impressions)}</td>
+                        <td style={AF_TD}>{afNum(c.clicks)}</td>
+                        <td style={AF_TD}>{afPct(c.ctr)}</td>
+                        <td style={AF_TD}>{afNum(c.orders)}</td>
+                        <td style={AF_TD}>{afMoney(c.gmv)}</td>
+                        <td style={AF_TD}>{afRoas(c.roas)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <AfMuted>Rincian per campaign (nama, status, budget, performa) butuh endpoint <code>/api/ads/campaigns</code> di backend — belum ter-deploy.</AfMuted>
+            )}
+            <AfSource text={ov.source} at={ov.generated_at} />
+          </>
+        ) : <AfMuted>Memuat…</AfMuted>}
+      </Card>
+
+      {/* 6. Harian mentah — semua field apa adanya */}
+      <Card
+        title="Harian mentah dari Shopee"
+        subtitle={`${rawRows.length} hari · ${cols.length} kolom · get_all_cpc_ads_daily_performance · semua field apa adanya${cols.length > 10 ? " · geser ke samping untuk kolom lain" : ""}${beyond30 ? " · endpoint overview maks. 30 hari terakhir" : ""}`}
+      >
+        {ov ? (rawRows.length ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>{cols.map(([k, label]) => <th key={k} style={k === "date" ? AF_THL : AF_TH}>{label}</th>)}</tr></thead>
+              <tbody>
+                {rawRows.map((r, i) => (
+                  <tr key={r._iso || i}>
+                    {cols.map(([k, , kind]) => <td key={k} style={k === "date" ? AF_TDL : AF_TD}>{afKind(kind, r[k])}</td>)}
+                  </tr>
+                ))}
+                {rawRows.length > 1 && (
+                  <tr>{cols.map((c) => <td key={c[0]} style={c[0] === "date" ? AF_TDLT : AF_TDT}>{totalCell(c)}</td>)}</tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : <AfMuted>Tidak ada baris harian untuk rentang ini.</AfMuted>) : <AfMuted>Memuat…</AfMuted>}
+      </Card>
+    </div>
+  );
+}
+
+// ---------- Sub-tab Iklan CPAS ----------
+// Backend mengirim kategori "cpas" di /api/ads/detail. Selama AMS belum
+// di-approve (HTTP 403) kategori itu bawa `note` dan angka 0 — di sini
+// ditampilkan "—", bukan nol, supaya tidak terbaca "tidak ada iklan".
+// Begitu backend mengirim angka tanpa `note`, card langsung terisi.
+function TabAdsCpas({ detail, displayLabel }) {
+  const cat = detail && Array.isArray(detail.categories) ? detail.categories.find((c) => c.key === "cpas") : null;
+  const unavailable = !cat || !!cat.note;
+  const v = (fn, x) => (unavailable ? "—" : fn(x));
+  const tiles = [
+    { label: "Budget", value: v(afMoney, cat && cat.budget), accent: "#7C5CBF" },
+    { label: "Klik", value: v(afNum, cat && cat.klik), accent: "#2E6BE0" },
+    { label: "Closing", value: v(afNum, cat && cat.closing), accent: "#F09040" },
+    { label: "Box (terjual)", value: v(afNum, cat && cat.box), accent: "#1E9E6F" },
+    { label: "GMV", value: v(afMoney, cat && cat.gmv), accent: "#D04C8F" },
+    { label: "ROAS", value: v(afRoas, cat && cat.roas), accent: "#B8860B" },
+  ];
+  return (
+    <Card
+      title="Iklan CPAS"
+      subtitle={detail
+        ? `${fmtDmy(detail.from)} – ${fmtDmy(detail.to)} · ${displayLabel} · placement ${cat && cat.placement ? cat.placement : "—"} · ${afNum(cat && cat.count)} campaign · /api/ads/detail`
+        : "Memuat…"}
+    >
+      {!detail ? <AfMuted>Memuat…</AfMuted> : (
+        <>
+          {!cat && <InfoNote>Backend belum mengirim kategori CPAS di /api/ads/detail.</InfoNote>}
+          {cat && cat.note && (
+            <InfoNote>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>Data CPAS belum tersedia.</div>
+              {cat.note}. Angka di bawah tampil "—" karena API-nya belum bisa diakses — bukan karena tidak ada iklan.
+            </InfoNote>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            {tiles.map((t) => <AfTile key={t.label} label={t.label} value={t.value} accent={t.accent} />)}
+          </div>
+          <AfSource text={detail.source} at={detail.generated_at} />
+        </>
+      )}
+    </Card>
+  );
+}
+
 function TabAds() {
   const [adTab, setAdTabState] = useState(() => {
-    try { return localStorage.getItem("mp_adtab") === "shop" ? "shop" : "product"; } catch { return "product"; }
+    try { const k = localStorage.getItem("mp_adtab"); return k === "shop" || k === "cpas" ? k : "product"; } catch { return "product"; }
   });
   const setAdTab = (k) => {
     setAdTabState(k);
@@ -1304,6 +1704,9 @@ function TabAds() {
   const [busy, setBusy] = useState(true);
   const [lastErr, setLastErr] = useState(null);
   const [rt, setRt] = useState(null); // data realtime: saldo iklan + jam terakhir
+  const [detail, setDetail] = useState(null); // /api/ads/detail — total + per kategori (incl. box/item_sold)
+  const [ov, setOv] = useState(null); // /api/ads/overview?days=30 — daily mentah + campaign by placement/status
+  const [camps, setCamps] = useState(null); // /api/ads/campaigns — per campaign (opsional, butuh backend)
 
   const PRESET_DATES = RANGE_PRESETS;
   const clickPreset = (key) => {
@@ -1344,34 +1747,43 @@ function TabAds() {
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
   const loadData = (active) => {
-    setBusy(true);
-    const base = `https://api.qukis.id/api/ads/metric?tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}&timezone=Asia/Jakarta`;
-    Promise.all(
-      cards.map((c) =>
-        fetch(`${base}&card=${c.id}`)
-          .then((r) => r.json())
-          .catch(() => ({ success: false, error: "NETWORK_ERROR" }))
-          .then((res) => [c.id, res])
-      )
-    ).then((entries) => {
-      if (!active) return;
-      const obj = Object.fromEntries(entries);
-      setMetrics(obj);
-      const bad = cards.map((c) => obj[c.id]).find((m) => m && !m.success);
-      setLastErr(bad ? bad.error || "ERROR" : null);
-      setBusy(false);
-    });
-    // Iklan Toko+ (shop) tidak punya versi per-jam → selalu harian.
-    // iklan pencarian: per jam kalau rentang 1 hari, harian kalau lebih.
-    const seriesIntervalForTab = adTab === "shop" ? "day" : seriesInterval;
-    fetch(`https://api.qukis.id/api/ads/series?metric=${seriesMetric}&interval=${seriesIntervalForTab}&tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => {
+    // Sub-tab CPAS: backend /api/ads/metric & /series hanya kenal tab product|shop,
+    // jadi card KPI + chart di-skip; CPAS dirender dari kategori "cpas" di /api/ads/detail.
+    const isCpas = adTab === "cpas";
+    setBusy(!isCpas);
+    if (isCpas) {
+      setMetrics({});
+      setSeries(null);
+      setLastErr(null);
+    } else {
+      const base = `https://api.qukis.id/api/ads/metric?tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}&timezone=Asia/Jakarta`;
+      Promise.all(
+        cards.map((c) =>
+          fetch(`${base}&card=${c.id}`)
+            .then((r) => r.json())
+            .catch(() => ({ success: false, error: "NETWORK_ERROR" }))
+            .then((res) => [c.id, res])
+        )
+      ).then((entries) => {
         if (!active) return;
-        if (d && d.success) setSeries(d.points || []);
-        else setSeries([]); // metrik gak valid utk tab ini (mis. SOV/sold di shop) → jangan nampilin chart tab sebelumnya
-      })
-      .catch(() => {});
+        const obj = Object.fromEntries(entries);
+        setMetrics(obj);
+        const bad = cards.map((c) => obj[c.id]).find((m) => m && !m.success);
+        setLastErr(bad ? bad.error || "ERROR" : null);
+        setBusy(false);
+      });
+      // Iklan Toko+ (shop) tidak punya versi per-jam → selalu harian.
+      // iklan toko dan pencarian: per jam kalau rentang 1 hari, harian kalau lebih.
+      const seriesIntervalForTab = adTab === "shop" ? "day" : seriesInterval;
+      fetch(`https://api.qukis.id/api/ads/series?metric=${seriesMetric}&interval=${seriesIntervalForTab}&tab=${adTab}&start_date=${dRange.from}&end_date=${dRange.to}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!active) return;
+          if (d && d.success) setSeries(d.points || []);
+          else setSeries([]); // metrik gak valid utk tab ini (mis. SOV/sold di shop) → jangan nampilin chart tab sebelumnya
+        })
+        .catch(() => {});
+    }
     // Freshness: saldo iklan + jam terakhir yang ada datanya (endpoint realtime, cache 30s).
     fetch("https://api.qukis.id/api/ads/realtime")
       .then((r) => r.json())
@@ -1379,6 +1791,19 @@ function TabAds() {
         if (active && d && !d.error) setRt(d);
       })
       .catch(() => {});
+    // Data lengkap (semua field yang backend tarik dari Shopee) — lihat AdsFullData.
+    fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active && d && !d.error) setDetail(d); })
+      .catch(() => {});
+    fetch("https://api.qukis.id/api/ads/overview?days=30")
+      .then((r) => r.json())
+      .then((d) => { if (active && d && !d.error) setOv(d); })
+      .catch(() => {});
+    fetch(`https://api.qukis.id/api/ads/campaigns?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
+      .catch(() => { if (active) setCamps({ unavailable: true }); });
   };
 
   // Fetch saat: buka tab, ganti sub-tab, ganti tanggal, ganti metrik chart.
@@ -1396,9 +1821,13 @@ function TabAds() {
 
   return (
     <>
-      {/* Sub-tab: iklan pencarian | Iklan Toko+ */}
+      {/* Sub-tab: iklan toko dan pencarian | iklan CPAS | Iklan Toko+ */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[{ key: "product", label: "iklan pencarian" }, [{ key: "product", label: "Iklan" }]].map((t) => {
+        {[
+          { key: "product", label: "iklan toko dan pencarian" },
+          { key: "cpas", label: "iklan CPAS" },
+          { key: "shop", label: "Iklan Toko+" },
+        ].map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
@@ -1450,6 +1879,8 @@ function TabAds() {
         </span>
       </div>
 
+      {adTab === "cpas" && <TabAdsCpas detail={detail} displayLabel={displayLabel} />}
+
       {adTab === "shop" && (
         <InfoNote>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
@@ -1473,7 +1904,8 @@ function TabAds() {
         </div>
       )}
 
-      {/* Grid card KPI */}
+      {/* Grid card KPI (product | shop) */}
+      {adTab !== "cpas" && (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
         {cards.map((c) => {
           const Icon = c.icon;
@@ -1528,8 +1960,9 @@ function TabAds() {
           );
         })}
       </div>
+      )}
 
-      {/* Chart time-series — per jam kalau rentang 1 hari (iklan pencarian); Iklan Toko+ selalu harian */}
+      {/* Chart time-series — per jam kalau rentang 1 hari (iklan toko dan pencarian); Iklan Toko+ selalu harian */}
       {(adTab === "product" || adTab === "shop") && (
         <Card
           title={`Tren ${adTab === "product" && isSingleDay ? "per jam" : "harian"} — ${metricLabel(seriesMetric)}${adTab === "shop" && !SHOP_UNAVAILABLE_METRICS.includes(seriesMetric) ? " (estimasi)" : ""}`}
@@ -1557,6 +1990,10 @@ function TabAds() {
             <InfoNote>Data series belum tersedia untuk rentang ini.</InfoNote>
           )}
         </Card>
+      )}
+
+      {adTab !== "cpas" && (
+        <AdsFullData rt={rt} detail={detail} ov={ov} camps={camps} dRange={dRange} displayLabel={displayLabel} />
       )}
     </>
   );
