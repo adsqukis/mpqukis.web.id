@@ -1398,7 +1398,7 @@ function TabAds() {
     <>
       {/* Sub-tab: iklan pencarian | Iklan Toko+ */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[{ key: "product", label: "iklan pencarian" }, { key: "shop", label: "Iklan Toko+" }].map((t) => {
+        {[{ key: "product", label: "iklan pencarian" }, [{ key: "product", label: "Iklan" }]].map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
