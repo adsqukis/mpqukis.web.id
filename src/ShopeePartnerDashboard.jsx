@@ -1342,6 +1342,40 @@ const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", c
 const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #E2E2E6" };
 const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px solid #E2E2E6" };
 
+// Breakdown per produk — HEURISTIK, bukan mapping resmi Shopee. Shopee Ads API
+// tidak mengembalikan identitas produk per campaign, hanya nama bebas teks
+// (ad_name). Dikelompokkan dengan cocok-kata di nama campaign; urutan penting
+// (keyword spesifik dicek dulu) supaya "1 Botol"/"Milk" tidak jatuh ke bucket
+// "Generos" generik. Campaign yang tidak cocok apa pun masuk "Lainnya" —
+// tidak ada yang disembunyikan diam-diam.
+const AF_PRODUCT_GROUPS = [
+  { key: "1botol", label: "Generos 1 Botol", match: (n) => /1\s*botol/i.test(n) },
+  { key: "milk", label: "Generos Milk", match: (n) => /milk/i.test(n) },
+  { key: "generos", label: "Generos", match: (n) => /generos/i.test(n) },
+];
+function afGroupCampaignsByProduct(campaigns) {
+  const buckets = AF_PRODUCT_GROUPS.map((g) => ({ ...g, rows: [] }));
+  const other = { key: "other", label: "Lainnya / tidak teridentifikasi", rows: [] };
+  for (const c of campaigns || []) {
+    const name = c.name || "";
+    const hit = buckets.find((b) => b.match(name));
+    (hit || other).rows.push(c);
+  }
+  return [...buckets, other].filter((b) => b.rows.length > 0);
+}
+function afSumCampaigns(rows) {
+  const budget = rows.reduce((a, r) => a + (Number(r.expense) || 0), 0);
+  const klik = rows.reduce((a, r) => a + (Number(r.clicks) || 0), 0);
+  const closing = rows.reduce((a, r) => a + (Number(r.orders) || 0), 0);
+  const impression = rows.reduce((a, r) => a + (Number(r.impressions) || 0), 0);
+  const gmv = rows.reduce((a, r) => a + (Number(r.gmv) || 0), 0);
+  return {
+    budget, klik, closing, impression, gmv,
+    roas: budget > 0 ? gmv / budget : null,
+    ctr: impression > 0 ? (klik / impression) * 100 : null,
+  };
+}
+
 function AfTile({ label, value, accent = "#7C5CBF", sub }) {
   return (
     <div style={{ background: "#F4F5F8", border: "1px solid #F5F5F7", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
@@ -1599,6 +1633,52 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
             <AfSource text={ov.source} at={ov.generated_at} />
           </>
         ) : <AfMuted>Memuat…</AfMuted>}
+      </Card>
+
+      {/* 5b. Performa per produk — pengelompokan HEURISTIK dari nama campaign, lihat AF_PRODUCT_GROUPS */}
+      <Card
+        title="Performa per produk"
+        subtitle="Dikelompokkan dari nama campaign (bukan mapping resmi Shopee) — cek catatan di bawah tabel"
+      >
+        {!campsList ? (
+          <AfMuted>Butuh endpoint <code>/api/ads/campaigns</code> di backend — belum ter-deploy, sama seperti tabel Campaign di atas.</AfMuted>
+        ) : campsList.length === 0 ? (
+          <AfMuted>Tidak ada campaign untuk rentang ini.</AfMuted>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Produk</th><th style={AF_TH}>Campaign</th><th style={AF_TH}>Budget</th>
+                  <th style={AF_TH}>Klik</th><th style={AF_TH}>CTR</th><th style={AF_TH}>Closing</th>
+                  <th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                </tr></thead>
+                <tbody>
+                  {afGroupCampaignsByProduct(campsList).map((g) => {
+                    const s = afSumCampaigns(g.rows);
+                    return (
+                      <tr key={g.key}>
+                        <td style={{ ...AF_TDL, fontWeight: 600, color: g.key === "other" ? "#8A6A3B" : "#17171A" }}>{g.label}</td>
+                        <td style={AF_TD}>{afNum(g.rows.length)}</td>
+                        <td style={AF_TD}>{afMoney(s.budget)}</td>
+                        <td style={AF_TD}>{afNum(s.klik)}</td>
+                        <td style={AF_TD}>{afPct(s.ctr)}</td>
+                        <td style={AF_TD}>{afNum(s.closing)}</td>
+                        <td style={AF_TD}>{afMoney(s.gmv)}</td>
+                        <td style={AF_TD}>{afRoas(s.roas)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ fontSize: 11, color: "#8A6A3B", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
+              Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
+              mengirim identitas produk per campaign secara resmi. Baris "Lainnya" = nama campaign tidak menyebut
+              produk itu; cek nama campaign-nya di tabel Campaign di atas kalau jumlahnya banyak.
+            </div>
+          </>
+        )}
       </Card>
 
       {/* 6. Harian mentah — semua field apa adanya */}
