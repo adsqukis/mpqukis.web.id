@@ -1673,7 +1673,9 @@ function TabAdsCpas({ detail, displayLabel }) {
 
 function TabAds() {
   const [adTab, setAdTabState] = useState(() => {
-    try { const k = localStorage.getItem("mp_adtab"); return k === "shop" || k === "cpas" ? k : "product"; } catch { return "product"; }
+    // "shop" (Iklan Toko+) sementara dilepas dari UI — kalau ada visitor lama yang
+    // masih punya "shop" ke-cache di localStorage, fallback ke "product".
+    try { const k = localStorage.getItem("mp_adtab"); return k === "cpas" ? k : "product"; } catch { return "product"; }
   });
   const setAdTab = (k) => {
     setAdTabState(k);
@@ -1826,7 +1828,8 @@ function TabAds() {
         {[
           { key: "product", label: "iklan toko dan pencarian" },
           { key: "cpas", label: "iklan CPAS" },
-          { key: "shop", label: "Iklan Toko+" },
+          // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
+          // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
         ].map((t) => {
           const on = adTab === t.key;
           return (
