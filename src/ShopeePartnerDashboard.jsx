@@ -1883,6 +1883,16 @@ function TabAds() {
   // bawah) — logic-nya dibiarkan (bukan dihapus), gated `false` biar gampang
   // dipasang balik kalau perlu, sama kayak pola "shop"/TabAffiliate di file ini.
   const SHOW_JENIS_IKLAN = false;
+  // Sub-tab "iklan CPAS" disembunyikan sementara (permintaan user): isinya status AMS
+  // (afiliasi Shopee), padahal CPAS itu iklan Meta yang datanya ada di Meta Ads Manager,
+  // bukan di API Shopee. TabAdsCpas dibiarkan; set true untuk memasang balik.
+  const SHOW_CPAS = false;
+  const AD_SUBTABS = [
+    { key: "product", label: "iklan toko dan pencarian" },
+    ...(SHOW_CPAS ? [{ key: "cpas", label: "iklan CPAS" }] : []),
+    // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
+    // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
+  ];
 
   // Tab paling atas sekarang PER PRODUK (bukan per jenis iklan lagi).
   const [prodTab, setProdTabState] = useState(() => {
@@ -1980,11 +1990,14 @@ function TabAds() {
       .then((r) => r.json())
       .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
       .catch(() => { if (active) setCamps({ unavailable: true }); });
-    // /api/ads/detail — dipakai buat kategori CPAS (levelnya toko, lihat TabAdsCpas).
-    fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => { if (active && d && !d.error) setDetail(d); })
-      .catch(() => {});
+    // /api/ads/detail — cuma dipakai kategori CPAS (TabAdsCpas) & konten shop-wide lama,
+    // jadi tidak ditarik selama keduanya disembunyikan (hemat rate limit Shopee).
+    if (SHOW_CPAS || SHOW_JENIS_IKLAN) {
+      fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
+        .then((r) => r.json())
+        .then((d) => { if (active && d && !d.error) setDetail(d); })
+        .catch(() => {});
+    }
 
     if (!SHOW_JENIS_IKLAN) return;
     // ---- di bawah ini dormant selama SHOW_JENIS_IKLAN=false; logic lama dibiarkan ----
@@ -2107,14 +2120,10 @@ function TabAds() {
         </span>
       </div>
 
-      {/* Sub-tab DI DALAM tab produk yang aktif: iklan toko dan pencarian vs iklan CPAS */}
+      {/* Sub-tab DI DALAM tab produk yang aktif (baris ini disembunyikan kalau cuma 1 sub-tab) */}
+      {AD_SUBTABS.length > 1 && (
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[
-          { key: "product", label: "iklan toko dan pencarian" },
-          { key: "cpas", label: "iklan CPAS" },
-          // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
-          // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
-        ].map((t) => {
+        {AD_SUBTABS.map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
@@ -2127,8 +2136,9 @@ function TabAds() {
           );
         })}
       </div>
+      )}
 
-      {adTab === "cpas" ? (
+      {SHOW_CPAS && adTab === "cpas" ? (
         <>
           <InfoNote>
             Data CPAS di bawah levelnya TOKO (gabungan semua produk) — Shopee belum kirim breakdown

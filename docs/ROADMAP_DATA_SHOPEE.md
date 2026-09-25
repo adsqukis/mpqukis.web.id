@@ -85,6 +85,7 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
 ## Keputusan
 
 - Tab "Generos 1 Box" diganti jadi **Generos Klasik**, sesuai master SKU (QKS-GEN01/02/03).
+- Sub-tab **iklan CPAS** disembunyikan sementara (flag `SHOW_CPAS` di `TabAds`). Isinya selama ini status AMS (afiliasi Shopee), padahal data CPAS ada di Meta Ads Manager, bukan di API Shopee.
 
 ## Keputusan yang masih menunggu
 
