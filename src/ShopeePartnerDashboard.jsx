@@ -126,14 +126,6 @@ const adsSpendTrend = [
   { d: "Minggu 3", spend: 3.1, gmv: 15.7 }, { d: "Minggu 4", spend: 2.6, gmv: 11.1 },
 ];
 
-const affiliates = [
-  { rank: 1, name: "@dinaskincarereview", followers: "128rb", klik: 3420, order: 214, komisi: 4_280_000 },
-  { rank: 2, name: "@fashiontips.id", followers: "84rb", klik: 2650, order: 156, komisi: 3_120_000 },
-  { rank: 3, name: "@budgetgadget", followers: "61rb", klik: 1980, order: 98, komisi: 1_960_000 },
-  { rank: 4, name: "@homeandliving_ta", followers: "45rb", klik: 1340, order: 71, komisi: 1_420_000 },
-  { rank: 5, name: "@review_jujur99", followers: "37rb", klik: 990, order: 52, komisi: 980_000 },
-];
-
 const liveSessions = [
   { d: "18 Agu", gmv: 4.2 }, { d: "19 Agu", gmv: 2.1 }, { d: "20 Agu", gmv: 6.8 },
   { d: "21 Agu", gmv: 3.4 }, { d: "22 Agu", gmv: 7.9 }, { d: "23 Agu", gmv: 9.1 }, { d: "24 Agu", gmv: 5.6 },
@@ -2274,47 +2266,252 @@ function TabAds() {
   );
 }
 
+// ---------- Tab Affiliate: penjualan & komisi affiliate dari rincian escrow ----------
+// Backend: /api/affiliate/summary (ops/ext_affiliate.py). Tanpa akses API AMS, nama kreator,
+// klik, dan ROI per kreator belum tersedia; yang ada: komisi per pesanan & per produk.
+const AFF_FILTERS = RANGE_FILTERS.filter((f) => f.key !== "year"); // backend dibatasi 31 hari
+const AFF_WALLET_LABEL = {
+  AFFILIATE_FEE_DEDUCT: "Biaya layanan affiliate", 460: "Biaya layanan affiliate",
+  AFFILIATE_ADS_SELLER_FEE: "Biaya iklan affiliate", 455: "Biaya iklan affiliate",
+  AFFILIATE_ADS_SELLER_FEE_REFUND: "Pengembalian biaya iklan affiliate", 456: "Pengembalian biaya iklan affiliate",
+};
+const affDay = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
+const affSigned = (v) => (Number(v) < 0 ? `−${fmtRp(-Number(v))}` : `+${fmtRp(Number(v) || 0)}`);
+const affTime = (ts) => {
+  if (!ts) return "—";
+  const d = new Date(ts * 1000);
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+};
+
+function AffTip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const x = payload[0].payload;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #ECECEF", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(23,23,26,.08)" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{x.date}</div>
+      <div>Penjualan affiliate: <b>{fmtRp(x.aff_gmv)}</b></div>
+      <div>Komisi: {fmtRp(x.commission)}</div>
+      <div>Pesanan affiliate: {afNum(x.aff_orders)}{x.share_gmv != null ? ` · ${afPct(x.share_gmv)} dari penjualan` : ""}</div>
+    </div>
+  );
+}
+
 function TabAffiliate() {
+  const [range, setRangeState] = useState(() => {
+    try {
+      const k = localStorage.getItem("mp_affrange");
+      return AFF_FILTERS.some((f) => f.key === k) ? k : "7d";
+    } catch { return "7d"; }
+  });
+  const setRange = (k) => {
+    setRangeState(k);
+    try { localStorage.setItem("mp_affrange", k); } catch { /* ignore */ }
+  };
+  const [data, setData] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const dRange = RANGE_PRESETS[range]();
+
+  // Escrow berubah pelan (backend cache 15 menit), jadi refresh cukup tiap 5 menit.
+  useEffect(() => {
+    let active = true;
+    setData(null);
+    const load = () => fetch(`https://api.qukis.id/api/affiliate/summary?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setData(d && !d.error && d.total ? d : { unavailable: true, error: d && d.error }); })
+      .catch(() => { if (active) setData({ unavailable: true }); });
+    load();
+    const iv = setInterval(load, 5 * 60 * 1000);
+    return () => { active = false; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
+  const t = data && data.total;
+  const c = (data && data.coverage) || {};
+  const w = (data && data.wallet) || {};
+  const cx = (data && data.cancelled) || {};
+  const walletCost = w.available ? -Number(w.total || 0) : 0; // potongan saldo bernilai negatif
+  const totalCost = t ? t.commission + walletCost : 0;
+  const affRoas = t && totalCost > 0 ? t.aff_gmv / totalCost : null;
+  const rows = data && data.by_product
+    ? (data.groups || Object.keys(data.by_product)).map((g) => [g, data.by_product[g]])
+      .filter(([g, b]) => b && (g !== "Lainnya" || b.aff_orders > 0))
+    : [];
+  const recent = (data && data.recent) || [];
+  const shown = showAll ? recent : recent.slice(0, 15);
+  const escrowFailed = c.eligible > 0 && !c.escrow_read;
+
   return (
     <>
-      <InfoNote>
-        Data tidak tersedia — data affiliate berasal dari program terpisah (Shopee Affiliate / Program Terbuka Kreator), bukan Open Platform standar. Perlu akses API tersendiri untuk data klik dan komisi; akses tersebut belum tersedia untuk aplikasi ini.
-      </InfoNote>
-      {false && (<>
-      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard icon={Users2} label="Affiliate aktif" value="37" delta="+4 bulan ini" accent="#7C5CBF" />
-        <StatCard icon={Package} label="Pesanan dari affiliate" value="591" delta="+22% MoM" accent="#2E6BE0" />
-        <StatCard icon={ArrowUpRight} label="Klik link affiliate" value="10.4rb" delta="+8.9% MoM" accent="#B8860B" />
-        <StatCard icon={Wallet} label="Total komisi dibayar" value={fmtRpShort(11_760_000)} accent="#1E9E6F" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        {AFF_FILTERS.map((f) => {
+          const on = range === f.key;
+          return (
+            <button key={f.key} onClick={() => setRange(f.key)} style={{
+              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid #7C5CBF" : "1px solid #E4E4E8",
+              background: on ? "#7C5CBF" : "#fff", color: on ? "#fff" : "#6B7280",
+              fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+            }}>{f.label}</button>
+          );
+        })}
+        <span style={{ fontSize: 12, color: "#8A8A82", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
+          {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari rincian escrow tiap pesanan
+        </span>
       </div>
 
-      <Card title="Papan peringkat affiliate" subtitle="Berdasarkan komisi bulan ini">
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: "#8A8A82", fontSize: 11.5 }}>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>#</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>Kreator</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pengikut</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Klik</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pesanan</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Komisi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {affiliates.map((a) => (
-              <tr key={a.name} style={{ borderTop: "1px solid #F1F1F4" }}>
-                <td style={{ padding: "9px 0", color: "#8A8A82", fontFamily: "'JetBrains Mono', monospace" }}>{a.rank}</td>
-                <td style={{ padding: "9px 0", color: "#17171A", fontWeight: 500 }}>{a.name}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", color: "#4A4A45" }}>{a.followers}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.klik.toLocaleString("id-ID")}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.order}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtRp(a.komisi)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <InfoNote>
+        Nama kreator, jumlah klik, dan ROI per kreator belum bisa ditampilkan: datanya cuma ada di API AMS Shopee,
+        yang butuh app kategori "Affiliate Marketing Solution Management". Yang di bawah ini data asli dari escrow:
+        pesanan yang kena komisi affiliate, per produk.
+      </InfoNote>
+
+      <Card title="Ringkasan" subtitle={`Pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}`}>
+        {data === null ? (
+          <AfMuted>Memuat… (tarikan pertama untuk rentang baru bisa agak lama: escrow tiap pesanan dibaca)</AfMuted>
+        ) : data.unavailable ? (
+          <AfMuted>{data.error === "not found"
+            ? <>Backend affiliate belum dipasang (route <code>/api/affiliate/summary</code> belum ada).</>
+            : "Data affiliate tidak tersedia saat ini (backend error atau down)."}</AfMuted>
+        ) : escrowFailed ? (
+          <AfMuted>Rincian escrow belum bisa ditarik dari Shopee{c.errors && c.errors.length ? `: ${c.errors[0]}` : "."}</AfMuted>
+        ) : (
+          <>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+              <AfTile label="Penjualan affiliate" value={afMoney(t.aff_gmv)} accent="#D04C8F" sub={`${afPct(t.share_gmv)} dari penjualan toko`} />
+              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#2E6BE0" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan`} />
+              <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent="#7C5CBF" sub="dipotong dari escrow" />
+              <AfTile label="Rate komisi" value={afPct(t.rate)} accent="#F09040" sub="komisi ÷ penjualan affiliate" />
+              <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#8A8A82"
+                sub={w.available ? `${afNum(w.count)} transaksi di luar escrow` : "tidak tersedia"} />
+              <AfTile label="ROAS affiliate" value={afRoas(affRoas)} accent="#1E9E6F" sub="penjualan ÷ (komisi + biaya saldo)" />
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <AfMuted>
+                Dicek {afNum(c.escrow_read)} pesanan (belum bayar & batal tidak dihitung)
+                {c.missing ? ` · ${afNum(c.missing)} pesanan belum terbaca escrow-nya, dicoba lagi otomatis` : ""}
+                {cx.orders ? ` · ${afNum(cx.orders)} pesanan affiliate yang batal dikeluarkan (komisi ${fmtRp(cx.commission)})` : ""}
+              </AfMuted>
+            </div>
+          </>
+        )}
       </Card>
-      </>)}
+
+      {t && !escrowFailed && (
+        <Card title="Per produk" subtitle="Porsi = penjualan affiliate ÷ semua penjualan produk itu di rentang ini">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>
+                <th style={AF_THL}>Produk</th><th style={AF_THW}>Pesanan affiliate</th><th style={AF_THW}>Qty</th>
+                <th style={AF_THW}>Penjualan affiliate</th><th style={AF_THW}>Porsi</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>Rate komisi</th>
+              </tr></thead>
+              <tbody>
+                {rows.map(([g, b]) => (
+                  <tr key={g}>
+                    <td style={AF_TDL}>{g === "Lainnya" ? "Lainnya (produk/bundle lain)" : g}</td>
+                    <td style={AF_TD}>{afNum(b.aff_orders)}</td>
+                    <td style={AF_TD}>{afNum(b.aff_qty)}</td>
+                    <td style={AF_TD}>{afMoney(b.aff_gmv)}</td>
+                    <td style={AF_TD}>{afPct(b.share_gmv)}</td>
+                    <td style={AF_TD}>{afMoney(b.commission)}</td>
+                    <td style={AF_TD}>{afPct(b.rate)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={AF_TDLT}>Total</td>
+                  <td style={AF_TDT}>{afNum(t.aff_orders)}</td>
+                  <td style={AF_TDT}>{afNum(t.aff_qty)}</td>
+                  <td style={AF_TDT}>{afMoney(t.aff_gmv)}</td>
+                  <td style={AF_TDT}>{afPct(t.share_gmv)}</td>
+                  <td style={AF_TDT}>{afMoney(t.commission)}</td>
+                  <td style={AF_TDT}>{afPct(t.rate)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {t && !escrowFailed && data.daily && data.daily.length > 1 && (
+        <Card title="Penjualan affiliate per hari" subtitle="Tanggal = tanggal pesanan dibuat">
+          <ResponsiveContainer width="100%" height={190}>
+            <BarChart data={data.daily.map((x) => ({ ...x, lbl: affDay(x.date) }))} barSize={data.daily.length > 14 ? 12 : 24}>
+              <CartesianGrid vertical={false} stroke="#F1F1F4" />
+              <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} interval={data.daily.length > 14 ? 2 : 0} />
+              <YAxis tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} />
+              <Tooltip content={<AffTip />} cursor={{ fill: "rgba(124,92,191,.06)" }} />
+              <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]} fill="#7C5CBF" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
+      {t && !escrowFailed && (
+        <Card title="Pesanan affiliate terbaru" subtitle={`${afNum(recent.length)} pesanan terbaru di rentang ini · status = status terkini dari Shopee`}>
+          {recent.length === 0 ? (
+            <AfMuted>Belum ada pesanan affiliate di rentang ini.</AfMuted>
+          ) : (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Tanggal</th><th style={AF_THL}>No. pesanan</th><th style={AF_THL}>Status</th>
+                    <th style={AF_THL}>Produk</th><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th>
+                  </tr></thead>
+                  <tbody>
+                    {shown.map((o) => (
+                      <tr key={o.order_sn}>
+                        <td style={AF_TDL}>{affDay(o.date)}</td>
+                        <td style={{ ...AF_TDL, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{o.order_sn}</td>
+                        <td style={AF_TDL}>{o.status || "—"}</td>
+                        <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }}
+                          title={(o.items || []).map((i) => `${i.group} · ${i.sku} × ${i.qty}`).join(", ")}>
+                          {(o.items || []).map((i) => `${i.group === "Lainnya" ? i.sku : i.group} × ${i.qty}`).join(", ")}
+                        </td>
+                        <td style={AF_TD}>{afMoney(o.gmv)}</td>
+                        <td style={AF_TD}>{afMoney(o.commission)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {recent.length > shown.length || showAll ? (
+                <button onClick={() => setShowAll(!showAll)} style={{
+                  marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid #E4E4E8", background: "#fff",
+                  color: "#5F6368", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                }}>{showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${afNum(recent.length)})`}</button>
+              ) : null}
+            </>
+          )}
+        </Card>
+      )}
+
+      {w.available && w.count > 0 && (
+        <Card title="Biaya affiliate lewat saldo" subtitle="Dipotong dari saldo penjual, di luar escrow pesanan">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>
+                <th style={AF_THL}>Waktu</th><th style={AF_THL}>Jenis</th><th style={AF_THL}>Keterangan</th><th style={AF_THW}>Jumlah</th>
+              </tr></thead>
+              <tbody>
+                {(w.items || []).map((x, i) => (
+                  <tr key={`${x.time}-${i}`}>
+                    <td style={AF_TDL}>{affTime(x.time)}</td>
+                    <td style={AF_TDL}>{AFF_WALLET_LABEL[x.type] || x.type}</td>
+                    <td style={AF_TDL}>{x.title || x.order_sn || "—"}</td>
+                    <td style={{ ...AF_TD, color: Number(x.amount) < 0 ? "#B3261E" : "#1E7A55" }}>{affSigned(x.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
+        Penjualan affiliate = harga item setelah diskon produk (sebelum voucher) untuk item yang kena komisi affiliate.
+        Produk ditentukan dari SKU (master SKU). Komisi pesanan yang belum selesai masih estimasi Shopee dan bisa
+        berubah; pesanan yang batal dikeluarkan.
+      </div>
     </>
   );
 }
@@ -2400,7 +2597,7 @@ const TITLES = {
   pesanan: ["Pesanan", "Pantau status dan riwayat pesanan tokomu"],
   penghasilan: ["Penghasilan", "Rincian pendapatan dan saldo yang bisa ditarik"],
   ads: ["Ads", "Performa kampanye iklan tokomu"],
-  affiliate: ["Affiliate", "Kinerja kreator yang mempromosikan produkmu"],
+  affiliate: ["Affiliate", "Penjualan & komisi affiliate per produk"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
 };
 

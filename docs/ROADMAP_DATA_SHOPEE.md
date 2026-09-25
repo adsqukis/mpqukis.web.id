@@ -4,10 +4,11 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
 
 - **Sumber spec:** `open.shopee.com` diblokir dari environment Claude, jadi dipakai 451 file spec resmi di [congminh1254/shopee-sdk](https://github.com/congminh1254/shopee-sdk), folder `schemas/`, format `v2.<modul>.<api>.json`. Isinya permission, field, error code, dan update log per endpoint.
 - **Kategori app:** hampir pasti *Seller In House System* (cuma kategori ini yang punya Ads + Order + Payment sekaligus). Konfirmasi di Console → App List.
-- **Di luar jangkauan app ini:** AMS/affiliate, Livestream, Video, dan Business Insights butuh app kategori lain. Iklan Toko dan chat pembeli nggak ada di API. CPAS datanya ada di Meta.
+- **Di luar jangkauan app ini:** API AMS (data per kreator), Livestream, Video, dan Business Insights butuh app kategori lain. Iklan Toko dan chat pembeli nggak ada di API. CPAS datanya ada di Meta. Komisi affiliate per pesanan tetap bisa ditarik lewat escrow (lihat bagian Affiliate).
 
 ## Aturan umum tiap poin
 
+- Fitur backend baru dibuat sebagai modul `ext_<nama>.py` (contoh: `ops/ext_affiliate.py`) yang mendaftarkan route ke `EXT_ROUTES`. Titik sambungnya dipasang sekali di `app.py` oleh `ops/install_ext.py`; modul berikutnya cukup ditaruh di folder backend lalu restart. Route modul otomatis kena cek `X-MP-Key`, dan modul yang error tidak menjatuhkan backend.
 - Route backend baru di `do_GET` otomatis kena cek `X-MP-Key` (kecuali `/health`). Frontend otomatis kirim key lewat patch `window.fetch`.
 - Rate limit Ads ada 4 lapis (partner / shop / API / campaign). Tambahan tarikan harus di-cache, jangan dipanggil tiap render.
 - Backend di VPS baru hasil konsolidasi (`~/shopee-backend`, service `mpqukis-backend`). Frontend deploy lewat merge ke `main` (GitHub Pages).
@@ -81,6 +82,12 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
   - Frontend: tiap tab produk menampilkan ringkasan (angka langsung jadi angka utama), perbandingan manual vs GMS, tabel campaign manual (bidding, target ROAS, jumlah keyword), dan tabel listing GMS.
 - **Selesai kalau:** angka 7 hari per produk cocok dengan Seller Centre.
 - **Berikutnya:** `get_product_campaign_hourly_performance`, detail keyword + bid (info_type 2), rekomendasi (`get_recommended_item_list`, `get_recommended_keyword_list`, `get_create_product_ad_budget_suggestion`).
+
+### Affiliate (di luar urutan, diminta user 25/09)
+- **Sumber:** `v2.payment.get_escrow_detail_batch` (`order_ams_commission_fee`, `items[].ams_commission_fee`), `v2.order.get_order_detail` (status terkini pesanan affiliate, supaya pesanan batal tidak dihitung), `v2.payment.get_wallet_transaction_list` (tipe 455/456/460: biaya affiliate lewat saldo).
+- **Sudah dikerjakan:** backend `ops/ext_affiliate.py` (route `/api/affiliate/summary`, maks 31 hari, escrow di-cache per pesanan, pesanan > 30 hari dianggap final) dan tab Affiliate: ringkasan (penjualan, pesanan, komisi, rate, biaya lewat saldo, ROAS affiliate), per produk, tren harian, pesanan affiliate terbaru, biaya lewat saldo. Diagnostic read-only: `ops/aff_discovery.py`.
+- **Belum bisa tanpa AMS:** nama kreator, klik, ROI per kreator, performa konten. Butuh app baru kategori "Affiliate Marketing Solution Management" di Shopee Open Platform Console + otorisasi toko.
+- **Belum dipakai:** pesanan sampel kreator (`affiliate_sample_type`); butuh puller harian menyimpan field ini.
 
 ## Keputusan
 
