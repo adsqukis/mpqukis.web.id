@@ -100,7 +100,7 @@ def verify():
         fail("backend masih pakai logic lama (tidak ada field version). Sudah restart?")
     g = d.get("gms") or {}
     rep = g.get("report") or {}
-    print(f"\nversi {d['version']} | {d['count']} campaign manual | {fr:%d/%m}-{to:%d/%m}")
+    print(f"\nversi {d['version']} | {d['count']} campaign iklan produk (di luar GMS) | {fr:%d/%m}-{to:%d/%m}")
     print(f"GMS: {'aktif' if g.get('available') else 'tidak ada'} campaign {g.get('campaign_id')} | "
           f"biaya {rep.get('expense')} | GMV langsung {rep.get('direct_gmv')} | ROAS langsung {rep.get('direct_roas')} | "
           f"{len(g.get('items') or [])} item" + (f" | catatan: {g.get('note')}" if g.get("note") else ""))

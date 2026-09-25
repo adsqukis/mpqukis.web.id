@@ -1659,11 +1659,12 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
 
 // ---------- Isi tab produk: iklan toko dan pencarian, di-scope ke 1 produk ----------
 // Data dari backend iklan v2 (/api/ads/campaigns): iklan manual per campaign +
-// iklan otomatis GMS per listing, dikelompokkan backend lewat item_id → SKU.
+// iklan GMS (Shopee: "Product GMS") per listing, dikelompokkan backend lewat item_id → SKU.
 // "Langsung" = pembelian produk yang diiklankan itu sendiri; "broad" = pembelian
 // produk apa pun di toko dalam 7 hari setelah klik.
 const AF_THW = { ...AF_TH, whiteSpace: "normal", lineHeight: 1.3, verticalAlign: "bottom" };
 const AF_PLACEMENT = { search: "Pencarian", discovery: "Rekomendasi", all: "Semua" };
+const AF_BADGE = { display: "inline-block", marginRight: 6, padding: "1px 6px", borderRadius: 6, background: "#EFEAFB", color: "#6B4FB0", fontSize: 10, fontWeight: 700, letterSpacing: ".3px", textTransform: "uppercase", verticalAlign: "1px" };
 const afBudget = (v) => (Number(v) === 0 ? "Tanpa batas" : afMoney(v));
 // Sel 2 baris: angka/nilai utama + keterangan kecil di bawahnya.
 const AfCell2 = ({ main, sub }) => (
@@ -1692,7 +1693,7 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
     <>
       <Card
         title="Ringkasan"
-        subtitle={`Iklan manual + iklan otomatis (GMS) · ${displayLabel} (${dRange.from} – ${dRange.to})`}
+        subtitle={`Iklan manual + iklan GMS · ${displayLabel} (${dRange.from} – ${dRange.to})`}
       >
         {camps === null ? (
           <AfMuted>Memuat…</AfMuted>
@@ -1721,7 +1722,7 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
                   <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
                 </tr></thead>
                 <tbody>
-                  {[["Iklan manual", bp.manual, "campaign"], ["Iklan otomatis (GMS)", bp.gms, "listing"]].map(([label, m, unit]) => (
+                  {[["Iklan manual", bp.manual, "campaign"], ["Iklan GMS", bp.gms, "listing"]].map(([label, m, unit]) => (
                     <tr key={label}>
                       <td style={AF_TDL}>{label}</td>
                       <td style={AF_TD}>{afNum(m.active)} {unit}</td>
@@ -1759,7 +1760,10 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
                 <tbody>
                   {ongoing.map((c) => (
                     <tr key={c.campaign_id}>
-                      <td style={{ ...AF_TDL, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                      <td style={{ ...AF_TDL, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>
+                        {c.ad_type === "auto" && <span style={AF_BADGE} title="Tipe campaign iklan otomatis Shopee (bukan GMS). Kolom Bidding = cara penawarannya.">Iklan otomatis</span>}
+                        {c.name || c.campaign_id}
+                      </td>
                       <td style={AF_TDL}>{AF_PLACEMENT[c.placement] || c.placement || "—"}</td>
                       <td style={AF_TDL}>
                         {c.bidding_method === "auto"
@@ -1784,8 +1788,8 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
 
       {byProduct && (
         <Card
-          title="Iklan otomatis (GMS)"
-          subtitle="Satu campaign GMS untuk seluruh toko — ini rincian listing produk ini"
+          title="Iklan GMS"
+          subtitle={`Product GMS${gms && gms.campaign_id ? ` · ID ${gms.campaign_id}` : ""} · satu campaign untuk seluruh toko — ini rincian listing produk ini`}
         >
           {!gms || !gms.available ? (
             <AfMuted>{(gms && gms.note) || "Data iklan GMS tidak tersedia."}</AfMuted>
