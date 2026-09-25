@@ -1789,7 +1789,8 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
       {byProduct && (
         <Card
           title="Iklan GMS"
-          subtitle={`Product GMS${gms && gms.campaign_id ? ` · ID ${gms.campaign_id}` : ""} · satu campaign untuk seluruh toko — ini rincian listing produk ini`}
+          subtitle={`Product GMS${gms && gms.campaign_id ? ` · ID ${gms.campaign_id}` : ""} · satu campaign untuk seluruh toko`
+            + (gms && gms.report ? ` (total biaya ${afMoney(gms.report.expense)})` : "") + " — ini rincian listing produk ini"}
         >
           {!gms || !gms.available ? (
             <AfMuted>{(gms && gms.note) || "Data iklan GMS tidak tersedia."}</AfMuted>
