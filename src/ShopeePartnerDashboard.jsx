@@ -1346,12 +1346,18 @@ const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px 
 // tidak mengembalikan identitas produk per campaign, hanya nama bebas teks
 // (ad_name). Dikelompokkan dengan cocok-kata di nama campaign; urutan penting
 // (keyword spesifik dicek dulu) supaya "1 Botol"/"Milk" tidak jatuh ke bucket
-// "Generos 1 Box" generik. Campaign yang tidak cocok apa pun masuk "Lainnya" —
-// tidak ada yang disembunyikan diam-diam.
+// "Generos 1 Box". PENTING: bucket "Generos 1 Box" match "1 box" secara
+// spesifik (bukan bare "generos") — nama campaign asli dari Shopee kayak
+// "Generos Official Store - ... - 1 Box [2]", dan toko ini kemungkinan jual
+// produk Generos lain di luar 3 ini juga; kalau matcher-nya generik "generos"
+// aja, campaign produk Generos LAIN (bukan varian 1 Box) ikut ketarik masuk
+// sini dan angkanya jadi kecampur/nggak sesuai. Campaign yang tidak cocok
+// apa pun (termasuk campaign Generos lain yang bukan 1 Botol/Milk/1 Box)
+// masuk "Lainnya" — tidak ada yang disembunyikan diam-diam.
 const AF_PRODUCT_GROUPS = [
   { key: "1botol", label: "Generos 1 Botol", match: (n) => /1\s*botol/i.test(n) },
   { key: "milk", label: "Generos Milk", match: (n) => /milk/i.test(n) },
-  { key: "generos", label: "Generos 1 Box", match: (n) => /generos/i.test(n) },
+  { key: "generos", label: "Generos 1 Box", match: (n) => /1\s*box/i.test(n) },
 ];
 function afGroupCampaignsByProduct(campaigns) {
   const buckets = AF_PRODUCT_GROUPS.map((g) => ({ ...g, rows: [] }));
