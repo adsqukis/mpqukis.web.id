@@ -21,6 +21,12 @@ import {
   if (typeof window === "undefined" || window.__mpApiCache) return;
   const orig = window.fetch.bind(window);
   const store = new Map(); // url -> { ts, body, inflight }
+  // Shared key backend api.qukis.id — nyaring akses langsung ke API (curl/scan
+  // yang nemu domainnya doang, gak pernah buka dashboard). Key ini tetap
+  // kebaca siapa aja yang inspect network tab/JS bundle situs ini — bukan
+  // proteksi kriptografis, cuma naikin effort dari "asal curl" jadi "harus
+  // buka dashboard-nya dulu buat nemu key-nya".
+  const MP_API_KEY = "mpqukis_4d538568e0eb1c8d5beb8eca";
   const ttlFor = (url) => {
     if (url.includes("/ads/realtime")) return 20000;
     if (url.includes("/ads/")) return 45000;
@@ -42,7 +48,8 @@ import {
 
     const revalidate = () => {
       if (ent && ent.inflight) return ent.inflight;
-      const p = orig(url, init)
+      const withKey = { ...(init || {}), headers: { ...((init && init.headers) || {}), "X-MP-Key": MP_API_KEY } };
+      const p = orig(url, withKey)
         .then(async (r) => {
           const text = await r.clone().text();
           if (r.ok) store.set(url, { ts: Date.now(), body: text, inflight: null });
