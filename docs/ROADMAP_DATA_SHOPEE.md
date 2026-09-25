@@ -26,7 +26,7 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
 | 7 | Kesehatan toko | belum |
 | 8 | Promo | belum |
 | 9 | Logistik & info toko | belum |
-| 10 | Iklan: fix per-produk + data yang belum dipakai | belum (butuh #3) |
+| 10 | Iklan: fix per-produk + data yang belum dipakai | fix per-produk: siap deploy, tunggu cek vs Seller Centre |
 
 ### 1. Pesanan & pembeli → CRM/RFM
 - **Endpoint:** `v2.order.get_order_list` (maks 15 hari per request), `v2.order.get_order_detail`.
@@ -71,11 +71,21 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
 - **Kerjaan:** status pengiriman dan paket yang nyangkut, notifikasi Seller Center di dashboard.
 
 ### 10. Iklan: fix per-produk + data yang belum dipakai
-- **Fix dulu:** grouping iklan per produk sekarang nebak dari nama campaign (`AF_PRODUCT_GROUPS`). Ganti dengan `common_info.item_id_list` + `auto_product_ads_info` (info_type 4) dari `get_product_level_campaign_setting_info`, lalu petakan lewat peta dari poin 3.
-- **Tes:** `get_gms_item_performance` (performa per item). Butuh toko di-whitelist "Product GMS" (error `ads_error_not_whitelisted_for_product_gms`).
-- **Lalu:** `get_product_campaign_hourly_performance`, keyword + bid (info_type 2), target ROAS (info_type 3), rekomendasi (`get_recommended_item_list`, `get_recommended_keyword_list`, `get_create_product_ad_budget_suggestion`).
+- **Temuan dari data asli (`ops/ads_discovery.py`, 19–25/09):**
+  - Campaign GMS (iklan otomatis toko) tidak muncul di `get_product_campaign_daily_performance`, jadi sekitar 31% biaya iklan produk tidak kelihatan di tab per produk. Datanya cuma ada di `get_gms_campaign_performance` / `get_gms_item_performance`.
+  - Dashboard lama memakai ROAS broad (pembelian produk apa pun di toko). ROAS langsung iklan manual jauh lebih rendah: 1 Botol 1,05x (tampil 7,36x), Milk 2,37x (tampil 5,22x), Klasik 13,73x (tampil 16,86x).
+  - Ke-120 campaign punya `item_id_list`, jadi produk bisa dipetakan pasti lewat SKU, tidak perlu menebak dari nama.
+- **Sudah dikerjakan (iklan v2):**
+  - Backend `ops/ads_v2.py`, dipasang dengan `ops/install_ads_v2.py`. Grup produk diambil dari `item_id_list` → SKU listing/varian → master SKU `parse_export.py`, dengan katalog item di-cache 12 jam. Campaign berisi lebih dari 1 produk masuk "Campuran", produk di luar master masuk "Lainnya".
+  - GMS ikut dihitung per listing. Angka langsung dan broad dikirim terpisah.
+  - Frontend: tiap tab produk menampilkan ringkasan (angka langsung jadi angka utama), perbandingan manual vs GMS, tabel campaign manual (bidding, target ROAS, jumlah keyword), dan tabel listing GMS.
+- **Selesai kalau:** angka 7 hari per produk cocok dengan Seller Centre.
+- **Berikutnya:** `get_product_campaign_hourly_performance`, detail keyword + bid (info_type 2), rekomendasi (`get_recommended_item_list`, `get_recommended_keyword_list`, `get_create_product_ad_budget_suggestion`).
+
+## Keputusan
+
+- Tab "Generos 1 Box" diganti jadi **Generos Klasik**, sesuai master SKU (QKS-GEN01/02/03).
 
 ## Keputusan yang masih menunggu
 
-- Tab "Generos 1 Box" sebenarnya produk **Generos Klasik** menurut master SKU. Ganti nama tab-nya?
 - Server lama (VPS sebelum migrasi): matikan proses backend mpqukis saja. Masih menunggu hasil diagnostic.

@@ -1349,51 +1349,21 @@ const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", c
 const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #E2E2E6" };
 const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px solid #E2E2E6" };
 
-// Breakdown per produk — HEURISTIK, bukan mapping resmi Shopee. Shopee Ads API
-// tidak mengembalikan identitas produk per campaign, hanya nama bebas teks
-// (ad_name). Dikelompokkan dengan cocok-kata di nama campaign; urutan penting
-// (keyword spesifik dicek dulu) supaya "1 Botol"/"Milk" tidak jatuh ke bucket
-// "Generos 1 Box". PENTING: bucket "Generos 1 Box" match "1 box" secara
-// spesifik (bukan bare "generos") — nama campaign asli dari Shopee kayak
-// "Generos Official Store - ... - 1 Box [2]", dan toko ini kemungkinan jual
-// produk Generos lain di luar 3 ini juga; kalau matcher-nya generik "generos"
-// aja, campaign produk Generos LAIN (bukan varian 1 Box) ikut ketarik masuk
-// sini dan angkanya jadi kecampur/nggak sesuai. Campaign yang tidak cocok
-// apa pun (termasuk campaign Generos lain yang bukan 1 Botol/Milk/1 Box)
-// masuk "Lainnya" — tidak ada yang disembunyikan diam-diam.
+// Tab produk. `group` = nama grup dari backend iklan v2 (master SKU di
+// parse_export.py); backend memetakan campaign & listing GMS ke grup lewat
+// item_id → SKU, bukan dari nama campaign. `key` dipertahankan supaya tab
+// terakhir yang tersimpan di localStorage tetap kepakai.
 const AF_PRODUCT_GROUPS = [
-  { key: "1botol", label: "Generos 1 Botol", match: (n) => /1\s*botol/i.test(n) },
-  { key: "milk", label: "Generos Milk", match: (n) => /milk/i.test(n) },
-  { key: "generos", label: "Generos 1 Box", match: (n) => /1\s*box/i.test(n) },
+  { key: "1botol", label: "Generos 1 Botol", group: "Generos 1 Botol" },
+  { key: "milk", label: "Generos Milk", group: "Generos Milk" },
+  { key: "generos", label: "Generos Klasik", group: "Generos Klasik" },
 ];
-function afGroupCampaignsByProduct(campaigns) {
-  const buckets = AF_PRODUCT_GROUPS.map((g) => ({ ...g, rows: [] }));
-  const other = { key: "other", label: "Lainnya / tidak teridentifikasi", rows: [] };
-  for (const c of campaigns || []) {
-    const name = c.name || "";
-    const hit = buckets.find((b) => b.match(name));
-    (hit || other).rows.push(c);
-  }
-  return [...buckets, other].filter((b) => b.rows.length > 0);
-}
-function afSumCampaigns(rows) {
-  const budget = rows.reduce((a, r) => a + (Number(r.expense) || 0), 0);
-  const klik = rows.reduce((a, r) => a + (Number(r.clicks) || 0), 0);
-  const closing = rows.reduce((a, r) => a + (Number(r.orders) || 0), 0);
-  const impression = rows.reduce((a, r) => a + (Number(r.impressions) || 0), 0);
-  const gmv = rows.reduce((a, r) => a + (Number(r.gmv) || 0), 0);
-  return {
-    budget, klik, closing, impression, gmv,
-    roas: budget > 0 ? gmv / budget : null,
-    ctr: impression > 0 ? (klik / impression) * 100 : null,
-  };
-}
 
 function AfTile({ label, value, accent = "#7C5CBF", sub }) {
   return (
     <div style={{ background: "#F4F5F8", border: "1px solid #F5F5F7", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, color: "#8A8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "#17171A", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+      <div className="mp-tile-val" title={typeof value === "string" ? value : undefined} style={{ fontSize: 17, fontWeight: 700, color: "#17171A", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "#8A8A82", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
     </div>
   );
@@ -1567,7 +1537,7 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
       >
         {dTotal ? (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
               <AfTile label="Budget" value={afMoney(dTotal.budget)} accent="#7C5CBF" />
               <AfTile label="Klik" value={afNum(dTotal.klik)} accent="#2E6BE0" />
               <AfTile label="Closing" value={afNum(dTotal.closing)} accent="#F09040" />
@@ -1688,71 +1658,156 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
 }
 
 // ---------- Isi tab produk: iklan toko dan pencarian, di-scope ke 1 produk ----------
-// Pengelompokan HEURISTIK dari nama campaign (lihat AF_PRODUCT_GROUPS) — Shopee
-// tidak mengirim identitas produk resmi per campaign, ini estimasi berbasis kata
-// kunci di nama campaign, bukan mapping resmi.
+// Data dari backend iklan v2 (/api/ads/campaigns): iklan manual per campaign +
+// iklan otomatis GMS per listing, dikelompokkan backend lewat item_id → SKU.
+// "Langsung" = pembelian produk yang diiklankan itu sendiri; "broad" = pembelian
+// produk apa pun di toko dalam 7 hari setelah klik.
+const AF_THW = { ...AF_TH, whiteSpace: "normal", lineHeight: 1.3, verticalAlign: "bottom" };
+const AF_PLACEMENT = { search: "Pencarian", discovery: "Rekomendasi", all: "Semua" };
+const afBudget = (v) => (Number(v) === 0 ? "Tanpa batas" : afMoney(v));
+// Sel 2 baris: angka/nilai utama + keterangan kecil di bawahnya.
+const AfCell2 = ({ main, sub }) => (
+  <>
+    <div>{main}</div>
+    {sub && <div style={{ fontSize: 10.5, color: "#8A8A82", fontFamily: "Inter, sans-serif", marginTop: 2 }}>{sub}</div>}
+  </>
+);
+
 function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
-  const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
-  const groups = campsList ? afGroupCampaignsByProduct(campsList) : null;
-  const group = groups ? groups.find((g) => g.key === productKey) : null;
-  const rows = group ? group.rows : [];
-  const s = afSumCampaigns(rows);
-  const ongoing = rows.filter((c) => c.status === "ongoing");
-  const otherCount = groups ? ((groups.find((g) => g.key === "other") || {}).rows || []).length : 0;
+  const meta = AF_PRODUCT_GROUPS.find((g) => g.key === productKey) || AF_PRODUCT_GROUPS[0];
+  const byProduct = camps && camps.by_product ? camps.by_product : null;
+  const bp = byProduct ? byProduct[meta.group] : null;
+  const t = bp ? bp.total : null;
+  const manualRows = camps && Array.isArray(camps.campaigns) ? camps.campaigns.filter((c) => c.product_group === meta.group) : [];
+  const ongoing = manualRows.filter((c) => c.status === "ongoing");
+  const hiddenSpend = manualRows.filter((c) => c.status !== "ongoing" && c.expense > 0);
+  const gms = camps && camps.gms ? camps.gms : null;
+  const gmsRows = gms && Array.isArray(gms.items) ? gms.items.filter((i) => i.product_group === meta.group) : [];
+  const outside = byProduct
+    ? ["Lainnya", "Campuran"].map((g) => [g, byProduct[g] && byProduct[g].total]).filter(([, x]) => x && x.expense > 0)
+    : [];
+  const hasSpend = t && (t.expense > 0 || t.broad_gmv > 0);
 
   return (
     <>
       <Card
         title="Ringkasan"
-        subtitle={`Dijumlah dari campaign yang namanya cocok kata kunci produk ini (bukan mapping resmi Shopee) · ${displayLabel} (${dRange.from} – ${dRange.to})`}
+        subtitle={`Iklan manual + iklan otomatis (GMS) · ${displayLabel} (${dRange.from} – ${dRange.to})`}
       >
         {camps === null ? (
           <AfMuted>Memuat…</AfMuted>
-        ) : !campsList ? (
-          <AfMuted>Data campaign tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
-        ) : rows.length === 0 ? (
-          <AfMuted>Tidak ada campaign yang teridentifikasi untuk produk ini di rentang tanggal ini.</AfMuted>
+        ) : camps.unavailable ? (
+          <AfMuted>Data iklan tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
+        ) : !byProduct ? (
+          <AfMuted>Backend iklan masih versi lama (belum iklan v2), jadi rincian per produk belum bisa ditampilkan.</AfMuted>
+        ) : !bp ? (
+          <AfMuted>Grup produk "{meta.group}" tidak ada di data backend — cek nama grup di master SKU.</AfMuted>
+        ) : !hasSpend ? (
+          <AfMuted>Tidak ada biaya iklan untuk produk ini di rentang tanggal ini.</AfMuted>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            <AfTile label="Budget" value={afMoney(s.budget)} accent="#7C5CBF" />
-            <AfTile label="Impresi" value={afNum(s.impression)} accent="#2E6BE0" />
-            <AfTile label="Klik" value={afNum(s.klik)} accent="#5B7CFA" />
-            <AfTile label="CTR" value={afPct(s.ctr)} accent="#F09040" />
-            <AfTile label="Closing" value={afNum(s.closing)} accent="#1E9E6F" />
-            <AfTile label="GMV" value={afMoney(s.gmv)} accent="#D04C8F" sub={`ROAS ${afRoas(s.roas)}`} />
-          </div>
+          <>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+              <AfTile label="Biaya iklan" value={afMoney(t.expense)} accent="#7C5CBF" sub="manual + GMS" />
+              <AfTile label="GMV langsung" value={afMoney(t.direct_gmv)} accent="#D04C8F" sub="penjualan produk ini" />
+              <AfTile label="ROAS langsung" value={afRoas(t.direct_roas)} accent="#1E9E6F" sub="GMV langsung ÷ biaya" />
+              <AfTile label="Pesanan langsung" value={afNum(t.direct_orders)} accent="#F09040" />
+              <AfTile label="Klik" value={afNum(t.clicks)} accent="#5B7CFA" sub={`CTR ${afPct(t.ctr)} · ${afNum(t.impressions)} impresi`} />
+              <AfTile label="ROAS broad" value={afRoas(t.broad_roas)} accent="#8A8A82" sub={`GMV broad ${afMoney(t.broad_gmv)}`} />
+            </div>
+            <div style={{ overflowX: "auto", marginTop: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Sumber</th><th style={AF_THW}>Berjalan</th><th style={AF_THW}>Biaya</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
+                </tr></thead>
+                <tbody>
+                  {[["Iklan manual", bp.manual, "campaign"], ["Iklan otomatis (GMS)", bp.gms, "listing"]].map(([label, m, unit]) => (
+                    <tr key={label}>
+                      <td style={AF_TDL}>{label}</td>
+                      <td style={AF_TD}>{afNum(m.active)} {unit}</td>
+                      <td style={AF_TD}>{afMoney(m.expense)}</td>
+                      <td style={AF_TD}>{afNum(m.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(m.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(m.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(m.broad_roas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {gms && gms.note && <div style={{ marginTop: 8 }}><AfMuted>Catatan GMS: {gms.note}</AfMuted></div>}
+          </>
         )}
       </Card>
 
-      {rows.length > 0 && (
+      {byProduct && (
         <Card
-          title="Campaign produk ini"
-          subtitle={`${afNum(ongoing.length)} ongoing dari ${afNum(rows.length)} total (paused/ended disembunyikan) · get_product_level_campaign_id_list + setting_info + get_product_campaign_daily_performance`}
+          title="Iklan manual"
+          subtitle={`${afNum(ongoing.length)} ongoing dari ${afNum(manualRows.length)} campaign produk ini (paused/ended disembunyikan)`
+            + (hiddenSpend.length ? ` · biaya ${afMoney(hiddenSpend.reduce((a, c) => a + c.expense, 0))} dari ${hiddenSpend.length} campaign yang sudah paused/ended tetap dihitung di Ringkasan` : "")}
         >
           {ongoing.length === 0 ? (
-            <AfMuted>Tidak ada campaign berstatus ongoing untuk produk ini.</AfMuted>
+            <AfMuted>Tidak ada campaign manual berstatus ongoing untuk produk ini.</AfMuted>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
-                  <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Tipe</th>
-                  <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
-                  <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                  <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Bidding</th>
+                  <th style={AF_THW}>Budget</th><th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
                 </tr></thead>
                 <tbody>
                   {ongoing.map((c) => (
                     <tr key={c.campaign_id}>
-                      <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
-                      <td style={AF_TDL}>{c.placement || "—"}</td>
-                      <td style={AF_TDL}>{c.ad_type || "—"}</td>
-                      <td style={AF_TD}>{afMoney(c.budget)}</td>
+                      <td style={{ ...AF_TDL, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                      <td style={AF_TDL}>{AF_PLACEMENT[c.placement] || c.placement || "—"}</td>
+                      <td style={AF_TDL}>
+                        {c.bidding_method === "auto"
+                          ? <AfCell2 main="Otomatis" sub={c.roas_target ? `target ROAS ${afRoas(c.roas_target)}` : null} />
+                          : <AfCell2 main="Manual" sub={c.keyword_count ? `${afNum(c.keyword_count)} keyword` : null} />}
+                      </td>
+                      <td style={AF_TD}>{afBudget(c.budget)}</td>
                       <td style={AF_TD}>{afMoney(c.expense)}</td>
-                      <td style={AF_TD}>{afNum(c.impressions)}</td>
-                      <td style={AF_TD}>{afNum(c.clicks)}</td>
-                      <td style={AF_TD}>{afPct(c.ctr)}</td>
-                      <td style={AF_TD}>{afNum(c.orders)}</td>
-                      <td style={AF_TD}>{afMoney(c.gmv)}</td>
-                      <td style={AF_TD}>{afRoas(c.roas)}</td>
+                      <td style={AF_TD}><AfCell2 main={afNum(c.clicks)} sub={`CTR ${afPct(c.ctr)}`} /></td>
+                      <td style={AF_TD}>{afNum(c.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(c.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(c.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(c.broad_roas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {byProduct && (
+        <Card
+          title="Iklan otomatis (GMS)"
+          subtitle="Satu campaign GMS untuk seluruh toko — ini rincian listing produk ini"
+        >
+          {!gms || !gms.available ? (
+            <AfMuted>{(gms && gms.note) || "Data iklan GMS tidak tersedia."}</AfMuted>
+          ) : gmsRows.length === 0 ? (
+            <AfMuted>Listing produk ini tidak punya biaya di iklan GMS pada rentang ini.</AfMuted>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Listing</th><th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
+                </tr></thead>
+                <tbody>
+                  {gmsRows.map((i) => (
+                    <tr key={i.item_id}>
+                      <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }} title={String(i.name || i.item_id)}>{i.name || i.item_id}</td>
+                      <td style={AF_TD}>{afMoney(i.expense)}</td>
+                      <td style={AF_TD}><AfCell2 main={afNum(i.clicks)} sub={`CTR ${afPct(i.ctr)}`} /></td>
+                      <td style={AF_TD}>{afNum(i.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(i.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(i.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(i.broad_roas)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1763,10 +1818,10 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
       )}
 
       <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
-        Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
-        mengirim identitas produk per campaign secara resmi; campaign yang namanya nggak menyebut produk ini
-        nggak akan muncul di sini walau isinya sebenarnya relevan.
-        {otherCount > 0 && ` Di luar 3 tab produk, ada ${otherCount} campaign toko ini yang nama-nya nggak teridentifikasi ke Generos 1 Box / Generos 1 Botol / Generos Milk sama sekali.`}
+        Produk ditentukan dari SKU listing yang diiklankan (master SKU): Klasik = QKS-GEN01/02/03, 1 Botol = QKS-GEN1,
+        Milk = GenMilk. Langsung = pembelian produk yang diiklankan itu sendiri; broad = pembelian produk apa pun di toko
+        dalam 7 hari setelah klik iklan.
+        {outside.length > 0 && ` Di luar 3 produk ini ada biaya iklan: ${outside.map(([g, x]) => `${g === "Campuran" ? "campaign berisi >1 produk" : "produk/bundle lain"} ${afMoney(x.expense)}`).join(", ")}.`}
       </div>
     </>
   );
@@ -1805,7 +1860,7 @@ function TabAdsCpas({ detail, displayLabel }) {
               {cat.note}. Angka di bawah tampil "—" karena API-nya belum bisa diakses — bukan karena tidak ada iklan.
             </InfoNote>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+          <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
             {tiles.map((t) => <AfTile key={t.label} label={t.label} value={t.value} accent={t.accent} />)}
           </div>
           <AfSource text={detail.source} at={detail.generated_at} />
@@ -1914,7 +1969,7 @@ function TabAds() {
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
   const loadData = (active) => {
-    // Sumber utama tab per produk: daftar campaign (di-group per produk di client).
+    // Sumber utama tab per produk: iklan v2 (backend sudah mengelompokkan per produk).
     fetch(`https://api.qukis.id/api/ads/campaigns?from=${dRange.from}&to=${dRange.to}`)
       .then((r) => r.json())
       .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
@@ -2057,7 +2112,7 @@ function TabAds() {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
-              padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+              padding: "8px 18px", borderRadius: 10, cursor: "pointer",
               background: on ? "linear-gradient(135deg,#7C5CBF,#5B7CFA)" : "#fff",
               color: on ? "#fff" : "#5F6368", fontSize: 13, fontWeight: 600,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(124,92,191,.35)" : "0 1px 2px rgba(0,0,0,.05)",
@@ -2356,7 +2411,11 @@ export default function ShopeePartnerDashboard() {
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+        @media (max-width: 1180px) {
+          .mp-grid6 { grid-template-columns: repeat(3, 1fr) !important; }
+        }
         @media (max-width: 768px) {
+          .mp-grid6 { grid-template-columns: repeat(2, 1fr) !important; }
           .mp-root { flex-direction: column !important; min-height: 100vh !important; border-radius: 0 !important; border: none !important; }
           .mp-sidebar {
             width: 100% !important; max-width: none !important; height: auto !important;
@@ -2383,6 +2442,8 @@ export default function ShopeePartnerDashboard() {
         }
         @media (max-width: 420px) {
           .mp-grid4 { gap: 8px !important; }
+          .mp-grid6 { gap: 8px !important; }
+          .mp-tile-val { font-size: 14px !important; }
         }
       `}</style>
 
