@@ -1455,6 +1455,13 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
   };
   const beyond30 = dRange.from < isoDaysAgo(29);
   const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
+  // Tabel rincian per campaign cuma nampilin yang ongoing (permintaan user) —
+  // tapi "Performa per produk" di bawah tetap pakai campsList penuh (semua
+  // status), karena itu ringkasan performa SELAMA rentang tanggal, bukan
+  // status campaign saat ini. Filter status-sekarang bisa bikin GMV/ROAS per
+  // produk kurang akurat kalau campaign aktif penuh di rentang tsb lalu di-
+  // pause/ended setelahnya.
+  const campsOngoing = campsList ? campsList.filter((c) => c.status === "ongoing") : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
@@ -1599,16 +1606,23 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
               <AfKV title="Per placement" obj={ci.by_placement} />
               <AfKV title="Per status" obj={ci.by_status} />
             </div>
-            {campsList ? (
+            {camps === null ? (
+              <AfMuted>Memuat…</AfMuted>
+            ) : !campsOngoing ? (
+              <AfMuted>Data campaign tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
+            ) : (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <AfMuted>Menampilkan {afNum(campsOngoing.length)} campaign ongoing dari {afNum(campsList.length)} total (paused/ended disembunyikan di tabel ini).</AfMuted>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                   <thead><tr>
                     <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Status</th><th style={AF_THL}>Tipe</th>
                     <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
                     <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
                   </tr></thead>
                   <tbody>
-                    {campsList.map((c) => (
+                    {campsOngoing.length === 0 ? (
+                      <tr><td colSpan={12} style={AF_TDL}><AfMuted>Tidak ada campaign berstatus ongoing.</AfMuted></td></tr>
+                    ) : campsOngoing.map((c) => (
                       <tr key={c.campaign_id}>
                         <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
                         <td style={AF_TDL}>{c.placement || "—"}</td>
@@ -1627,58 +1641,10 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <AfMuted>Rincian per campaign (nama, status, budget, performa) butuh endpoint <code>/api/ads/campaigns</code> di backend — belum ter-deploy.</AfMuted>
             )}
             <AfSource text={ov.source} at={ov.generated_at} />
           </>
         ) : <AfMuted>Memuat…</AfMuted>}
-      </Card>
-
-      {/* 5b. Performa per produk — pengelompokan HEURISTIK dari nama campaign, lihat AF_PRODUCT_GROUPS */}
-      <Card
-        title="Performa per produk"
-        subtitle="Dikelompokkan dari nama campaign (bukan mapping resmi Shopee) — cek catatan di bawah tabel"
-      >
-        {!campsList ? (
-          <AfMuted>Butuh endpoint <code>/api/ads/campaigns</code> di backend — belum ter-deploy, sama seperti tabel Campaign di atas.</AfMuted>
-        ) : campsList.length === 0 ? (
-          <AfMuted>Tidak ada campaign untuk rentang ini.</AfMuted>
-        ) : (
-          <>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>
-                  <th style={AF_THL}>Produk</th><th style={AF_TH}>Campaign</th><th style={AF_TH}>Budget</th>
-                  <th style={AF_TH}>Klik</th><th style={AF_TH}>CTR</th><th style={AF_TH}>Closing</th>
-                  <th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
-                </tr></thead>
-                <tbody>
-                  {afGroupCampaignsByProduct(campsList).map((g) => {
-                    const s = afSumCampaigns(g.rows);
-                    return (
-                      <tr key={g.key}>
-                        <td style={{ ...AF_TDL, fontWeight: 600, color: g.key === "other" ? "#8A6A3B" : "#17171A" }}>{g.label}</td>
-                        <td style={AF_TD}>{afNum(g.rows.length)}</td>
-                        <td style={AF_TD}>{afMoney(s.budget)}</td>
-                        <td style={AF_TD}>{afNum(s.klik)}</td>
-                        <td style={AF_TD}>{afPct(s.ctr)}</td>
-                        <td style={AF_TD}>{afNum(s.closing)}</td>
-                        <td style={AF_TD}>{afMoney(s.gmv)}</td>
-                        <td style={AF_TD}>{afRoas(s.roas)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ fontSize: 11, color: "#8A6A3B", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
-              Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
-              mengirim identitas produk per campaign secara resmi. Baris "Lainnya" = nama campaign tidak menyebut
-              produk itu; cek nama campaign-nya di tabel Campaign di atas kalau jumlahnya banyak.
-            </div>
-          </>
-        )}
       </Card>
 
       {/* 6. Harian mentah — semua field apa adanya */}
@@ -1705,6 +1671,91 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
         ) : <AfMuted>Tidak ada baris harian untuk rentang ini.</AfMuted>) : <AfMuted>Memuat…</AfMuted>}
       </Card>
     </div>
+  );
+}
+
+// ---------- Isi tab produk: iklan toko dan pencarian, di-scope ke 1 produk ----------
+// Pengelompokan HEURISTIK dari nama campaign (lihat AF_PRODUCT_GROUPS) — Shopee
+// tidak mengirim identitas produk resmi per campaign, ini estimasi berbasis kata
+// kunci di nama campaign, bukan mapping resmi.
+function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
+  const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
+  const groups = campsList ? afGroupCampaignsByProduct(campsList) : null;
+  const group = groups ? groups.find((g) => g.key === productKey) : null;
+  const rows = group ? group.rows : [];
+  const s = afSumCampaigns(rows);
+  const ongoing = rows.filter((c) => c.status === "ongoing");
+  const otherCount = groups ? ((groups.find((g) => g.key === "other") || {}).rows || []).length : 0;
+
+  return (
+    <>
+      <Card
+        title="Ringkasan"
+        subtitle={`Dijumlah dari campaign yang namanya cocok kata kunci produk ini (bukan mapping resmi Shopee) · ${displayLabel} (${dRange.from} – ${dRange.to})`}
+      >
+        {camps === null ? (
+          <AfMuted>Memuat…</AfMuted>
+        ) : !campsList ? (
+          <AfMuted>Data campaign tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
+        ) : rows.length === 0 ? (
+          <AfMuted>Tidak ada campaign yang teridentifikasi untuk produk ini di rentang tanggal ini.</AfMuted>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+            <AfTile label="Budget" value={afMoney(s.budget)} accent="#7C5CBF" />
+            <AfTile label="Impresi" value={afNum(s.impression)} accent="#2E6BE0" />
+            <AfTile label="Klik" value={afNum(s.klik)} accent="#5B7CFA" />
+            <AfTile label="CTR" value={afPct(s.ctr)} accent="#F09040" />
+            <AfTile label="Closing" value={afNum(s.closing)} accent="#1E9E6F" />
+            <AfTile label="GMV" value={afMoney(s.gmv)} accent="#D04C8F" sub={`ROAS ${afRoas(s.roas)}`} />
+          </div>
+        )}
+      </Card>
+
+      {rows.length > 0 && (
+        <Card
+          title="Campaign produk ini"
+          subtitle={`${afNum(ongoing.length)} ongoing dari ${afNum(rows.length)} total (paused/ended disembunyikan) · get_product_level_campaign_id_list + setting_info + get_product_campaign_daily_performance`}
+        >
+          {ongoing.length === 0 ? (
+            <AfMuted>Tidak ada campaign berstatus ongoing untuk produk ini.</AfMuted>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Tipe</th>
+                  <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
+                  <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                </tr></thead>
+                <tbody>
+                  {ongoing.map((c) => (
+                    <tr key={c.campaign_id}>
+                      <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                      <td style={AF_TDL}>{c.placement || "—"}</td>
+                      <td style={AF_TDL}>{c.ad_type || "—"}</td>
+                      <td style={AF_TD}>{afMoney(c.budget)}</td>
+                      <td style={AF_TD}>{afMoney(c.expense)}</td>
+                      <td style={AF_TD}>{afNum(c.impressions)}</td>
+                      <td style={AF_TD}>{afNum(c.clicks)}</td>
+                      <td style={AF_TD}>{afPct(c.ctr)}</td>
+                      <td style={AF_TD}>{afNum(c.orders)}</td>
+                      <td style={AF_TD}>{afMoney(c.gmv)}</td>
+                      <td style={AF_TD}>{afRoas(c.roas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
+        Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
+        mengirim identitas produk per campaign secara resmi; campaign yang namanya nggak menyebut produk ini
+        nggak akan muncul di sini walau isinya sebenarnya relevan.
+        {otherCount > 0 && ` Di luar 3 tab produk, ada ${otherCount} campaign toko ini yang nama-nya nggak teridentifikasi ke Generos / Generos 1 Botol / Generos Milk sama sekali.`}
+      </div>
+    </>
   );
 }
 
@@ -1752,6 +1803,27 @@ function TabAdsCpas({ detail, displayLabel }) {
 }
 
 function TabAds() {
+  // Konten shop-wide lama (KPI grid, chart, AdsFullData: saldo/per jam/tabel
+  // campaign semua produk/harian mentah) dilepas dari UI atas permintaan user
+  // (levelnya toko, bukan per produk, jadi nggak nyambung ke tab produk di
+  // bawah) — logic-nya dibiarkan (bukan dihapus), gated `false` biar gampang
+  // dipasang balik kalau perlu, sama kayak pola "shop"/TabAffiliate di file ini.
+  const SHOW_JENIS_IKLAN = false;
+
+  // Tab paling atas sekarang PER PRODUK (bukan per jenis iklan lagi).
+  const [prodTab, setProdTabState] = useState(() => {
+    try {
+      const k = localStorage.getItem("mp_adsprodtab");
+      return AF_PRODUCT_GROUPS.some((g) => g.key === k) ? k : AF_PRODUCT_GROUPS[0].key;
+    } catch { return AF_PRODUCT_GROUPS[0].key; }
+  });
+  const setProdTab = (k) => {
+    setProdTabState(k);
+    try { localStorage.setItem("mp_adsprodtab", k); } catch { /* ignore */ }
+  };
+  // Sub-tab DI DALAM tiap tab produk: iklan toko dan pencarian vs iklan CPAS.
+  // CPAS levelnya toko (lihat render di bawah), bukan per produk — Shopee
+  // nggak kirim breakdown CPAS per produk/campaign.
   const [adTab, setAdTabState] = useState(() => {
     // "shop" (Iklan Toko+) sementara dilepas dari UI — kalau ada visitor lama yang
     // masih punya "shop" ke-cache di localStorage, fallback ke "product".
@@ -1829,8 +1901,19 @@ function TabAds() {
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
   const loadData = (active) => {
-    // Sub-tab CPAS: backend /api/ads/metric & /series hanya kenal tab product|shop,
-    // jadi card KPI + chart di-skip; CPAS dirender dari kategori "cpas" di /api/ads/detail.
+    // Sumber utama tab per produk: daftar campaign (di-group per produk di client).
+    fetch(`https://api.qukis.id/api/ads/campaigns?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
+      .catch(() => { if (active) setCamps({ unavailable: true }); });
+    // /api/ads/detail — dipakai buat kategori CPAS (levelnya toko, lihat TabAdsCpas).
+    fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active && d && !d.error) setDetail(d); })
+      .catch(() => {});
+
+    if (!SHOW_JENIS_IKLAN) return;
+    // ---- di bawah ini dormant selama SHOW_JENIS_IKLAN=false; logic lama dibiarkan ----
     const isCpas = adTab === "cpas";
     setBusy(!isCpas);
     if (isCpas) {
@@ -1873,22 +1956,15 @@ function TabAds() {
         if (active && d && !d.error) setRt(d);
       })
       .catch(() => {});
-    // Data lengkap (semua field yang backend tarik dari Shopee) — lihat AdsFullData.
-    fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => { if (active && d && !d.error) setDetail(d); })
-      .catch(() => {});
     fetch("https://api.qukis.id/api/ads/overview?days=30")
       .then((r) => r.json())
       .then((d) => { if (active && d && !d.error) setOv(d); })
       .catch(() => {});
-    fetch(`https://api.qukis.id/api/ads/campaigns?from=${dRange.from}&to=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
-      .catch(() => { if (active) setCamps({ unavailable: true }); });
   };
 
-  // Fetch saat: buka tab, ganti sub-tab, ganti tanggal, ganti metrik chart.
+  // Fetch saat: buka tab, ganti tanggal. camps/detail sudah cukup buat SEMUA
+  // tab produk & sub-tab (toko&pencarian/CPAS) sekaligus — ganti prodTab/adTab
+  // gak perlu fetch baru, cuma slice ulang campsList di client.
   // Auto refresh 30 detik (REALTIME_REFRESH_INTERVAL).
   useEffect(() => {
     let active = true;
@@ -1899,32 +1975,27 @@ function TabAds() {
       clearInterval(iv);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adTab, range, customRange, seriesMetric]);
+  }, [range, customRange]);
 
   return (
     <>
-      {/* Sub-tab: iklan toko dan pencarian | iklan CPAS | Iklan Toko+ */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[
-          { key: "product", label: "iklan toko dan pencarian" },
-          { key: "cpas", label: "iklan CPAS" },
-          // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
-          // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
-        ].map((t) => {
-          const on = adTab === t.key;
+      {/* Tab paling atas: 1 tab per produk */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        {AF_PRODUCT_GROUPS.map((g) => {
+          const on = prodTab === g.key;
           return (
-            <button key={t.key} onClick={() => setAdTab(t.key)} style={{
-              padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+            <button key={g.key} onClick={() => setProdTab(g.key)} style={{
+              padding: "10px 22px", borderRadius: 12, cursor: "pointer",
               background: on ? "linear-gradient(135deg,#7C5CBF,#5B7CFA)" : "#fff",
-              color: on ? "#fff" : "#5F6368", fontSize: 13, fontWeight: 600,
-              fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(124,92,191,.35)" : "0 1px 2px rgba(0,0,0,.05)",
+              color: on ? "#fff" : "#5F6368", fontSize: 14, fontWeight: 700,
+              fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 14px rgba(124,92,191,.4)" : "0 1px 2px rgba(0,0,0,.05)",
               border: on ? "none" : "1px solid #E4E4E8",
-            }}>{t.label}</button>
+            }}>{g.label}</button>
           );
         })}
       </div>
 
-      {/* Filter tanggal — preset + custom kalender */}
+      {/* Filter tanggal — preset + custom kalender (dipakai bersama ketiga tab produk) */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         {FILTERS.map((f) => (
           <button key={f.key} onClick={() => clickPreset(f.key)} style={{
@@ -1962,7 +2033,42 @@ function TabAds() {
         </span>
       </div>
 
-      {adTab === "cpas" && <TabAdsCpas detail={detail} displayLabel={displayLabel} />}
+      {/* Sub-tab DI DALAM tab produk yang aktif: iklan toko dan pencarian vs iklan CPAS */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        {[
+          { key: "product", label: "iklan toko dan pencarian" },
+          { key: "cpas", label: "iklan CPAS" },
+          // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
+          // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
+        ].map((t) => {
+          const on = adTab === t.key;
+          return (
+            <button key={t.key} onClick={() => setAdTab(t.key)} style={{
+              padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+              background: on ? "linear-gradient(135deg,#7C5CBF,#5B7CFA)" : "#fff",
+              color: on ? "#fff" : "#5F6368", fontSize: 13, fontWeight: 600,
+              fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(124,92,191,.35)" : "0 1px 2px rgba(0,0,0,.05)",
+              border: on ? "none" : "1px solid #E4E4E8",
+            }}>{t.label}</button>
+          );
+        })}
+      </div>
+
+      {adTab === "cpas" ? (
+        <>
+          <InfoNote>
+            Data CPAS di bawah levelnya TOKO (gabungan semua produk) — Shopee belum kirim breakdown
+            CPAS per produk/campaign, jadi angkanya sama persis di ketiga tab produk manapun yang dibuka.
+          </InfoNote>
+          <TabAdsCpas detail={detail} displayLabel={displayLabel} />
+        </>
+      ) : (
+        <AdsProductBreakdown camps={camps} productKey={prodTab} dRange={dRange} displayLabel={displayLabel} />
+      )}
+
+      {SHOW_JENIS_IKLAN && (
+      <>
+      {/* ==== Di bawah ini konten shop-wide lama (dormant) — lihat SHOW_JENIS_IKLAN ==== */}
 
       {adTab === "shop" && (
         <InfoNote>
@@ -2077,6 +2183,8 @@ function TabAds() {
 
       {adTab !== "cpas" && (
         <AdsFullData rt={rt} detail={detail} ov={ov} camps={camps} dRange={dRange} displayLabel={displayLabel} />
+      )}
+      </>
       )}
     </>
   );
