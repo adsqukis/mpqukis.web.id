@@ -1346,12 +1346,12 @@ const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px 
 // tidak mengembalikan identitas produk per campaign, hanya nama bebas teks
 // (ad_name). Dikelompokkan dengan cocok-kata di nama campaign; urutan penting
 // (keyword spesifik dicek dulu) supaya "1 Botol"/"Milk" tidak jatuh ke bucket
-// "Generos" generik. Campaign yang tidak cocok apa pun masuk "Lainnya" —
+// "Generos 1 Box" generik. Campaign yang tidak cocok apa pun masuk "Lainnya" —
 // tidak ada yang disembunyikan diam-diam.
 const AF_PRODUCT_GROUPS = [
   { key: "1botol", label: "Generos 1 Botol", match: (n) => /1\s*botol/i.test(n) },
   { key: "milk", label: "Generos Milk", match: (n) => /milk/i.test(n) },
-  { key: "generos", label: "Generos", match: (n) => /generos/i.test(n) },
+  { key: "generos", label: "Generos 1 Box", match: (n) => /generos/i.test(n) },
 ];
 function afGroupCampaignsByProduct(campaigns) {
   const buckets = AF_PRODUCT_GROUPS.map((g) => ({ ...g, rows: [] }));
@@ -1753,7 +1753,7 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
         Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
         mengirim identitas produk per campaign secara resmi; campaign yang namanya nggak menyebut produk ini
         nggak akan muncul di sini walau isinya sebenarnya relevan.
-        {otherCount > 0 && ` Di luar 3 tab produk, ada ${otherCount} campaign toko ini yang nama-nya nggak teridentifikasi ke Generos / Generos 1 Botol / Generos Milk sama sekali.`}
+        {otherCount > 0 && ` Di luar 3 tab produk, ada ${otherCount} campaign toko ini yang nama-nya nggak teridentifikasi ke Generos 1 Box / Generos 1 Botol / Generos Milk sama sekali.`}
       </div>
     </>
   );
