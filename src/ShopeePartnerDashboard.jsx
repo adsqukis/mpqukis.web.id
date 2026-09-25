@@ -1455,6 +1455,13 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
   };
   const beyond30 = dRange.from < isoDaysAgo(29);
   const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
+  // Tabel rincian per campaign cuma nampilin yang ongoing (permintaan user) —
+  // tapi "Performa per produk" di bawah tetap pakai campsList penuh (semua
+  // status), karena itu ringkasan performa SELAMA rentang tanggal, bukan
+  // status campaign saat ini. Filter status-sekarang bisa bikin GMV/ROAS per
+  // produk kurang akurat kalau campaign aktif penuh di rentang tsb lalu di-
+  // pause/ended setelahnya.
+  const campsOngoing = campsList ? campsList.filter((c) => c.status === "ongoing") : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
@@ -1599,16 +1606,19 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
               <AfKV title="Per placement" obj={ci.by_placement} />
               <AfKV title="Per status" obj={ci.by_status} />
             </div>
-            {campsList ? (
+            {campsOngoing ? (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <AfMuted>Menampilkan {afNum(campsOngoing.length)} campaign ongoing dari {afNum(campsList.length)} total (paused/ended disembunyikan di tabel ini).</AfMuted>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                   <thead><tr>
                     <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Status</th><th style={AF_THL}>Tipe</th>
                     <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
                     <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
                   </tr></thead>
                   <tbody>
-                    {campsList.map((c) => (
+                    {campsOngoing.length === 0 ? (
+                      <tr><td colSpan={12} style={AF_TDL}><AfMuted>Tidak ada campaign berstatus ongoing.</AfMuted></td></tr>
+                    ) : campsOngoing.map((c) => (
                       <tr key={c.campaign_id}>
                         <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
                         <td style={AF_TDL}>{c.placement || "—"}</td>
