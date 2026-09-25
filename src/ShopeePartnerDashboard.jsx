@@ -1754,7 +1754,8 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
                   <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Bidding</th>
-                  <th style={AF_THW}>Budget</th><th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
+                  <th style={AF_THW} title="Budget yang tersetel sekarang di Shopee (API tidak menyebut harian atau total). Biaya di sebelahnya = total selama rentang tanggal.">Budget saat ini</th>
+                  <th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
                   <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
                 </tr></thead>
                 <tbody>
