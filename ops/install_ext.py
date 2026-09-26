@@ -145,21 +145,21 @@ def verify(route=None):
         return
     c, t, w = d.get("coverage") or {}, d.get("total") or {}, d.get("wallet") or {}
     print(f"\nversi {d.get('version')} | {d.get('from')} s.d. {d.get('to')} | metode escrow {c.get('method')}")
-    print(f"pesanan {c.get('orders_in_range')} | dicek escrow {c.get('escrow_read')}/{c.get('eligible')} "
-          f"(belum terbaca {c.get('missing')})" + (f" | error: {c.get('errors')}" if c.get("errors") else ""))
-    print(f"AFFILIATE: {t.get('aff_orders')} pesanan ({t.get('share_orders')}%) | penjualan {rp(t.get('aff_gmv'))} "
-          f"({t.get('share_gmv')}% dari penjualan) | komisi {rp(t.get('commission'))} (rate {t.get('rate')}%)")
-    cx = d.get("cancelled") or {}
-    if cx.get("orders"):
-        print(f"   dikeluarkan karena batal: {cx['orders']} pesanan, komisi {rp(cx.get('commission'))}")
+    print(f"pesanan {c.get('orders_in_range')} | selesai {c.get('completed')} | belum final {c.get('not_final')} "
+          f"({c.get('completion')}% selesai) | batal {c.get('cancelled')} | belum bayar {c.get('unpaid')}"
+          + (f" | escrow gagal {c.get('escrow_missing')}" if c.get("escrow_missing") else "")
+          + (f" | error: {c.get('errors')}" if c.get("errors") else ""))
+    print(f"AFFILIATE (dari pesanan selesai): {t.get('aff_orders')} pesanan ({t.get('share_orders')}%) | "
+          f"penjualan {rp(t.get('aff_gmv'))} ({t.get('share_gmv')}% dari penjualan) | komisi {rp(t.get('commission'))} "
+          f"(rate {t.get('rate')}%)")
     for g, b in (d.get("by_product") or {}).items():
         if b.get("aff_orders") or b.get("gmv"):
             print(f"   {g[:18]:18} | {b['aff_orders']:4} pesanan affiliate | penjualan {rp(b['aff_gmv']):>12} "
                   f"({b.get('share_gmv')}%) | komisi {rp(b['commission']):>10} | rate {b.get('rate')}%")
     print("saldo (di luar escrow): " + (f"{w.get('count')} transaksi affiliate, total {rp(w.get('total'))}"
                                         if w.get("available") else f"tidak tersedia — {w.get('note')}"))
-    if not c.get("escrow_read") and c.get("eligible"):
-        fail("escrow belum terbaca sama sekali — cek error di atas")
+    if c.get("checked") and not c.get("completed") and (c.get("escrow_missing") or c.get("unknown")):
+        fail("status/escrow belum terbaca sama sekali — cek error di atas")
     # Hangatkan cache rentang "Bulan" (30 hari, sama dengan filter dashboard) supaya tab langsung cepat.
     to = datetime.date.today()
     warm = f"/api/affiliate/summary?from={to - datetime.timedelta(days=29)}&to={to}"
@@ -167,8 +167,9 @@ def verify(route=None):
     try:
         m = _get(warm, timeout=900)
         mt = m.get("total") or {}
-        print(f"   30 hari: {mt.get('aff_orders')} pesanan affiliate | penjualan {rp(mt.get('aff_gmv'))} "
-              f"| komisi {rp(mt.get('commission'))} | escrow {(m.get('coverage') or {}).get('escrow_read')} pesanan")
+        mc = m.get("coverage") or {}
+        print(f"   30 hari: {mt.get('aff_orders')} dari {mc.get('completed')} pesanan selesai ({mt.get('share_orders')}%) "
+              f"| penjualan {rp(mt.get('aff_gmv'))} | komisi {rp(mt.get('commission'))} | belum final {mc.get('not_final')}")
     except Exception as e:
         print(f"   (lewati: {e}) — cache 30 hari akan dibangun saat tab dibuka")
     print("\nVERIFY_OK")

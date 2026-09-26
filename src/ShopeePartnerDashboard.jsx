@@ -2292,7 +2292,10 @@ function AffTip({ active, payload }) {
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{x.date}</div>
       <div>Penjualan affiliate: <b>{fmtRp(x.aff_gmv)}</b></div>
       <div>Komisi: {fmtRp(x.commission)}</div>
-      <div>Pesanan affiliate: {afNum(x.aff_orders)}{x.share_gmv != null ? ` · ${afPct(x.share_gmv)} dari penjualan` : ""}</div>
+      <div>Pesanan affiliate: {afNum(x.aff_orders)}{x.share_orders != null ? ` · ${afPct(x.share_orders)} dari pesanan selesai` : ""}</div>
+      {x.pending > 0 && (
+        <div style={{ color: "#9A6B12", marginTop: 3 }}>{afNum(x.orders)} dari {afNum(x.orders + x.pending)} pesanan sudah selesai (belum final)</div>
+      )}
     </div>
   );
 }
@@ -2301,8 +2304,8 @@ function TabAffiliate() {
   const [range, setRangeState] = useState(() => {
     try {
       const k = localStorage.getItem("mp_affrange");
-      return AFF_FILTERS.some((f) => f.key === k) ? k : "7d";
-    } catch { return "7d"; }
+      return AFF_FILTERS.some((f) => f.key === k) ? k : "month";
+    } catch { return "month"; }
   });
   const setRange = (k) => {
     setRangeState(k);
@@ -2329,7 +2332,6 @@ function TabAffiliate() {
   const t = data && data.total;
   const c = (data && data.coverage) || {};
   const w = (data && data.wallet) || {};
-  const cx = (data && data.cancelled) || {};
   const walletCost = w.available ? -Number(w.total || 0) : 0; // potongan saldo bernilai negatif
   const totalCost = t ? t.commission + walletCost : 0;
   const affRoas = t && totalCost > 0 ? t.aff_gmv / totalCost : null;
@@ -2339,7 +2341,12 @@ function TabAffiliate() {
     : [];
   const recent = (data && data.recent) || [];
   const shown = showAll ? recent : recent.slice(0, 15);
-  const escrowFailed = c.eligible > 0 && !c.escrow_read;
+  // Komisi affiliate baru dicatat Shopee setelah pesanan selesai: semua angka dari pesanan selesai.
+  const escrowFailed = c.checked > 0 && !c.completed && (c.escrow_missing > 0 || c.unknown > 0);
+  const notFinalPct = c.completed + c.not_final ? (c.not_final / (c.completed + c.not_final)) * 100 : 0;
+  // Hari yang <80% pesanannya sudah selesai: angkanya masih akan bertambah.
+  const notFinalDays = new Set(((data && data.daily) || [])
+    .filter((x) => x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8).map((x) => affDay(x.date)));
 
   return (
     <>
@@ -2355,17 +2362,11 @@ function TabAffiliate() {
           );
         })}
         <span style={{ fontSize: 12, color: "#8A8A82", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
-          {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari rincian escrow tiap pesanan
+          {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari escrow pesanan yang sudah selesai
         </span>
       </div>
 
-      <InfoNote>
-        Nama kreator, jumlah klik, dan ROI per kreator belum bisa ditampilkan: datanya cuma ada di API AMS Shopee,
-        yang butuh app kategori "Affiliate Marketing Solution Management". Yang di bawah ini data asli dari escrow:
-        pesanan yang kena komisi affiliate, per produk.
-      </InfoNote>
-
-      <Card title="Ringkasan" subtitle={`Pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}`}>
+      <Card title="Ringkasan" subtitle={`Dari pesanan yang sudah selesai · pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}`}>
         {data === null ? (
           <AfMuted>Memuat… (tarikan pertama untuk rentang baru bisa agak lama: escrow tiap pesanan dibaca)</AfMuted>
         ) : data.unavailable ? (
@@ -2373,12 +2374,21 @@ function TabAffiliate() {
             ? <>Backend affiliate belum dipasang (route <code>/api/affiliate/summary</code> belum ada).</>
             : "Data affiliate tidak tersedia saat ini (backend error atau down)."}</AfMuted>
         ) : escrowFailed ? (
-          <AfMuted>Rincian escrow belum bisa ditarik dari Shopee{c.errors && c.errors.length ? `: ${c.errors[0]}` : "."}</AfMuted>
+          <AfMuted>Status/escrow pesanan belum bisa ditarik dari Shopee{c.errors && c.errors.length ? `: ${c.errors[0]}` : "."}</AfMuted>
         ) : (
           <>
+            {c.not_final > 0 && notFinalPct >= 5 && (
+              <div style={{ border: "1px solid #F1D9A6", background: "#FFF8EA", color: "#7A5A1E", borderRadius: 10,
+                padding: "9px 12px", fontSize: 12.5, marginBottom: 12, fontFamily: "Inter, sans-serif", lineHeight: 1.5 }}>
+                <b>{afNum(c.not_final)} dari {afNum(c.completed + c.not_final)} pesanan ({Math.round(notFinalPct)}%) di rentang ini belum selesai.</b>{" "}
+                Shopee baru mencatat komisi affiliate setelah pesanan selesai (biasanya 3–7 hari setelah dibuat), jadi pesanan
+                itu belum bisa dipastikan lewat affiliate atau bukan dan belum masuk angka di bawah. Angka rentang yang baru
+                masih akan bertambah.
+              </div>
+            )}
             <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-              <AfTile label="Penjualan affiliate" value={afMoney(t.aff_gmv)} accent="#D04C8F" sub={`${afPct(t.share_gmv)} dari penjualan toko`} />
-              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#2E6BE0" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan`} />
+              <AfTile label="Penjualan affiliate" value={afMoney(t.aff_gmv)} accent="#D04C8F" sub={`${afPct(t.share_gmv)} dari penjualan pesanan selesai`} />
+              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#2E6BE0" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan selesai`} />
               <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent="#7C5CBF" sub="dipotong dari escrow" />
               <AfTile label="Rate komisi" value={afPct(t.rate)} accent="#F09040" sub="komisi ÷ penjualan affiliate" />
               <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#8A8A82"
@@ -2387,9 +2397,9 @@ function TabAffiliate() {
             </div>
             <div style={{ marginTop: 8 }}>
               <AfMuted>
-                Dicek {afNum(c.escrow_read)} pesanan (belum bayar & batal tidak dihitung)
-                {c.missing ? ` · ${afNum(c.missing)} pesanan belum terbaca escrow-nya, dicoba lagi otomatis` : ""}
-                {cx.orders ? ` · ${afNum(cx.orders)} pesanan affiliate yang batal dikeluarkan (komisi ${fmtRp(cx.commission)})` : ""}
+                Pesanan selesai {afNum(c.completed)} · belum final {afNum(c.not_final)} · batal {afNum(c.cancelled)}
+                {c.unpaid ? ` · belum bayar ${afNum(c.unpaid)}` : ""}
+                {c.escrow_missing ? ` · ${afNum(c.escrow_missing)} escrow belum terbaca, dicoba lagi otomatis` : ""}
               </AfMuted>
             </div>
           </>
@@ -2397,7 +2407,7 @@ function TabAffiliate() {
       </Card>
 
       {t && !escrowFailed && (
-        <Card title="Per produk" subtitle="Porsi = penjualan affiliate ÷ semua penjualan produk itu di rentang ini">
+        <Card title="Per produk" subtitle="Dari pesanan selesai · porsi = penjualan affiliate ÷ semua penjualan produk itu">
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>
@@ -2432,29 +2442,37 @@ function TabAffiliate() {
       )}
 
       {t && !escrowFailed && data.daily && data.daily.length > 1 && (
-        <Card title="Penjualan affiliate per hari" subtitle="Tanggal = tanggal pesanan dibuat">
+        <Card title="Penjualan affiliate per hari" subtitle="Tanggal = tanggal pesanan dibuat · tanggal oranye bertanda * = sebagian besar pesanannya belum selesai, angkanya masih bertambah">
           <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={data.daily.map((x) => ({ ...x, lbl: affDay(x.date) }))} barSize={data.daily.length > 14 ? 12 : 24}>
+            <BarChart data={data.daily.map((x) => ({ ...x, lbl: affDay(x.date), done: x.orders + x.pending ? x.orders / (x.orders + x.pending) : 1 }))} barSize={data.daily.length > 14 ? 12 : 24}>
               <CartesianGrid vertical={false} stroke="#F1F1F4" />
-              <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} interval={data.daily.length > 14 ? 2 : 0} />
+              <XAxis dataKey="lbl" axisLine={false} tickLine={false} interval={data.daily.length > 14 ? 2 : 0}
+                tick={({ x, y, payload }) => {
+                  const nf = notFinalDays.has(payload.value);
+                  return <text x={x} y={y + 12} textAnchor="middle" fontSize={11} fontWeight={nf ? 600 : 400} fill={nf ? "#B7791F" : "#8A8A82"}>{payload.value}{nf ? "*" : ""}</text>;
+                }} />
               <YAxis tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} />
               <Tooltip content={<AffTip />} cursor={{ fill: "rgba(124,92,191,.06)" }} />
-              <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]} fill="#7C5CBF" />
+              <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]}>
+                {data.daily.map((x) => (
+                  <Cell key={x.date} fill={x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8 ? "#D3C6EE" : "#7C5CBF"} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
       )}
 
       {t && !escrowFailed && (
-        <Card title="Pesanan affiliate terbaru" subtitle={`${afNum(recent.length)} pesanan terbaru di rentang ini · status = status terkini dari Shopee`}>
+        <Card title="Pesanan affiliate terbaru" subtitle={`${afNum(recent.length)} pesanan affiliate terbaru yang sudah selesai di rentang ini`}>
           {recent.length === 0 ? (
-            <AfMuted>Belum ada pesanan affiliate di rentang ini.</AfMuted>
+            <AfMuted>Belum ada pesanan affiliate yang selesai di rentang ini.</AfMuted>
           ) : (
             <>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
-                    <th style={AF_THL}>Tanggal</th><th style={AF_THL}>No. pesanan</th><th style={AF_THL}>Status</th>
+                    <th style={AF_THL}>Tanggal</th><th style={AF_THL}>No. pesanan</th>
                     <th style={AF_THL}>Produk</th><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th>
                   </tr></thead>
                   <tbody>
@@ -2462,7 +2480,6 @@ function TabAffiliate() {
                       <tr key={o.order_sn}>
                         <td style={AF_TDL}>{affDay(o.date)}</td>
                         <td style={{ ...AF_TDL, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{o.order_sn}</td>
-                        <td style={AF_TDL}>{o.status || "—"}</td>
                         <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }}
                           title={(o.items || []).map((i) => `${i.group} · ${i.sku} × ${i.qty}`).join(", ")}>
                           {(o.items || []).map((i) => `${i.group === "Lainnya" ? i.sku : i.group} × ${i.qty}`).join(", ")}
@@ -2509,8 +2526,10 @@ function TabAffiliate() {
 
       <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
         Penjualan affiliate = harga item setelah diskon produk (sebelum voucher) untuk item yang kena komisi affiliate.
-        Produk ditentukan dari SKU (master SKU). Komisi pesanan yang belum selesai masih estimasi Shopee dan bisa
-        berubah; pesanan yang batal dikeluarkan.
+        Produk ditentukan dari SKU (master SKU). Semua angka dari pesanan yang sudah selesai, karena Shopee baru
+        mencatat komisi affiliate di escrow setelah pesanan selesai; pesanan batal & belum bayar tidak dihitung.
+        Nama kreator, jumlah klik, dan ROI per kreator belum tersedia: datanya cuma ada di API AMS Shopee (butuh app
+        kategori "Affiliate Marketing Solution Management").
       </div>
     </>
   );

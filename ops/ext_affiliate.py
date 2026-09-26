@@ -6,18 +6,24 @@
 # otomatis kena cek X-MP-Key seperti route lain.
 #
 # Sumber: payment.get_escrow_detail_batch → order_ams_commission_fee & items[].ams_commission_fee.
-# Status terkini pesanan affiliate dicek lewat order.get_order_detail supaya pesanan yang batal
-# setelah ditarik tidak ikut dihitung. Yang TIDAK ada tanpa AMS: nama kreator, klik, ROI per kreator.
+# Komisi affiliate baru diisi Shopee di escrow SETELAH pesanan selesai (data 26/09: semua pesanan
+# berkomisi berstatus COMPLETED, porsi affiliate turun ke 0% untuk pesanan yang belum selesai). Jadi:
+# status terkini semua pesanan dicek lewat order.get_order_detail, escrow hanya ditarik untuk pesanan
+# selesai (hasilnya final), dan semua metrik dihitung dari pesanan selesai. Pesanan yang belum selesai
+# dilaporkan terpisah sebagai "belum final". Yang TIDAK ada tanpa AMS: nama kreator, klik, ROI per kreator.
 
-AFF_VERSION = '2026-09-26'
+AFF_VERSION = '2026-09-26.2'
 _AFF_OTHER = 'Lainnya'
 _AFF_CACHE_FILE = os.path.join(BASE_DIR, 'aff_cache.json')
-_AFF_STALE = 6 * 3600          # escrow & status pesanan yang belum final dicek ulang tiap 6 jam
-_AFF_FINAL_DAYS = 30           # pesanan lebih tua dari ini dianggap final (tidak dicek ulang)
+_AFF_STALE = 6 * 3600          # status pesanan yang belum selesai/batal dicek ulang tiap 6 jam
+_AFF_FINAL_DAYS = 30           # pesanan lebih tua dari ini tidak dicek ulang statusnya
+_AFF_RECHECK = 24 * 3600       # escrow tanpa komisi yang ditarik < 24 jam setelah selesai dicek sekali lagi
 _AFF_KEEP_DAYS = 120           # entri cache lebih tua dari ini dibuang
 _AFF_MAX_DAYS = 31
-_AFF_SKIP = {'Belum bayar', 'Batal'}          # status (label export) yang tidak punya komisi
-_AFF_CANCEL = {'CANCELLED', 'IN_CANCEL'}       # status API terkini → dikeluarkan dari total
+_AFF_SKIP = {'Batal'}                          # status saat ditarik (label export) yang pasti tidak dihitung
+_AFF_DONE = 'COMPLETED'
+_AFF_CANCEL = {'CANCELLED', 'IN_CANCEL'}
+_AFF_UNPAID = {'UNPAID'}
 _AFF_WALLET_TYPES = {'AFFILIATE_ADS_SELLER_FEE', 'AFFILIATE_ADS_SELLER_FEE_REFUND', 'AFFILIATE_FEE_DEDUCT',
                      '455', '456', '460'}
 _AFF_BATCH = '/api/v2/payment/get_escrow_detail_batch'
@@ -128,11 +134,16 @@ def _aff_fetch_escrow(batch, cache, now, errors, depth=0):
     for ed in rows:
         sn = (ed or {}).get('order_sn')
         if sn:
-            cache.setdefault(sn, {}).update({'e': _aff_parse(ed), 'ets': now})
+            cache.setdefault(sn, {}).update({'e': _aff_parse(ed), 'ets': now, 'ec': now})
+
+
+def _aff_has_ams(ent):
+    e = (ent or {}).get('e') or {}
+    return e.get('ams', 0) > 0 or any(x[4] > 0 for x in e.get('items') or [])
 
 
 def _aff_refresh(eligible, orders):
-    """Lengkapi cache escrow (+ status terkini pesanan affiliate). Return (cache, errors)."""
+    """Status terkini semua pesanan + escrow pesanan yang sudah selesai. Return (cache, errors)."""
     with _aff_lock:
         try:
             with open(_AFF_CACHE_FILE, encoding='utf-8') as f:
@@ -142,25 +153,26 @@ def _aff_refresh(eligible, orders):
         now = int(time.time())
         today = datetime.datetime.now(_AFF_WIB).date()
         final_before = (today - datetime.timedelta(days=_AFF_FINAL_DAYS)).isoformat()
-
-        def need(sn, key):
-            ent = cache.get(sn) or {}
-            if key not in ent:
-                return True
-            return orders[sn]['date'] >= final_before and now - ent[key] > _AFF_STALE
-
+        recheck_after = (today - datetime.timedelta(days=14)).isoformat()
         errors = []
-        todo = [sn for sn in eligible if need(sn, 'ets')]
-        for i in range(0, len(todo), 50):
-            _aff_fetch_escrow(todo[i:i + 50], cache, now, errors)
-            time.sleep(0.15)
-        for sn in eligible:
-            if sn in cache:
-                cache[sn]['d'] = orders[sn]['date']
 
-        aff = [sn for sn in eligible if sn in cache and 'e' in cache[sn]
-               and (cache[sn]['e'].get('ams', 0) > 0 or any(x[4] > 0 for x in cache[sn]['e'].get('items') or []))]
-        todo = [sn for sn in aff if need(sn, 'sts')]
+        # Migrasi cache versi pertama: escrow yang sudah berkomisi pasti ditarik setelah pesanan selesai.
+        for sn in eligible:
+            ent = cache.get(sn)
+            if ent and 'e' in ent and 'ec' not in ent and _aff_has_ams(ent):
+                ent['ec'] = ent.get('ets', now)
+                ent.setdefault('cs', ent['ec'])
+
+        # 1) Status terkini (selesai & batal = final; yang lain dicek ulang tiap 6 jam, maks 30 hari).
+        def need_status(sn):
+            ent = cache.get(sn) or {}
+            if 'st' not in ent:
+                return True
+            if ent['st'] == _AFF_DONE or ent['st'] in _AFF_CANCEL:
+                return False
+            return orders[sn]['date'] >= final_before and now - ent.get('sts', 0) > _AFF_STALE
+
+        todo = [sn for sn in eligible if need_status(sn)]
         for i in range(0, len(todo), 50):
             batch = todo[i:i + 50]
             try:
@@ -172,10 +184,34 @@ def _aff_refresh(eligible, orders):
                 errors.append(f"get_order_detail: {r.get('error')} {str(r.get('message') or '')[:120]}")
                 continue
             for o in ((r.get('response') or {}).get('order_list')) or []:
-                if o.get('order_sn') in cache:
-                    cache[o['order_sn']].update({'st': o.get('order_status') or '', 'sts': now})
+                sn = o.get('order_sn')
+                if not sn:
+                    continue
+                ent = cache.setdefault(sn, {})
+                ent.update({'st': o.get('order_status') or '', 'sts': now})
+                if ent['st'] == _AFF_DONE and 'cs' not in ent:
+                    ent['cs'] = now
             time.sleep(0.15)
 
+        # 2) Escrow hanya untuk pesanan selesai. Escrow tanpa komisi yang ditarik < 24 jam setelah
+        #    pesanan terlihat selesai dicek sekali lagi (jaga-jaga kalau pencatatan komisi telat).
+        def need_escrow(sn):
+            ent = cache.get(sn) or {}
+            if ent.get('st') != _AFF_DONE:
+                return False
+            if 'ec' not in ent or 'e' not in ent:
+                return True
+            return (not _aff_has_ams(ent) and orders[sn]['date'] >= recheck_after
+                    and ent['ec'] - ent.get('cs', 0) < _AFF_RECHECK and now - ent.get('cs', 0) >= _AFF_RECHECK)
+
+        todo = [sn for sn in eligible if need_escrow(sn)]
+        for i in range(0, len(todo), 50):
+            _aff_fetch_escrow(todo[i:i + 50], cache, now, errors)
+            time.sleep(0.15)
+
+        for sn in eligible:
+            if sn in cache:
+                cache[sn]['d'] = orders[sn]['date']
         keep_after = (today - datetime.timedelta(days=_AFF_KEEP_DAYS)).isoformat()
         cache = {sn: v for sn, v in cache.items() if (v.get('d') or '9999') >= keep_after}
         try:
@@ -256,21 +292,30 @@ def _aff_builder(from_iso, to_iso):
     master, group_order = _aff_master()
 
     total, by, daily, recent = _aff_blank(), {g: _aff_blank() for g in group_order + [_AFF_OTHER]}, {}, []
-    cancelled = {'orders': 0, 'commission': 0.0}
-    missing = 0
+    cnt = Counter()
     for sn in eligible:
         ent = cache.get(sn) or {}
-        if 'e' not in ent:
-            missing += 1
+        st, d = ent.get('st'), orders[sn]['date']
+        day = daily.setdefault(d, dict(_aff_blank(), date=d, pending=0))
+        if st in _AFF_CANCEL:
+            cnt['cancelled'] += 1
             continue
+        if st in _AFF_UNPAID:
+            cnt['unpaid'] += 1
+            continue
+        if st != _AFF_DONE or 'e' not in ent:
+            # belum selesai, status gagal dicek, atau selesai tapi escrow gagal ditarik → belum final
+            if st == _AFF_DONE:
+                cnt['escrow_missing'] += 1
+            elif st:
+                cnt['pending'] += 1
+            else:
+                cnt['unknown'] += 1
+            day['pending'] += 1
+            continue
+        cnt['completed'] += 1
         items = _aff_items(ent['e'], master)
         is_aff = any(x[4] > 0 for x in items)
-        if is_aff and ent.get('st') in _AFF_CANCEL:
-            cancelled['orders'] += 1
-            cancelled['commission'] += sum(x[4] for x in items)
-            continue
-        d = orders[sn]['date']
-        day = daily.setdefault(d, dict(_aff_blank(), date=d))
         in_order, aff_groups = set(), set()
         for g, sku, qty, price, ams in items:
             b = by.setdefault(g, _aff_blank())
@@ -294,12 +339,12 @@ def _aff_builder(from_iso, to_iso):
             day['aff_orders'] += 1
             recent.append({
                 'order_sn': sn, 'date': d,
-                'status': STATUS_LABEL.get(ent.get('st'), ent.get('st')) if ent.get('st') else orders[sn]['status'],
                 'items': [{'group': g, 'sku': sku, 'qty': q, 'gmv': round(p), 'commission': round(a)}
                           for g, sku, q, p, a in items if a > 0],
                 'gmv': round(sum(x[3] for x in items if x[4] > 0)), 'commission': round(sum(x[4] for x in items)),
             })
     recent.sort(key=lambda x: (x['date'], x['order_sn']), reverse=True)
+    not_final = cnt['pending'] + cnt['unknown'] + cnt['escrow_missing']
 
     try:
         wallet = _orders_get('affiliate_wallet', f'affw1_{from_iso}_{to_iso}',
@@ -309,10 +354,16 @@ def _aff_builder(from_iso, to_iso):
 
     return {
         'from': from_iso, 'to': to_iso, 'version': AFF_VERSION,
-        'coverage': {'orders_in_range': len(orders), 'eligible': len(eligible), 'escrow_read': len(eligible) - missing,
-                     'missing': missing, 'live_days': live_days, 'method': _AFF_METHOD['batch'], 'errors': errors[:5]},
+        'coverage': {
+            'orders_in_range': len(orders), 'checked': len(eligible),
+            'completed': cnt['completed'], 'not_final': not_final, 'pending': cnt['pending'],
+            'unknown': cnt['unknown'], 'escrow_missing': cnt['escrow_missing'],
+            'cancelled': cnt['cancelled'], 'unpaid': cnt['unpaid'],
+            'completion': round(cnt['completed'] / (cnt['completed'] + not_final) * 100, 1)
+                          if cnt['completed'] + not_final else None,
+            'live_days': live_days, 'method': _AFF_METHOD['batch'], 'errors': errors[:5],
+        },
         'total': _aff_ratios(total),
-        'cancelled': {'orders': cancelled['orders'], 'commission': round(cancelled['commission'])},
         'groups': group_order + [_AFF_OTHER],
         'by_product': {g: _aff_ratios(b) for g, b in by.items()},
         'daily': [_aff_ratios(daily[k]) for k in sorted(daily)],
@@ -322,8 +373,8 @@ def _aff_builder(from_iso, to_iso):
                 'note': 'Nama kreator, klik, dan ROI per kreator hanya ada di API AMS (butuh app kategori '
                         '"Affiliate Marketing Solution Management").'},
         'generated_at': int(time.time()),
-        'source': 'payment.get_escrow_detail_batch (komisi per pesanan/item) + order.get_order_detail (status '
-                  'terkini pesanan affiliate) + payment.get_wallet_transaction_list (biaya affiliate lewat saldo)',
+        'source': 'order.get_order_detail (status terkini) + payment.get_escrow_detail_batch (komisi per '
+                  'pesanan/item, hanya pesanan selesai) + payment.get_wallet_transaction_list (biaya affiliate lewat saldo)',
     }
 
 
@@ -346,7 +397,7 @@ def _aff_range(qs):
 
 
 def affiliate_summary(from_iso, to_iso):
-    key = f'aff1_{from_iso}_{to_iso}'
+    key = f'aff2_{from_iso}_{to_iso}'
     return _orders_get('affiliate', key, lambda: _aff_builder(from_iso, to_iso), ttl=900)
 
 
