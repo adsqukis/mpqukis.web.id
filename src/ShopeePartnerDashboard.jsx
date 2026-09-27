@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import {
   Package, Wallet, Megaphone, Users2, Radio, ChevronRight,
@@ -124,14 +124,6 @@ const adsCampaigns = [
 const adsSpendTrend = [
   { d: "Minggu 1", spend: 2.1, gmv: 9.8 }, { d: "Minggu 2", spend: 2.8, gmv: 12.4 },
   { d: "Minggu 3", spend: 3.1, gmv: 15.7 }, { d: "Minggu 4", spend: 2.6, gmv: 11.1 },
-];
-
-const affiliates = [
-  { rank: 1, name: "@dinaskincarereview", followers: "128rb", klik: 3420, order: 214, komisi: 4_280_000 },
-  { rank: 2, name: "@fashiontips.id", followers: "84rb", klik: 2650, order: 156, komisi: 3_120_000 },
-  { rank: 3, name: "@budgetgadget", followers: "61rb", klik: 1980, order: 98, komisi: 1_960_000 },
-  { rank: 4, name: "@homeandliving_ta", followers: "45rb", klik: 1340, order: 71, komisi: 1_420_000 },
-  { rank: 5, name: "@review_jujur99", followers: "37rb", klik: 990, order: 52, komisi: 980_000 },
 ];
 
 const liveSessions = [
@@ -1349,51 +1341,21 @@ const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", c
 const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #E2E2E6" };
 const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#17171A", borderTop: "2px solid #E2E2E6" };
 
-// Breakdown per produk — HEURISTIK, bukan mapping resmi Shopee. Shopee Ads API
-// tidak mengembalikan identitas produk per campaign, hanya nama bebas teks
-// (ad_name). Dikelompokkan dengan cocok-kata di nama campaign; urutan penting
-// (keyword spesifik dicek dulu) supaya "1 Botol"/"Milk" tidak jatuh ke bucket
-// "Generos 1 Box". PENTING: bucket "Generos 1 Box" match "1 box" secara
-// spesifik (bukan bare "generos") — nama campaign asli dari Shopee kayak
-// "Generos Official Store - ... - 1 Box [2]", dan toko ini kemungkinan jual
-// produk Generos lain di luar 3 ini juga; kalau matcher-nya generik "generos"
-// aja, campaign produk Generos LAIN (bukan varian 1 Box) ikut ketarik masuk
-// sini dan angkanya jadi kecampur/nggak sesuai. Campaign yang tidak cocok
-// apa pun (termasuk campaign Generos lain yang bukan 1 Botol/Milk/1 Box)
-// masuk "Lainnya" — tidak ada yang disembunyikan diam-diam.
+// Tab produk. `group` = nama grup dari backend iklan v2 (master SKU di
+// parse_export.py); backend memetakan campaign & listing GMS ke grup lewat
+// item_id → SKU, bukan dari nama campaign. `key` dipertahankan supaya tab
+// terakhir yang tersimpan di localStorage tetap kepakai.
 const AF_PRODUCT_GROUPS = [
-  { key: "1botol", label: "Generos 1 Botol", match: (n) => /1\s*botol/i.test(n) },
-  { key: "milk", label: "Generos Milk", match: (n) => /milk/i.test(n) },
-  { key: "generos", label: "Generos 1 Box", match: (n) => /1\s*box/i.test(n) },
+  { key: "1botol", label: "Generos 1 Botol", group: "Generos 1 Botol" },
+  { key: "milk", label: "Generos Milk", group: "Generos Milk" },
+  { key: "generos", label: "Generos Klasik", group: "Generos Klasik" },
 ];
-function afGroupCampaignsByProduct(campaigns) {
-  const buckets = AF_PRODUCT_GROUPS.map((g) => ({ ...g, rows: [] }));
-  const other = { key: "other", label: "Lainnya / tidak teridentifikasi", rows: [] };
-  for (const c of campaigns || []) {
-    const name = c.name || "";
-    const hit = buckets.find((b) => b.match(name));
-    (hit || other).rows.push(c);
-  }
-  return [...buckets, other].filter((b) => b.rows.length > 0);
-}
-function afSumCampaigns(rows) {
-  const budget = rows.reduce((a, r) => a + (Number(r.expense) || 0), 0);
-  const klik = rows.reduce((a, r) => a + (Number(r.clicks) || 0), 0);
-  const closing = rows.reduce((a, r) => a + (Number(r.orders) || 0), 0);
-  const impression = rows.reduce((a, r) => a + (Number(r.impressions) || 0), 0);
-  const gmv = rows.reduce((a, r) => a + (Number(r.gmv) || 0), 0);
-  return {
-    budget, klik, closing, impression, gmv,
-    roas: budget > 0 ? gmv / budget : null,
-    ctr: impression > 0 ? (klik / impression) * 100 : null,
-  };
-}
 
 function AfTile({ label, value, accent = "#7C5CBF", sub }) {
   return (
     <div style={{ background: "#F4F5F8", border: "1px solid #F5F5F7", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, color: "#8A8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "#17171A", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+      <div className="mp-tile-val" title={typeof value === "string" ? value : undefined} style={{ fontSize: 17, fontWeight: 700, color: "#17171A", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "#8A8A82", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
     </div>
   );
@@ -1567,7 +1529,7 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
       >
         {dTotal ? (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
               <AfTile label="Budget" value={afMoney(dTotal.budget)} accent="#7C5CBF" />
               <AfTile label="Klik" value={afNum(dTotal.klik)} accent="#2E6BE0" />
               <AfTile label="Closing" value={afNum(dTotal.closing)} accent="#F09040" />
@@ -1688,71 +1650,258 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
 }
 
 // ---------- Isi tab produk: iklan toko dan pencarian, di-scope ke 1 produk ----------
-// Pengelompokan HEURISTIK dari nama campaign (lihat AF_PRODUCT_GROUPS) — Shopee
-// tidak mengirim identitas produk resmi per campaign, ini estimasi berbasis kata
-// kunci di nama campaign, bukan mapping resmi.
-function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
-  const campsList = camps && Array.isArray(camps.campaigns) ? camps.campaigns : null;
-  const groups = campsList ? afGroupCampaignsByProduct(campsList) : null;
-  const group = groups ? groups.find((g) => g.key === productKey) : null;
-  const rows = group ? group.rows : [];
-  const s = afSumCampaigns(rows);
-  const ongoing = rows.filter((c) => c.status === "ongoing");
-  const otherCount = groups ? ((groups.find((g) => g.key === "other") || {}).rows || []).length : 0;
+// Data dari backend iklan v2 (/api/ads/campaigns): iklan manual per campaign +
+// iklan GMS (Shopee: "Product GMS") per listing, dikelompokkan backend lewat item_id → SKU.
+// "Langsung" = pembelian produk yang diiklankan itu sendiri; "broad" = pembelian
+// produk apa pun di toko dalam 7 hari setelah klik.
+const AF_THW = { ...AF_TH, whiteSpace: "normal", lineHeight: 1.3, verticalAlign: "bottom" };
+const AF_PLACEMENT = { search: "Pencarian", discovery: "Rekomendasi", all: "Semua" };
+const AF_BADGE = { display: "inline-block", marginRight: 6, padding: "1px 6px", borderRadius: 6, background: "#EFEAFB", color: "#6B4FB0", fontSize: 10, fontWeight: 700, letterSpacing: ".3px", textTransform: "uppercase", verticalAlign: "1px" };
+const afBudget = (v) => (Number(v) === 0 ? "Tanpa batas" : afMoney(v));
+// Sel 2 baris: angka/nilai utama + keterangan kecil di bawahnya.
+const AfCell2 = ({ main, sub }) => (
+  <>
+    <div>{main}</div>
+    {sub && <div style={{ fontSize: 10.5, color: "#8A8A82", fontFamily: "Inter, sans-serif", marginTop: 2 }}>{sub}</div>}
+  </>
+);
+
+// Pacing iklan manual per jam untuk satu tanggal (/api/ads/pacing, ops/ext_ads_pacing.py).
+// Muncul kalau filter tanggal = 1 hari. GMS tidak punya data per jam di API Shopee.
+// Batas atas sumbu yang "rapi" (1 / 2 / 2,5 / 5 × 10^n) supaya label sumbu Y rata.
+const niceCeil = (v) => {
+  if (!(v > 0)) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [1, 2, 2.5, 5, 10].map((m) => m * p).find((x) => x >= v);
+};
+
+function AdsPaceTip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const x = payload[0].payload;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #ECECEF", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(23,23,26,.08)" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{String(x.hour).padStart(2, "0")}:00 – {String(x.hour).padStart(2, "0")}:59</div>
+      <div>Biaya jam ini: <b>{fmtRp(x.expense)}</b></div>
+      <div>Biaya kumulatif: {fmtRp(x.cum_expense)}</div>
+      <div>GMV langsung jam ini: {fmtRp(x.direct_gmv)}</div>
+    </div>
+  );
+}
+
+function AdsPacingCard({ pace, group }) {
+  if (!pace) return null;
+  const title = `Per jam — ${fmtDmy(pace.date)}${pace.is_today ? " (hari ini)" : ""}`;
+  if (pace.unavailable) {
+    return <Card title={title}><AfMuted>Data per jam tidak tersedia saat ini (backend pacing belum dipasang atau error).</AfMuted></Card>;
+  }
+  const g = pace.by_product && pace.by_product[group];
+  if (!g) {
+    return <Card title={title} subtitle="Iklan manual"><AfMuted>Tidak ada iklan manual produk ini yang jalan di tanggal ini.</AfMuted></Card>;
+  }
+  const lastH = pace.is_today ? Math.max(pace.hour_now ?? 0, pace.last_hour_with_data ?? 0) : 23;
+  const hours = g.hours.filter((x) => x.hour <= lastH);
+  const pct = g.pct_budget != null ? g.pct_budget : null; // hanya campaign yang punya budget
+  const showBudgetLine = g.budget > 0 && !g.unlimited;    // garis budget cuma adil kalau semua campaign ber-budget
+  const yMax = niceCeil(Math.max(...hours.map((x) => x.cum_expense), showBudgetLine ? g.budget : 0) * 1.05);
+  return (
+    <Card title={title} subtitle={`Iklan manual · data Shopee sampai jam ${pace.last_hour_with_data != null ? String(pace.last_hour_with_data).padStart(2, "0") + ":00" : "—"} · GMS tidak punya data per jam`}>
+      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+        <AfTile label="Biaya iklan manual" value={afMoney(g.spent)} accent="#7C5CBF" sub={pace.is_today ? "sejauh ini hari ini" : "sepanjang hari"} />
+        <AfTile label="Budget (setelan)" value={g.budget > 0 ? afMoney(g.budget) : "—"} accent="#8A8A82"
+          sub={g.unlimited ? `+${afNum(g.unlimited)} campaign tanpa batas` : "jumlah budget campaign"} />
+        <AfTile label="Budget terpakai" value={pct != null ? afPct(pct) : "—"} accent={pct != null && pct >= 95 ? "#B3261E" : "#F09040"}
+          sub={(g.capped ? `${afNum(g.capped)} campaign budget-nya habis` : "belum ada yang habis") + (g.unlimited ? " · di luar campaign tanpa batas" : "")} />
+        <AfTile label="ROAS langsung" value={afRoas(g.direct_roas)} accent="#1E9E6F" sub={`GMV langsung ${afMoney(g.direct_gmv)}`} />
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <AreaChart data={hours.map((x) => ({ ...x, lbl: String(x.hour).padStart(2, "0") }))}>
+          <defs>
+            <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7C5CBF" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#7C5CBF" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#F1F1F4" />
+          <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} width={46}
+            tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} domain={[0, yMax]} ticks={[0, yMax / 4, yMax / 2, (yMax * 3) / 4, yMax]} />
+          <Tooltip content={<AdsPaceTip />} />
+          {showBudgetLine && (
+            <ReferenceLine y={g.budget} stroke="#B3261E" strokeDasharray="4 4"
+              label={{ value: "budget", position: "insideTopRight", fill: "#B3261E", fontSize: 11 }} />
+          )}
+          <Area type="monotone" dataKey="cum_expense" name="Biaya kumulatif" stroke="#7C5CBF" strokeWidth={2} fill="url(#paceGrad)" />
+        </AreaChart>
+      </ResponsiveContainer>
+      <div style={{ overflowX: "auto", marginTop: 8 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={AF_THL}>Campaign</th><th style={AF_THW}>Budget saat ini</th><th style={AF_THW}>Biaya</th>
+            <th style={AF_THW}>Terpakai</th><th style={AF_THW}>Budget habis</th><th style={AF_THW}>ROAS langsung</th>
+          </tr></thead>
+          <tbody>
+            {g.campaigns.map((c) => (
+              <tr key={c.campaign_id}>
+                <td style={{ ...AF_TDL, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                <td style={AF_TD}>{afBudget(c.budget)}</td>
+                <td style={AF_TD}>{afMoney(c.spent)}</td>
+                <td style={AF_TD}>{c.pct_budget != null ? afPct(c.pct_budget) : "—"}</td>
+                <td style={{ ...AF_TD, color: c.out_hour != null ? "#B3261E" : "#8A8A82", fontWeight: c.out_hour != null ? 700 : 400 }}>
+                  {c.out_hour != null ? `jam ${String(c.out_hour).padStart(2, "0")}:00` : "—"}
+                </td>
+                <td style={AF_TD}>{afRoas(c.direct_roas)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 8 }}><AfMuted>{pace.note}</AfMuted></div>
+    </Card>
+  );
+}
+
+function AdsProductBreakdown({ camps, pace, productKey, dRange, displayLabel }) {
+  const meta = AF_PRODUCT_GROUPS.find((g) => g.key === productKey) || AF_PRODUCT_GROUPS[0];
+  const byProduct = camps && camps.by_product ? camps.by_product : null;
+  const bp = byProduct ? byProduct[meta.group] : null;
+  const t = bp ? bp.total : null;
+  const manualRows = camps && Array.isArray(camps.campaigns) ? camps.campaigns.filter((c) => c.product_group === meta.group) : [];
+  const ongoing = manualRows.filter((c) => c.status === "ongoing");
+  const hiddenSpend = manualRows.filter((c) => c.status !== "ongoing" && c.expense > 0);
+  const gms = camps && camps.gms ? camps.gms : null;
+  const gmsRows = gms && Array.isArray(gms.items) ? gms.items.filter((i) => i.product_group === meta.group) : [];
+  const outside = byProduct
+    ? ["Lainnya", "Campuran"].map((g) => [g, byProduct[g] && byProduct[g].total]).filter(([, x]) => x && x.expense > 0)
+    : [];
+  const hasSpend = t && (t.expense > 0 || t.broad_gmv > 0);
 
   return (
     <>
       <Card
         title="Ringkasan"
-        subtitle={`Dijumlah dari campaign yang namanya cocok kata kunci produk ini (bukan mapping resmi Shopee) · ${displayLabel} (${dRange.from} – ${dRange.to})`}
+        subtitle={`Iklan manual + iklan GMS · ${displayLabel} (${dRange.from} – ${dRange.to})`}
       >
         {camps === null ? (
           <AfMuted>Memuat…</AfMuted>
-        ) : !campsList ? (
-          <AfMuted>Data campaign tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
-        ) : rows.length === 0 ? (
-          <AfMuted>Tidak ada campaign yang teridentifikasi untuk produk ini di rentang tanggal ini.</AfMuted>
+        ) : camps.unavailable ? (
+          <AfMuted>Data iklan tidak tersedia saat ini (endpoint <code>/api/ads/campaigns</code> error atau backend down).</AfMuted>
+        ) : !byProduct ? (
+          <AfMuted>Backend iklan masih versi lama (belum iklan v2), jadi rincian per produk belum bisa ditampilkan.</AfMuted>
+        ) : !bp ? (
+          <AfMuted>Grup produk "{meta.group}" tidak ada di data backend — cek nama grup di master SKU.</AfMuted>
+        ) : !hasSpend ? (
+          <AfMuted>Tidak ada biaya iklan untuk produk ini di rentang tanggal ini.</AfMuted>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-            <AfTile label="Budget" value={afMoney(s.budget)} accent="#7C5CBF" />
-            <AfTile label="Impresi" value={afNum(s.impression)} accent="#2E6BE0" />
-            <AfTile label="Klik" value={afNum(s.klik)} accent="#5B7CFA" />
-            <AfTile label="CTR" value={afPct(s.ctr)} accent="#F09040" />
-            <AfTile label="Closing" value={afNum(s.closing)} accent="#1E9E6F" />
-            <AfTile label="GMV" value={afMoney(s.gmv)} accent="#D04C8F" sub={`ROAS ${afRoas(s.roas)}`} />
-          </div>
+          <>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+              <AfTile label="Biaya iklan" value={afMoney(t.expense)} accent="#7C5CBF" sub="manual + GMS" />
+              <AfTile label="GMV langsung" value={afMoney(t.direct_gmv)} accent="#D04C8F" sub="penjualan produk ini" />
+              <AfTile label="ROAS langsung" value={afRoas(t.direct_roas)} accent="#1E9E6F" sub="GMV langsung ÷ biaya" />
+              <AfTile label="Pesanan langsung" value={afNum(t.direct_orders)} accent="#F09040" />
+              <AfTile label="Klik" value={afNum(t.clicks)} accent="#5B7CFA" sub={`CTR ${afPct(t.ctr)} · ${afNum(t.impressions)} impresi`} />
+              <AfTile label="ROAS broad" value={afRoas(t.broad_roas)} accent="#8A8A82" sub={`GMV broad ${afMoney(t.broad_gmv)}`} />
+            </div>
+            <div style={{ overflowX: "auto", marginTop: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Sumber</th><th style={AF_THW}>Berjalan</th><th style={AF_THW}>Biaya</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
+                </tr></thead>
+                <tbody>
+                  {[["Iklan manual", bp.manual, "campaign"], ["Iklan GMS", bp.gms, "listing"]].map(([label, m, unit]) => (
+                    <tr key={label}>
+                      <td style={AF_TDL}>{label}</td>
+                      <td style={AF_TD}>{afNum(m.active)} {unit}</td>
+                      <td style={AF_TD}>{afMoney(m.expense)}</td>
+                      <td style={AF_TD}>{afNum(m.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(m.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(m.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(m.broad_roas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {gms && gms.note && <div style={{ marginTop: 8 }}><AfMuted>Catatan GMS: {gms.note}</AfMuted></div>}
+          </>
         )}
       </Card>
 
-      {rows.length > 0 && (
+      {dRange.from === dRange.to && <AdsPacingCard pace={pace} group={meta.group} />}
+
+      {byProduct && (
         <Card
-          title="Campaign produk ini"
-          subtitle={`${afNum(ongoing.length)} ongoing dari ${afNum(rows.length)} total (paused/ended disembunyikan) · get_product_level_campaign_id_list + setting_info + get_product_campaign_daily_performance`}
+          title="Iklan manual"
+          subtitle={`${afNum(ongoing.length)} ongoing dari ${afNum(manualRows.length)} campaign produk ini (paused/ended disembunyikan)`
+            + (hiddenSpend.length ? ` · biaya ${afMoney(hiddenSpend.reduce((a, c) => a + c.expense, 0))} dari ${hiddenSpend.length} campaign yang sudah paused/ended tetap dihitung di Ringkasan` : "")}
         >
           {ongoing.length === 0 ? (
-            <AfMuted>Tidak ada campaign berstatus ongoing untuk produk ini.</AfMuted>
+            <AfMuted>Tidak ada campaign manual berstatus ongoing untuk produk ini.</AfMuted>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
-                  <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Tipe</th>
-                  <th style={AF_TH}>Budget</th><th style={AF_TH}>Biaya</th><th style={AF_TH}>Impresi</th><th style={AF_TH}>Klik</th>
-                  <th style={AF_TH}>CTR</th><th style={AF_TH}>Pesanan</th><th style={AF_TH}>GMV</th><th style={AF_TH}>ROAS</th>
+                  <th style={AF_THL}>Nama</th><th style={AF_THL}>Placement</th><th style={AF_THL}>Bidding</th>
+                  <th style={AF_THW} title="Budget yang tersetel sekarang di Shopee (API tidak menyebut harian atau total). Biaya di sebelahnya = total selama rentang tanggal.">Budget saat ini</th>
+                  <th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
                 </tr></thead>
                 <tbody>
                   {ongoing.map((c) => (
                     <tr key={c.campaign_id}>
-                      <td style={{ ...AF_TDL, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
-                      <td style={AF_TDL}>{c.placement || "—"}</td>
-                      <td style={AF_TDL}>{c.ad_type || "—"}</td>
-                      <td style={AF_TD}>{afMoney(c.budget)}</td>
+                      <td style={{ ...AF_TDL, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>
+                        {c.ad_type === "auto" && <span style={AF_BADGE} title="Tipe campaign iklan otomatis Shopee (bukan GMS). Kolom Bidding = cara penawarannya.">Iklan otomatis</span>}
+                        {c.name || c.campaign_id}
+                      </td>
+                      <td style={AF_TDL}>{AF_PLACEMENT[c.placement] || c.placement || "—"}</td>
+                      <td style={AF_TDL}>
+                        {c.bidding_method === "auto"
+                          ? <AfCell2 main="Otomatis" sub={c.roas_target ? `target ROAS ${afRoas(c.roas_target)}` : null} />
+                          : <AfCell2 main="Manual" sub={c.keyword_count ? `${afNum(c.keyword_count)} keyword` : null} />}
+                      </td>
+                      <td style={AF_TD}>{afBudget(c.budget)}</td>
                       <td style={AF_TD}>{afMoney(c.expense)}</td>
-                      <td style={AF_TD}>{afNum(c.impressions)}</td>
-                      <td style={AF_TD}>{afNum(c.clicks)}</td>
-                      <td style={AF_TD}>{afPct(c.ctr)}</td>
-                      <td style={AF_TD}>{afNum(c.orders)}</td>
-                      <td style={AF_TD}>{afMoney(c.gmv)}</td>
-                      <td style={AF_TD}>{afRoas(c.roas)}</td>
+                      <td style={AF_TD}><AfCell2 main={afNum(c.clicks)} sub={`CTR ${afPct(c.ctr)}`} /></td>
+                      <td style={AF_TD}>{afNum(c.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(c.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(c.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(c.broad_roas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {byProduct && (
+        <Card
+          title="Iklan GMS"
+          subtitle={`Product GMS${gms && gms.campaign_id ? ` · ID ${gms.campaign_id}` : ""} · satu campaign untuk seluruh toko`
+            + (gms && gms.report ? ` (total biaya ${afMoney(gms.report.expense)})` : "") + " — ini rincian listing produk ini"}
+        >
+          {!gms || !gms.available ? (
+            <AfMuted>{(gms && gms.note) || "Data iklan GMS tidak tersedia."}</AfMuted>
+          ) : gmsRows.length === 0 ? (
+            <AfMuted>Listing produk ini tidak punya biaya di iklan GMS pada rentang ini.</AfMuted>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={AF_THL}>Listing</th><th style={AF_THW}>Biaya</th><th style={AF_THW}>Klik</th>
+                  <th style={AF_THW}>Pesanan langsung</th><th style={AF_THW}>GMV langsung</th><th style={AF_THW}>ROAS langsung</th><th style={AF_THW}>ROAS broad</th>
+                </tr></thead>
+                <tbody>
+                  {gmsRows.map((i) => (
+                    <tr key={i.item_id}>
+                      <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }} title={String(i.name || i.item_id)}>{i.name || i.item_id}</td>
+                      <td style={AF_TD}>{afMoney(i.expense)}</td>
+                      <td style={AF_TD}><AfCell2 main={afNum(i.clicks)} sub={`CTR ${afPct(i.ctr)}`} /></td>
+                      <td style={AF_TD}>{afNum(i.direct_orders)}</td>
+                      <td style={AF_TD}>{afMoney(i.direct_gmv)}</td>
+                      <td style={AF_TD}>{afRoas(i.direct_roas)}</td>
+                      <td style={AF_TD}>{afRoas(i.broad_roas)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1763,10 +1912,10 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
       )}
 
       <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
-        Pengelompokan otomatis dari kata kunci di nama campaign ("1 Botol", "Milk", "Generos") — Shopee tidak
-        mengirim identitas produk per campaign secara resmi; campaign yang namanya nggak menyebut produk ini
-        nggak akan muncul di sini walau isinya sebenarnya relevan.
-        {otherCount > 0 && ` Di luar 3 tab produk, ada ${otherCount} campaign toko ini yang nama-nya nggak teridentifikasi ke Generos 1 Box / Generos 1 Botol / Generos Milk sama sekali.`}
+        Produk ditentukan dari SKU listing yang diiklankan (master SKU): Klasik = QKS-GEN01/02/03, 1 Botol = QKS-GEN1,
+        Milk = GenMilk. Langsung = pembelian produk yang diiklankan itu sendiri; broad = pembelian produk apa pun di toko
+        dalam 7 hari setelah klik iklan.
+        {outside.length > 0 && ` Di luar 3 produk ini ada biaya iklan: ${outside.map(([g, x]) => `${g === "Campuran" ? "campaign berisi >1 produk" : "produk/bundle lain"} ${afMoney(x.expense)}`).join(", ")}.`}
       </div>
     </>
   );
@@ -1805,7 +1954,7 @@ function TabAdsCpas({ detail, displayLabel }) {
               {cat.note}. Angka di bawah tampil "—" karena API-nya belum bisa diakses — bukan karena tidak ada iklan.
             </InfoNote>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+          <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
             {tiles.map((t) => <AfTile key={t.label} label={t.label} value={t.value} accent={t.accent} />)}
           </div>
           <AfSource text={detail.source} at={detail.generated_at} />
@@ -1822,6 +1971,16 @@ function TabAds() {
   // bawah) — logic-nya dibiarkan (bukan dihapus), gated `false` biar gampang
   // dipasang balik kalau perlu, sama kayak pola "shop"/TabAffiliate di file ini.
   const SHOW_JENIS_IKLAN = false;
+  // Sub-tab "iklan CPAS" disembunyikan sementara (permintaan user): isinya status AMS
+  // (afiliasi Shopee), padahal CPAS itu iklan Meta yang datanya ada di Meta Ads Manager,
+  // bukan di API Shopee. TabAdsCpas dibiarkan; set true untuk memasang balik.
+  const SHOW_CPAS = false;
+  const AD_SUBTABS = [
+    { key: "product", label: "iklan toko dan pencarian" },
+    ...(SHOW_CPAS ? [{ key: "cpas", label: "iklan CPAS" }] : []),
+    // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
+    // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
+  ];
 
   // Tab paling atas sekarang PER PRODUK (bukan per jenis iklan lagi).
   const [prodTab, setProdTabState] = useState(() => {
@@ -1874,6 +2033,7 @@ function TabAds() {
   const [detail, setDetail] = useState(null); // /api/ads/detail — total + per kategori (incl. box/item_sold)
   const [ov, setOv] = useState(null); // /api/ads/overview?days=30 — daily mentah + campaign by placement/status
   const [camps, setCamps] = useState(null); // /api/ads/campaigns — per campaign (opsional, butuh backend)
+  const [pace, setPace] = useState(null); // /api/ads/pacing — per jam, hanya untuk filter 1 hari
 
   const PRESET_DATES = RANGE_PRESETS;
   const clickPreset = (key) => {
@@ -1914,16 +2074,28 @@ function TabAds() {
   // SHOP_SOV & SHOP_SOLD tetap balik METRIC_NOT_AVAILABLE (gak bisa diestimasi sama sekali),
   // ditampilkan "—", bukan dikarang jadi angka.
   const loadData = (active) => {
-    // Sumber utama tab per produk: daftar campaign (di-group per produk di client).
+    // Sumber utama tab per produk: iklan v2 (backend sudah mengelompokkan per produk).
     fetch(`https://api.qukis.id/api/ads/campaigns?from=${dRange.from}&to=${dRange.to}`)
       .then((r) => r.json())
       .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
       .catch(() => { if (active) setCamps({ unavailable: true }); });
-    // /api/ads/detail — dipakai buat kategori CPAS (levelnya toko, lihat TabAdsCpas).
-    fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
-      .then((r) => r.json())
-      .then((d) => { if (active && d && !d.error) setDetail(d); })
-      .catch(() => {});
+    // Pacing per jam hanya untuk rentang 1 hari (Hari ini / Kemarin / custom 1 tanggal).
+    if (dRange.from === dRange.to) {
+      fetch(`https://api.qukis.id/api/ads/pacing?date=${dRange.from}`)
+        .then((r) => r.json())
+        .then((d) => { if (active) setPace(d && !d.error && d.by_product ? d : { unavailable: true, date: dRange.from }); })
+        .catch(() => { if (active) setPace({ unavailable: true, date: dRange.from }); });
+    } else if (active) {
+      setPace(null);
+    }
+    // /api/ads/detail — cuma dipakai kategori CPAS (TabAdsCpas) & konten shop-wide lama,
+    // jadi tidak ditarik selama keduanya disembunyikan (hemat rate limit Shopee).
+    if (SHOW_CPAS || SHOW_JENIS_IKLAN) {
+      fetch(`https://api.qukis.id/api/ads/detail?from=${dRange.from}&to=${dRange.to}`)
+        .then((r) => r.json())
+        .then((d) => { if (active && d && !d.error) setDetail(d); })
+        .catch(() => {});
+    }
 
     if (!SHOW_JENIS_IKLAN) return;
     // ---- di bawah ini dormant selama SHOW_JENIS_IKLAN=false; logic lama dibiarkan ----
@@ -2046,18 +2218,14 @@ function TabAds() {
         </span>
       </div>
 
-      {/* Sub-tab DI DALAM tab produk yang aktif: iklan toko dan pencarian vs iklan CPAS */}
+      {/* Sub-tab DI DALAM tab produk yang aktif (baris ini disembunyikan kalau cuma 1 sub-tab) */}
+      {AD_SUBTABS.length > 1 && (
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {[
-          { key: "product", label: "iklan toko dan pencarian" },
-          { key: "cpas", label: "iklan CPAS" },
-          // "shop" (Iklan Toko+) sementara dilepas dari UI — logic & SHOP_CARDS
-          // di bawah dibiarkan (bukan dihapus) biar mudah dipasang balik.
-        ].map((t) => {
+        {AD_SUBTABS.map((t) => {
           const on = adTab === t.key;
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
-              padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer",
+              padding: "8px 18px", borderRadius: 10, cursor: "pointer",
               background: on ? "linear-gradient(135deg,#7C5CBF,#5B7CFA)" : "#fff",
               color: on ? "#fff" : "#5F6368", fontSize: 13, fontWeight: 600,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(124,92,191,.35)" : "0 1px 2px rgba(0,0,0,.05)",
@@ -2066,8 +2234,9 @@ function TabAds() {
           );
         })}
       </div>
+      )}
 
-      {adTab === "cpas" ? (
+      {SHOW_CPAS && adTab === "cpas" ? (
         <>
           <InfoNote>
             Data CPAS di bawah levelnya TOKO (gabungan semua produk) — Shopee belum kirim breakdown
@@ -2076,7 +2245,7 @@ function TabAds() {
           <TabAdsCpas detail={detail} displayLabel={displayLabel} />
         </>
       ) : (
-        <AdsProductBreakdown camps={camps} productKey={prodTab} dRange={dRange} displayLabel={displayLabel} />
+        <AdsProductBreakdown camps={camps} pace={pace} productKey={prodTab} dRange={dRange} displayLabel={displayLabel} />
       )}
 
       {SHOW_JENIS_IKLAN && (
@@ -2203,47 +2372,271 @@ function TabAds() {
   );
 }
 
+// ---------- Tab Affiliate: penjualan & komisi affiliate dari rincian escrow ----------
+// Backend: /api/affiliate/summary (ops/ext_affiliate.py). Tanpa akses API AMS, nama kreator,
+// klik, dan ROI per kreator belum tersedia; yang ada: komisi per pesanan & per produk.
+const AFF_FILTERS = RANGE_FILTERS.filter((f) => f.key !== "year"); // backend dibatasi 31 hari
+const AFF_WALLET_LABEL = {
+  AFFILIATE_FEE_DEDUCT: "Biaya layanan affiliate", 460: "Biaya layanan affiliate",
+  AFFILIATE_ADS_SELLER_FEE: "Biaya iklan affiliate", 455: "Biaya iklan affiliate",
+  AFFILIATE_ADS_SELLER_FEE_REFUND: "Pengembalian biaya iklan affiliate", 456: "Pengembalian biaya iklan affiliate",
+};
+const affDay = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
+const affSigned = (v) => (Number(v) < 0 ? `−${fmtRp(-Number(v))}` : `+${fmtRp(Number(v) || 0)}`);
+const affTime = (ts) => {
+  if (!ts) return "—";
+  const d = new Date(ts * 1000);
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${p2(d.getDate())}/${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+};
+
+function AffTip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const x = payload[0].payload;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #ECECEF", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(23,23,26,.08)" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{x.date}</div>
+      <div>Penjualan affiliate: <b>{fmtRp(x.aff_gmv)}</b></div>
+      <div>Komisi: {fmtRp(x.commission)}</div>
+      <div>Pesanan affiliate: {afNum(x.aff_orders)}{x.share_orders != null ? ` · ${afPct(x.share_orders)} dari pesanan selesai` : ""}</div>
+      {x.pending > 0 && (
+        <div style={{ color: "#9A6B12", marginTop: 3 }}>{afNum(x.orders)} dari {afNum(x.orders + x.pending)} pesanan sudah selesai (belum final)</div>
+      )}
+    </div>
+  );
+}
+
 function TabAffiliate() {
+  const [range, setRangeState] = useState(() => {
+    try {
+      const k = localStorage.getItem("mp_affrange");
+      return AFF_FILTERS.some((f) => f.key === k) ? k : "month";
+    } catch { return "month"; }
+  });
+  const setRange = (k) => {
+    setRangeState(k);
+    try { localStorage.setItem("mp_affrange", k); } catch { /* ignore */ }
+  };
+  const [data, setData] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const dRange = RANGE_PRESETS[range]();
+
+  // Escrow berubah pelan (backend cache 15 menit), jadi refresh cukup tiap 5 menit.
+  useEffect(() => {
+    let active = true;
+    setData(null);
+    const load = () => fetch(`https://api.qukis.id/api/affiliate/summary?from=${dRange.from}&to=${dRange.to}`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setData(d && !d.error && d.total ? d : { unavailable: true, error: d && d.error }); })
+      .catch(() => { if (active) setData({ unavailable: true }); });
+    load();
+    const iv = setInterval(load, 5 * 60 * 1000);
+    return () => { active = false; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
+  const t = data && data.total;
+  const c = (data && data.coverage) || {};
+  const w = (data && data.wallet) || {};
+  const walletCost = w.available ? -Number(w.total || 0) : 0; // potongan saldo bernilai negatif
+  const totalCost = t ? t.commission + walletCost : 0;
+  const affRoas = t && totalCost > 0 ? t.aff_gmv / totalCost : null;
+  const rows = data && data.by_product
+    ? (data.groups || Object.keys(data.by_product)).map((g) => [g, data.by_product[g]])
+      .filter(([g, b]) => b && (g !== "Lainnya" || b.aff_orders > 0))
+    : [];
+  const recent = (data && data.recent) || [];
+  const shown = showAll ? recent : recent.slice(0, 15);
+  // Komisi affiliate baru dicatat Shopee setelah pesanan selesai: semua angka dari pesanan selesai.
+  const escrowFailed = c.checked > 0 && !c.completed && (c.escrow_missing > 0 || c.unknown > 0);
+  const notFinalPct = c.completed + c.not_final ? (c.not_final / (c.completed + c.not_final)) * 100 : 0;
+  // Hari yang <80% pesanannya sudah selesai: angkanya masih akan bertambah.
+  const notFinalDays = new Set(((data && data.daily) || [])
+    .filter((x) => x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8).map((x) => affDay(x.date)));
+
   return (
     <>
-      <InfoNote>
-        Data tidak tersedia — data affiliate berasal dari program terpisah (Shopee Affiliate / Program Terbuka Kreator), bukan Open Platform standar. Perlu akses API tersendiri untuk data klik dan komisi; akses tersebut belum tersedia untuk aplikasi ini.
-      </InfoNote>
-      {false && (<>
-      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard icon={Users2} label="Affiliate aktif" value="37" delta="+4 bulan ini" accent="#7C5CBF" />
-        <StatCard icon={Package} label="Pesanan dari affiliate" value="591" delta="+22% MoM" accent="#2E6BE0" />
-        <StatCard icon={ArrowUpRight} label="Klik link affiliate" value="10.4rb" delta="+8.9% MoM" accent="#B8860B" />
-        <StatCard icon={Wallet} label="Total komisi dibayar" value={fmtRpShort(11_760_000)} accent="#1E9E6F" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        {AFF_FILTERS.map((f) => {
+          const on = range === f.key;
+          return (
+            <button key={f.key} onClick={() => setRange(f.key)} style={{
+              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid #7C5CBF" : "1px solid #E4E4E8",
+              background: on ? "#7C5CBF" : "#fff", color: on ? "#fff" : "#6B7280",
+              fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+            }}>{f.label}</button>
+          );
+        })}
+        <span style={{ fontSize: 12, color: "#8A8A82", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
+          {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari escrow pesanan yang sudah selesai
+        </span>
       </div>
 
-      <Card title="Papan peringkat affiliate" subtitle="Berdasarkan komisi bulan ini">
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: "#8A8A82", fontSize: 11.5 }}>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>#</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500 }}>Kreator</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pengikut</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Klik</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Pesanan</th>
-              <th style={{ paddingBottom: 8, fontWeight: 500, textAlign: "right" }}>Komisi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {affiliates.map((a) => (
-              <tr key={a.name} style={{ borderTop: "1px solid #F1F1F4" }}>
-                <td style={{ padding: "9px 0", color: "#8A8A82", fontFamily: "'JetBrains Mono', monospace" }}>{a.rank}</td>
-                <td style={{ padding: "9px 0", color: "#17171A", fontWeight: 500 }}>{a.name}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", color: "#4A4A45" }}>{a.followers}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.klik.toLocaleString("id-ID")}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{a.order}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{fmtRp(a.komisi)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Card title="Ringkasan" subtitle={`Dari pesanan yang sudah selesai · pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}`}>
+        {data === null ? (
+          <AfMuted>Memuat… (tarikan pertama untuk rentang baru bisa agak lama: escrow tiap pesanan dibaca)</AfMuted>
+        ) : data.unavailable ? (
+          <AfMuted>{data.error === "not found"
+            ? <>Backend affiliate belum dipasang (route <code>/api/affiliate/summary</code> belum ada).</>
+            : "Data affiliate tidak tersedia saat ini (backend error atau down)."}</AfMuted>
+        ) : escrowFailed ? (
+          <AfMuted>Status/escrow pesanan belum bisa ditarik dari Shopee{c.errors && c.errors.length ? `: ${c.errors[0]}` : "."}</AfMuted>
+        ) : (
+          <>
+            {c.not_final > 0 && notFinalPct >= 5 && (
+              <div style={{ border: "1px solid #F1D9A6", background: "#FFF8EA", color: "#7A5A1E", borderRadius: 10,
+                padding: "9px 12px", fontSize: 12.5, marginBottom: 12, fontFamily: "Inter, sans-serif", lineHeight: 1.5 }}>
+                <b>{afNum(c.not_final)} dari {afNum(c.completed + c.not_final)} pesanan ({Math.round(notFinalPct)}%) di rentang ini belum selesai.</b>{" "}
+                Shopee baru mencatat komisi affiliate setelah pesanan selesai (biasanya 3–7 hari setelah dibuat), jadi pesanan
+                itu belum bisa dipastikan lewat affiliate atau bukan dan belum masuk angka di bawah. Angka rentang yang baru
+                masih akan bertambah.
+              </div>
+            )}
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+              <AfTile label="Penjualan affiliate" value={afMoney(t.aff_gmv)} accent="#D04C8F" sub={`${afPct(t.share_gmv)} dari penjualan pesanan selesai`} />
+              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#2E6BE0" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan selesai`} />
+              <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent="#7C5CBF" sub="dipotong dari escrow" />
+              <AfTile label="Rate komisi" value={afPct(t.rate)} accent="#F09040" sub="komisi ÷ penjualan affiliate" />
+              <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#8A8A82"
+                sub={w.available ? `${afNum(w.count)} transaksi di luar escrow` : "tidak tersedia"} />
+              <AfTile label="ROAS affiliate" value={afRoas(affRoas)} accent="#1E9E6F" sub="penjualan ÷ (komisi + biaya saldo)" />
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <AfMuted>
+                Pesanan selesai {afNum(c.completed)} · belum final {afNum(c.not_final)} · batal {afNum(c.cancelled)}
+                {c.unpaid ? ` · belum bayar ${afNum(c.unpaid)}` : ""}
+                {c.escrow_missing ? ` · ${afNum(c.escrow_missing)} escrow belum terbaca, dicoba lagi otomatis` : ""}
+              </AfMuted>
+            </div>
+          </>
+        )}
       </Card>
-      </>)}
+
+      {t && !escrowFailed && (
+        <Card title="Per produk" subtitle="Dari pesanan selesai · porsi = penjualan affiliate ÷ semua penjualan produk itu">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>
+                <th style={AF_THL}>Produk</th><th style={AF_THW}>Pesanan affiliate</th><th style={AF_THW}>Qty</th>
+                <th style={AF_THW}>Penjualan affiliate</th><th style={AF_THW}>Porsi</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>Rate komisi</th>
+              </tr></thead>
+              <tbody>
+                {rows.map(([g, b]) => (
+                  <tr key={g}>
+                    <td style={AF_TDL}>{g === "Lainnya" ? "Lainnya (produk/bundle lain)" : g}</td>
+                    <td style={AF_TD}>{afNum(b.aff_orders)}</td>
+                    <td style={AF_TD}>{afNum(b.aff_qty)}</td>
+                    <td style={AF_TD}>{afMoney(b.aff_gmv)}</td>
+                    <td style={AF_TD}>{afPct(b.share_gmv)}</td>
+                    <td style={AF_TD}>{afMoney(b.commission)}</td>
+                    <td style={AF_TD}>{afPct(b.rate)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={AF_TDLT}>Total</td>
+                  <td style={AF_TDT}>{afNum(t.aff_orders)}</td>
+                  <td style={AF_TDT}>{afNum(t.aff_qty)}</td>
+                  <td style={AF_TDT}>{afMoney(t.aff_gmv)}</td>
+                  <td style={AF_TDT}>{afPct(t.share_gmv)}</td>
+                  <td style={AF_TDT}>{afMoney(t.commission)}</td>
+                  <td style={AF_TDT}>{afPct(t.rate)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {t && !escrowFailed && data.daily && data.daily.length > 1 && (
+        <Card title="Penjualan affiliate per hari" subtitle="Tanggal = tanggal pesanan dibuat · tanggal oranye bertanda * = sebagian besar pesanannya belum selesai, angkanya masih bertambah">
+          <ResponsiveContainer width="100%" height={190}>
+            <BarChart data={data.daily.map((x) => ({ ...x, lbl: affDay(x.date), done: x.orders + x.pending ? x.orders / (x.orders + x.pending) : 1 }))} barSize={data.daily.length > 14 ? 12 : 24}>
+              <CartesianGrid vertical={false} stroke="#F1F1F4" />
+              <XAxis dataKey="lbl" axisLine={false} tickLine={false} interval={data.daily.length > 14 ? 2 : 0}
+                tick={({ x, y, payload }) => {
+                  const nf = notFinalDays.has(payload.value);
+                  return <text x={x} y={y + 12} textAnchor="middle" fontSize={11} fontWeight={nf ? 600 : 400} fill={nf ? "#B7791F" : "#8A8A82"}>{payload.value}{nf ? "*" : ""}</text>;
+                }} />
+              <YAxis tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} />
+              <Tooltip content={<AffTip />} cursor={{ fill: "rgba(124,92,191,.06)" }} />
+              <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]}>
+                {data.daily.map((x) => (
+                  <Cell key={x.date} fill={x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8 ? "#D3C6EE" : "#7C5CBF"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
+      {t && !escrowFailed && (
+        <Card title="Pesanan affiliate terbaru" subtitle={`${afNum(recent.length)} pesanan affiliate terbaru yang sudah selesai di rentang ini`}>
+          {recent.length === 0 ? (
+            <AfMuted>Belum ada pesanan affiliate yang selesai di rentang ini.</AfMuted>
+          ) : (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Tanggal</th><th style={AF_THL}>No. pesanan</th>
+                    <th style={AF_THL}>Produk</th><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th>
+                  </tr></thead>
+                  <tbody>
+                    {shown.map((o) => (
+                      <tr key={o.order_sn}>
+                        <td style={AF_TDL}>{affDay(o.date)}</td>
+                        <td style={{ ...AF_TDL, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{o.order_sn}</td>
+                        <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }}
+                          title={(o.items || []).map((i) => `${i.group} · ${i.sku} × ${i.qty}`).join(", ")}>
+                          {(o.items || []).map((i) => `${i.group === "Lainnya" ? i.sku : i.group} × ${i.qty}`).join(", ")}
+                        </td>
+                        <td style={AF_TD}>{afMoney(o.gmv)}</td>
+                        <td style={AF_TD}>{afMoney(o.commission)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {recent.length > shown.length || showAll ? (
+                <button onClick={() => setShowAll(!showAll)} style={{
+                  marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid #E4E4E8", background: "#fff",
+                  color: "#5F6368", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                }}>{showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${afNum(recent.length)})`}</button>
+              ) : null}
+            </>
+          )}
+        </Card>
+      )}
+
+      {w.available && w.count > 0 && (
+        <Card title="Biaya affiliate lewat saldo" subtitle="Dipotong dari saldo penjual, di luar escrow pesanan">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>
+                <th style={AF_THL}>Waktu</th><th style={AF_THL}>Jenis</th><th style={AF_THL}>Keterangan</th><th style={AF_THW}>Jumlah</th>
+              </tr></thead>
+              <tbody>
+                {(w.items || []).map((x, i) => (
+                  <tr key={`${x.time}-${i}`}>
+                    <td style={AF_TDL}>{affTime(x.time)}</td>
+                    <td style={AF_TDL}>{AFF_WALLET_LABEL[x.type] || x.type}</td>
+                    <td style={AF_TDL}>{x.title || x.order_sn || "—"}</td>
+                    <td style={{ ...AF_TD, color: Number(x.amount) < 0 ? "#B3261E" : "#1E7A55" }}>{affSigned(x.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      <div style={{ fontSize: 11, color: "#8A6A3B", fontFamily: "Inter, sans-serif" }}>
+        Penjualan affiliate = harga item setelah diskon produk (sebelum voucher) untuk item yang kena komisi affiliate.
+        Produk ditentukan dari SKU (master SKU). Semua angka dari pesanan yang sudah selesai, karena Shopee baru
+        mencatat komisi affiliate di escrow setelah pesanan selesai; pesanan batal & belum bayar tidak dihitung.
+        Nama kreator, jumlah klik, dan ROI per kreator belum tersedia: datanya cuma ada di API AMS Shopee (butuh app
+        kategori "Affiliate Marketing Solution Management").
+      </div>
     </>
   );
 }
@@ -2252,7 +2645,10 @@ function TabLive() {
   return (
     <>
       <InfoNote>
-        Data tidak tersedia — metrik sesi Live umumnya hanya tersedia lewat Shopee Live Creator Center, bukan endpoint publik Open Platform. Akses data tersebut belum diberikan untuk aplikasi ini.
+        Belum tersedia. Data sesi Live (penonton, GMV & pesanan per sesi, produk yang diklik/terjual) ada di API
+        Livestream Shopee, tapi butuh app kategori "Livestream Management" dengan otorisasi akun streamer; app
+        dashboard ini belum punya akses itu. API-nya juga tidak menyediakan daftar sesi lama, jadi tiap sesi perlu
+        diketahui ID-nya.
       </InfoNote>
 
       {false && (<>
@@ -2329,7 +2725,7 @@ const TITLES = {
   pesanan: ["Pesanan", "Pantau status dan riwayat pesanan tokomu"],
   penghasilan: ["Penghasilan", "Rincian pendapatan dan saldo yang bisa ditarik"],
   ads: ["Ads", "Performa kampanye iklan tokomu"],
-  affiliate: ["Affiliate", "Kinerja kreator yang mempromosikan produkmu"],
+  affiliate: ["Affiliate", "Penjualan & komisi affiliate per produk"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
 };
 
@@ -2356,7 +2752,11 @@ export default function ShopeePartnerDashboard() {
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+        @media (max-width: 1180px) {
+          .mp-grid6 { grid-template-columns: repeat(3, 1fr) !important; }
+        }
         @media (max-width: 768px) {
+          .mp-grid6 { grid-template-columns: repeat(2, 1fr) !important; }
           .mp-root { flex-direction: column !important; min-height: 100vh !important; border-radius: 0 !important; border: none !important; }
           .mp-sidebar {
             width: 100% !important; max-width: none !important; height: auto !important;
@@ -2383,6 +2783,8 @@ export default function ShopeePartnerDashboard() {
         }
         @media (max-width: 420px) {
           .mp-grid4 { gap: 8px !important; }
+          .mp-grid6 { gap: 8px !important; }
+          .mp-tile-val { font-size: 14px !important; }
         }
       `}</style>
 
