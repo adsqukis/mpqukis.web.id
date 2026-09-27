@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Diagnostic Live Shopee — READ-ONLY.
 
-Jalankan di folder backend (~/shopee-backend):  python3 live_discovery.py
+Jalankan di folder backend (~/shopee-backend):  python3 live_discovery.py [--akses]
+
+  --akses  hanya uji lanjutan izin app: panggil Livestream & Brand Portal dengan user_id / principal_id
+           dummy. Kalau app tidak punya izin, Shopee menjawab "no permission" (seperti AMS). Kalau
+           error-nya lain, izin app lolos dan yang kurang tinggal otorisasi akun streamer/brand.
 
 Yang dicek (hasil nyata dari Shopee, bukan tebakan dari spec):
   1. Akses API data Live/affiliate dengan app yang sekarang:
@@ -75,6 +79,59 @@ def call(path, params=None, body=None):
             return {"error": f"http_{e.code}", "message": raw, "http": e.code}
     except Exception as e:  # noqa: BLE001 — diagnostic: tampilkan apa pun errornya
         return {"error": "exception", "message": str(e)[:200]}
+
+
+def call_as(path, id_key, ident, params=None, body=None):
+    """Panggil API level user/principal: signature pakai ID itu sebagai pengganti shop_id."""
+    CALLS[path] += 1
+    time.sleep(0.35)
+    ts = int(time.time())
+    q = {"partner_id": sb.PARTNER_ID, "timestamp": ts, "access_token": TOK["access_token"], id_key: ident,
+         "sign": sb._sign_get(path, ts, TOK["access_token"], ident)}
+    if params:
+        q.update(params)
+    url = f"{sb.API_HOST}{path}?{urllib.parse.urlencode(q)}"
+    req = urllib.request.Request(url) if body is None else urllib.request.Request(
+        url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        return json.loads(urllib.request.urlopen(req, timeout=45).read())
+    except urllib.error.HTTPError as e:
+        raw = e.read()[:400].decode("utf-8", "replace")
+        try:
+            j = json.loads(raw)
+            return {"error": j.get("error") or f"http_{e.code}", "message": j.get("message") or raw, "http": e.code}
+        except Exception:
+            return {"error": f"http_{e.code}", "message": raw, "http": e.code}
+    except Exception as e:  # noqa: BLE001
+        return {"error": "exception", "message": str(e)[:200]}
+
+
+def verdict2(r):
+    if not r.get("error"):
+        return "ADA AKSES — Shopee membalas data"
+    txt = f"{r.get('error')} {r.get('message')}".lower()
+    if "permission" in txt:
+        return "APP INI TIDAK PUNYA IZIN — perlu app baru dengan kategori itu"
+    if any(k in txt for k in ("token", "auth", "sign")):
+        return "BELUM PASTI — Shopee cek token dulu sebelum izin; perlu otorisasi asli untuk memastikan"
+    return "IZIN APP LOLOS — yang kurang tinggal otorisasi akun streamer/brand"
+
+
+if "--akses" in sys.argv:
+    today = datetime.now(WIB).date()
+    tests = {
+        "Livestream (user_id dummy)": call_as("/api/v2/livestream/get_session_detail", "user_id", 1, {"session_id": 1}),
+        "Brand Portal (principal_id dummy)": call_as(
+            "/api/v2/principal/get_shop_livestream_performance", "principal_id", 1, body={
+                "start_date": f"{today - timedelta(days=7)}", "end_date": f"{today - timedelta(days=1)}",
+                "timezone": "GMT+7", "granularity": "customize", "shop_list": []}),
+    }
+    print("\n== UJI LANJUTAN IZIN APP")
+    for name, r in tests.items():
+        print(f"   {name}: {verdict2(r)}")
+        print(f"      Shopee: {r.get('error') or 'OK'} — {str(r.get('message') or '')[:200]}")
+    print(f"\n== {sum(CALLS.values())} panggilan API.")
+    sys.exit(0)
 
 
 def verdict(r):
