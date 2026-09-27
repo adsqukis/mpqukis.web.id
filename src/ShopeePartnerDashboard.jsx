@@ -2645,7 +2645,10 @@ function TabLive() {
   return (
     <>
       <InfoNote>
-        Data tidak tersedia — metrik sesi Live umumnya hanya tersedia lewat Shopee Live Creator Center, bukan endpoint publik Open Platform. Akses data tersebut belum diberikan untuk aplikasi ini.
+        Belum tersedia. Data sesi Live (penonton, GMV & pesanan per sesi, produk yang diklik/terjual) ada di API
+        Livestream Shopee, tapi butuh app kategori "Livestream Management" dengan otorisasi akun streamer; app
+        dashboard ini belum punya akses itu. API-nya juga tidak menyediakan daftar sesi lama, jadi tiap sesi perlu
+        diketahui ID-nya.
       </InfoNote>
 
       {false && (<>
