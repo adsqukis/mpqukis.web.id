@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import {
   Package, Wallet, Megaphone, Users2, Radio, ChevronRight,
@@ -1666,7 +1666,101 @@ const AfCell2 = ({ main, sub }) => (
   </>
 );
 
-function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
+// Pacing iklan manual per jam untuk satu tanggal (/api/ads/pacing, ops/ext_ads_pacing.py).
+// Muncul kalau filter tanggal = 1 hari. GMS tidak punya data per jam di API Shopee.
+// Batas atas sumbu yang "rapi" (1 / 2 / 2,5 / 5 × 10^n) supaya label sumbu Y rata.
+const niceCeil = (v) => {
+  if (!(v > 0)) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [1, 2, 2.5, 5, 10].map((m) => m * p).find((x) => x >= v);
+};
+
+function AdsPaceTip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const x = payload[0].payload;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #ECECEF", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(23,23,26,.08)" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{String(x.hour).padStart(2, "0")}:00 – {String(x.hour).padStart(2, "0")}:59</div>
+      <div>Biaya jam ini: <b>{fmtRp(x.expense)}</b></div>
+      <div>Biaya kumulatif: {fmtRp(x.cum_expense)}</div>
+      <div>GMV langsung jam ini: {fmtRp(x.direct_gmv)}</div>
+    </div>
+  );
+}
+
+function AdsPacingCard({ pace, group }) {
+  if (!pace) return null;
+  const title = `Per jam — ${fmtDmy(pace.date)}${pace.is_today ? " (hari ini)" : ""}`;
+  if (pace.unavailable) {
+    return <Card title={title}><AfMuted>Data per jam tidak tersedia saat ini (backend pacing belum dipasang atau error).</AfMuted></Card>;
+  }
+  const g = pace.by_product && pace.by_product[group];
+  if (!g) {
+    return <Card title={title} subtitle="Iklan manual"><AfMuted>Tidak ada iklan manual produk ini yang jalan di tanggal ini.</AfMuted></Card>;
+  }
+  const lastH = pace.is_today ? Math.max(pace.hour_now ?? 0, pace.last_hour_with_data ?? 0) : 23;
+  const hours = g.hours.filter((x) => x.hour <= lastH);
+  const pct = g.pct_budget != null ? g.pct_budget : null; // hanya campaign yang punya budget
+  const showBudgetLine = g.budget > 0 && !g.unlimited;    // garis budget cuma adil kalau semua campaign ber-budget
+  const yMax = niceCeil(Math.max(...hours.map((x) => x.cum_expense), showBudgetLine ? g.budget : 0) * 1.05);
+  return (
+    <Card title={title} subtitle={`Iklan manual · data Shopee sampai jam ${pace.last_hour_with_data != null ? String(pace.last_hour_with_data).padStart(2, "0") + ":00" : "—"} · GMS tidak punya data per jam`}>
+      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+        <AfTile label="Biaya iklan manual" value={afMoney(g.spent)} accent="#7C5CBF" sub={pace.is_today ? "sejauh ini hari ini" : "sepanjang hari"} />
+        <AfTile label="Budget (setelan)" value={g.budget > 0 ? afMoney(g.budget) : "—"} accent="#8A8A82"
+          sub={g.unlimited ? `+${afNum(g.unlimited)} campaign tanpa batas` : "jumlah budget campaign"} />
+        <AfTile label="Budget terpakai" value={pct != null ? afPct(pct) : "—"} accent={pct != null && pct >= 95 ? "#B3261E" : "#F09040"}
+          sub={(g.capped ? `${afNum(g.capped)} campaign budget-nya habis` : "belum ada yang habis") + (g.unlimited ? " · di luar campaign tanpa batas" : "")} />
+        <AfTile label="ROAS langsung" value={afRoas(g.direct_roas)} accent="#1E9E6F" sub={`GMV langsung ${afMoney(g.direct_gmv)}`} />
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <AreaChart data={hours.map((x) => ({ ...x, lbl: String(x.hour).padStart(2, "0") }))}>
+          <defs>
+            <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7C5CBF" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#7C5CBF" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#F1F1F4" />
+          <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: "#8A8A82" }} axisLine={false} tickLine={false} width={46}
+            tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} domain={[0, yMax]} ticks={[0, yMax / 4, yMax / 2, (yMax * 3) / 4, yMax]} />
+          <Tooltip content={<AdsPaceTip />} />
+          {showBudgetLine && (
+            <ReferenceLine y={g.budget} stroke="#B3261E" strokeDasharray="4 4"
+              label={{ value: "budget", position: "insideTopRight", fill: "#B3261E", fontSize: 11 }} />
+          )}
+          <Area type="monotone" dataKey="cum_expense" name="Biaya kumulatif" stroke="#7C5CBF" strokeWidth={2} fill="url(#paceGrad)" />
+        </AreaChart>
+      </ResponsiveContainer>
+      <div style={{ overflowX: "auto", marginTop: 8 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={AF_THL}>Campaign</th><th style={AF_THW}>Budget saat ini</th><th style={AF_THW}>Biaya</th>
+            <th style={AF_THW}>Terpakai</th><th style={AF_THW}>Budget habis</th><th style={AF_THW}>ROAS langsung</th>
+          </tr></thead>
+          <tbody>
+            {g.campaigns.map((c) => (
+              <tr key={c.campaign_id}>
+                <td style={{ ...AF_TDL, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis" }} title={String(c.name || c.campaign_id)}>{c.name || c.campaign_id}</td>
+                <td style={AF_TD}>{afBudget(c.budget)}</td>
+                <td style={AF_TD}>{afMoney(c.spent)}</td>
+                <td style={AF_TD}>{c.pct_budget != null ? afPct(c.pct_budget) : "—"}</td>
+                <td style={{ ...AF_TD, color: c.out_hour != null ? "#B3261E" : "#8A8A82", fontWeight: c.out_hour != null ? 700 : 400 }}>
+                  {c.out_hour != null ? `jam ${String(c.out_hour).padStart(2, "0")}:00` : "—"}
+                </td>
+                <td style={AF_TD}>{afRoas(c.direct_roas)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 8 }}><AfMuted>{pace.note}</AfMuted></div>
+    </Card>
+  );
+}
+
+function AdsProductBreakdown({ camps, pace, productKey, dRange, displayLabel }) {
   const meta = AF_PRODUCT_GROUPS.find((g) => g.key === productKey) || AF_PRODUCT_GROUPS[0];
   const byProduct = camps && camps.by_product ? camps.by_product : null;
   const bp = byProduct ? byProduct[meta.group] : null;
@@ -1732,6 +1826,8 @@ function AdsProductBreakdown({ camps, productKey, dRange, displayLabel }) {
           </>
         )}
       </Card>
+
+      {dRange.from === dRange.to && <AdsPacingCard pace={pace} group={meta.group} />}
 
       {byProduct && (
         <Card
@@ -1937,6 +2033,7 @@ function TabAds() {
   const [detail, setDetail] = useState(null); // /api/ads/detail — total + per kategori (incl. box/item_sold)
   const [ov, setOv] = useState(null); // /api/ads/overview?days=30 — daily mentah + campaign by placement/status
   const [camps, setCamps] = useState(null); // /api/ads/campaigns — per campaign (opsional, butuh backend)
+  const [pace, setPace] = useState(null); // /api/ads/pacing — per jam, hanya untuk filter 1 hari
 
   const PRESET_DATES = RANGE_PRESETS;
   const clickPreset = (key) => {
@@ -1982,6 +2079,15 @@ function TabAds() {
       .then((r) => r.json())
       .then((d) => { if (active) setCamps(d && !d.error && Array.isArray(d.campaigns) ? d : { unavailable: true }); })
       .catch(() => { if (active) setCamps({ unavailable: true }); });
+    // Pacing per jam hanya untuk rentang 1 hari (Hari ini / Kemarin / custom 1 tanggal).
+    if (dRange.from === dRange.to) {
+      fetch(`https://api.qukis.id/api/ads/pacing?date=${dRange.from}`)
+        .then((r) => r.json())
+        .then((d) => { if (active) setPace(d && !d.error && d.by_product ? d : { unavailable: true, date: dRange.from }); })
+        .catch(() => { if (active) setPace({ unavailable: true, date: dRange.from }); });
+    } else if (active) {
+      setPace(null);
+    }
     // /api/ads/detail — cuma dipakai kategori CPAS (TabAdsCpas) & konten shop-wide lama,
     // jadi tidak ditarik selama keduanya disembunyikan (hemat rate limit Shopee).
     if (SHOW_CPAS || SHOW_JENIS_IKLAN) {
@@ -2139,7 +2245,7 @@ function TabAds() {
           <TabAdsCpas detail={detail} displayLabel={displayLabel} />
         </>
       ) : (
-        <AdsProductBreakdown camps={camps} productKey={prodTab} dRange={dRange} displayLabel={displayLabel} />
+        <AdsProductBreakdown camps={camps} pace={pace} productKey={prodTab} dRange={dRange} displayLabel={displayLabel} />
       )}
 
       {SHOW_JENIS_IKLAN && (

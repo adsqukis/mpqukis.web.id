@@ -81,7 +81,9 @@ Daftar data Shopee Open Platform yang bisa ditarik tapi belum dipakai dashboard.
   - GMS ikut dihitung per listing. Angka langsung dan broad dikirim terpisah.
   - Frontend: tiap tab produk menampilkan ringkasan (angka langsung jadi angka utama), perbandingan manual vs GMS, tabel campaign manual (bidding, target ROAS, jumlah keyword), dan tabel listing GMS.
 - **Selesai kalau:** angka 7 hari per produk cocok dengan Seller Centre.
-- **Berikutnya:** `get_product_campaign_hourly_performance`, detail keyword + bid (info_type 2), rekomendasi (`get_recommended_item_list`, `get_recommended_keyword_list`, `get_create_product_ad_budget_suggestion`).
+- **Pacing per jam (27/09):** modul `ops/ext_ads_pacing.py` (route `/api/ads/pacing?date=`), dari `get_product_campaign_hourly_performance`. Di tab produk, filter 1 hari (Hari ini / Kemarin) menampilkan biaya kumulatif per jam, budget terpakai (hanya dari campaign yang punya budget), dan jam budget tiap campaign habis (biaya >= 95% budget). GMS tidak punya data per jam di API.
+- **Tidak tersedia di API:** performa per keyword (biaya/klik/penjualan per keyword). Yang ada hanya daftar keyword + bid (info_type 2).
+- **Berikutnya (opsional):** daftar keyword + bid per campaign manual, target ROAS rekomendasi (`get_product_recommended_roi_target`), rekomendasi keyword/produk/budget (`get_recommended_keyword_list`, `get_recommended_item_list`, `get_create_product_ad_budget_suggestion`).
 
 ### Affiliate (di luar urutan, diminta user 25/09)
 - **Sumber:** `v2.payment.get_escrow_detail_batch` (`order_ams_commission_fee`, `items[].ams_commission_fee`), `v2.order.get_order_detail` (status terkini pesanan affiliate, supaya pesanan batal tidak dihitung), `v2.payment.get_wallet_transaction_list` (tipe 455/456/460: biaya affiliate lewat saldo).

@@ -3,7 +3,7 @@
 
   python3 install_ext.py                   pasang titik sambung di app.py (sekali saja), cek compile & import
   python3 install_ext.py --verify          panggil /api/affiliate/summary (7 hari) di backend yang sedang jalan
-  python3 install_ext.py --verify ROUTE    panggil ROUTE lain (mis. /api/xxx?from=2026-09-01&to=2026-09-07)
+  python3 install_ext.py --verify ROUTE    panggil ROUTE lain (mis. /api/ads/pacing?date=2026-09-27)
   python3 install_ext.py --off NAMA        nonaktifkan ext_NAMA.py (di-rename); app.py tidak diubah
 
 Titik sambung: setiap file ext_*.py di folder backend dimuat saat backend start dan boleh mendaftarkan
@@ -132,13 +132,25 @@ def verify(route=None):
     if not route:
         to = datetime.date.today()
         route = f"/api/affiliate/summary?from={to - datetime.timedelta(days=6)}&to={to}"
-    print(f"Memanggil {route} (tarikan pertama bisa beberapa menit: rincian escrow tiap pesanan dibaca)...")
+    print(f"Memanggil {route}" + (" (tarikan pertama bisa beberapa menit: status & escrow tiap pesanan dibaca)..."
+                                  if route.startswith("/api/affiliate") else " ..."))
     try:
         d = _get(route, timeout=600)
     except Exception as e:
         fail(f"request gagal: {e}")
     if d.get("error"):
         fail(f"backend balas error: {d.get('error')}")
+    if route.startswith("/api/ads/pacing"):
+        print(f"\nversi {d.get('version')} | tanggal {d.get('date')} | jam terakhir ada data: {d.get('last_hour_with_data')}"
+              + (f" | error: {d.get('errors')}" if d.get("errors") else ""))
+        for g, b in (d.get("by_product") or {}).items():
+            print(f"   {g[:18]:18} | biaya {rp(b.get('spent')):>10} dari budget {rp(b.get('budget')):>10} "
+                  f"(+{b.get('unlimited')} tanpa batas) | ROAS langsung {b.get('direct_roas')} | budget habis {b.get('capped')} campaign")
+            for c in b.get("campaigns") or []:
+                if c.get("out_hour") is not None:
+                    print(f"      habis jam {c['out_hour']:02d}:00 — {str(c.get('name'))[:60]} ({c.get('pct_budget')}% budget)")
+        print("\nVERIFY_OK")
+        return
     if not route.startswith("/api/affiliate/summary"):
         print(json.dumps(d, ensure_ascii=False)[:1500])
         print("\nVERIFY_OK")
