@@ -2998,9 +2998,9 @@ export default function ShopeePartnerDashboard() {
           </div>
 
           {/* section sapaan — field luas full-width */}
-          <div className="mp-greet" style={{ padding: "18px 28px 0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
-            <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 38, padding: "0 16px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
+          <div className="mp-greet" style={{ padding: "30px 28px 16px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
+            <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
               <Sparkles size={15} color="#FF8A3D" />
               <span key={askIdx} style={{ display: "inline-block", animation: "mpFade .45s ease both" }}>{ASK_HINTS[askIdx]}</span>
             </button>
