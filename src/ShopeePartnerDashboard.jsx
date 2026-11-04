@@ -2865,7 +2865,7 @@ export default function ShopeePartnerDashboard() {
             </div>
           </div>
 
-          <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "22px 26px", overflowY: "auto", background: "#0D0B12" }}>
+          <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "22px 26px", overflowY: "auto", background: "#0D0B12", backgroundImage: "radial-gradient(ellipse 90% 560px at 50% -120px, rgba(255,107,26,0.17), rgba(255,107,26,0) 70%)" }}>
             {tab === "overview" && <TabOverview />}
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}
