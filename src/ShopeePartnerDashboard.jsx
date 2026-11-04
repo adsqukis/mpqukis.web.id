@@ -98,7 +98,7 @@ const orderStatus = [
   { label: "Diproses", value: 22, color: "#FFB020" },
   { label: "Dikirim", value: 35, color: "#FFA940" },
   { label: "Selesai", value: 210, color: "#1E9E6F" },
-  { label: "Dibatalkan / retur", value: 9, color: "#9898A2" },
+  { label: "Dibatalkan / retur", value: 9, color: "#A89F92" },
 ];
 
 const recentOrders = [
@@ -111,7 +111,7 @@ const recentOrders = [
 
 const statusColor = {
   "Perlu dikirim": "#E5484D", "Diproses": "#B8860B", "Dikirim": "#FFA940",
-  "Selesai": "#1E9E6F", "Dibatalkan": "#9898A2",
+  "Selesai": "#1E9E6F", "Dibatalkan": "#A89F92",
 };
 
 const adsCampaigns = [
@@ -152,54 +152,56 @@ const lightenHex = (hex, f = 0.32) => {
 function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accent = "#FF6B1A", active = true, onClick = null }) {
   return (
     <div
+      className="mp-hov"
       onClick={onClick}
       title={onClick ? (active ? "Klik untuk sembunyikan dari Total" : "Klik untuk tampilkan lagi") : undefined}
       style={{
-        background: "#15131C",
-        border: active ? "1px solid #2C2833" : "1px dashed #3A3646",
-        borderRadius: 14,
-        boxShadow: active ? `inset 0 1px 0 ${accent}66, 0 4px 14px rgba(0,0,0,0.4)` : "none",
-        padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0,
+        background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))",
+        border: active ? "1px solid rgba(255,255,255,0.08)" : "1px dashed #453014",
+        borderRadius: 20,
+        boxShadow: active ? `inset 0 1px 0 ${accent}55, 0 18px 40px rgba(0,0,0,0.42), 0 14px 30px -10px ${accent}40` : "none",
+        padding: "16px 18px", display: "flex", flexDirection: "row", alignItems: "center", gap: 14, minWidth: 0,
         opacity: active ? 1 : 0.45,
         cursor: onClick ? "pointer" : "default",
-        transition: "opacity .15s ease, box-shadow .15s ease",
+        transition: "opacity .15s ease, box-shadow .25s ease, border-color .25s ease",
         userSelect: "none",
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>{label}</span>
-        <div style={{
-          width: 34, height: 34, borderRadius: 10, background: `${accent}22`,
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          border: `1px solid ${accent}45`,
-        }}>
-          <Icon size={16} color={accent} strokeWidth={2.3} />
-        </div>
-      </div>
       <div style={{
-        fontFamily: "'Space Grotesk', sans-serif", fontSize: 23, fontWeight: 600,
-        color: "#fff", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-      }}>{value}</div>
-      {delta && (
+        width: 46, height: 46, borderRadius: 14, background: `${accent}1F`,
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        border: `1px solid ${accent}40`, boxShadow: `0 0 16px ${accent}30`,
+      }}>
+        <Icon size={20} color={accent} strokeWidth={2.2} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>{label}</div>
         <div style={{
-          display: "flex", alignItems: "center", gap: 3, fontSize: 12,
-          color: "#C4C4CC", fontFamily: "Inter, sans-serif", fontWeight: 500,
-        }}>
-          {deltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-          {delta}
-        </div>
-      )}
+          fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600,
+          color: "#fff", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1,
+        }}>{value}</div>
+        {delta && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 3, fontSize: 12,
+            color: deltaPositive ? "#2FD574" : "#FF7A6B", fontFamily: "Inter, sans-serif", fontWeight: 600, marginTop: 2,
+          }}>
+            {deltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+            {delta}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function Card({ title, subtitle, children, right }) {
   return (
-    <div className="mp-card" style={{ background:"#15131C", border: "1px solid #262430", borderRadius: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.4)", padding: "18px 20px" }}>
+    <div className="mp-card mp-hov" style={{ background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", padding: "20px 22px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14.5, color: "#F7F7FA" }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: "#9898A2", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize: 12, color: "#A89F92", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{subtitle}</div>}
         </div>
         {right}
       </div>
@@ -264,7 +266,7 @@ function TabOverview() {
 
   if (loading) {
     return (
-      <div style={{ padding: "40px 0", textAlign: "center", color: "#9898A2", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
         Memuat overview toko…
       </div>
     );
@@ -320,12 +322,12 @@ function TabOverview() {
                     ["Selesai", so["Selesai"] || 0],
                     ["Batal", so["Batal"] || 0],
                   ].map(([lbl, val]) => (
-                    <tr key={lbl} style={{ borderTop: "1px solid #221F2A" }}>
-                      <td style={{ padding: "8px 0", color: "#C4C4CC" }}>{lbl}</td>
+                    <tr key={lbl} style={{ borderTop: "1px solid #2A1B0F" }}>
+                      <td style={{ padding: "8px 0", color: "#D8D2C8" }}>{lbl}</td>
                       <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{val}</td>
                     </tr>
                   ))}
-                  <tr style={{ borderTop: "2px solid #292633" }}>
+                  <tr style={{ borderTop: "2px solid #33200F" }}>
                     <td style={{ padding: "9px 0", fontWeight: 700, color: "#F7F7FA" }}>Total pesanan</td>
                     <td style={{ padding: "9px 0", textAlign: "right", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{totalOrder}</td>
                   </tr>
@@ -342,13 +344,13 @@ function TabOverview() {
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                   {adsMetrics.map((m) => (
-                    <div key={m.label} style={{ background: "#17141F", border: "1px solid #292633", borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10.5, color: "#9898A2", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{m.label}</div>
+                    <div key={m.label} style={{ background: "#171009", border: "1px solid #33200F", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{m.label}</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'JetBrains Mono', monospace" }}>{m.value}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11.5, color: "#9898A2", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
+                <div style={{ fontSize: 11.5, color: "#A89F92", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
                   {at.impressions != null && <>Impresi: {Number(at.impressions).toLocaleString("id-ID")} · </>}
                   GMV: {at.broad_gmv != null ? fmtRpShort(at.broad_gmv) : "—"}
                 </div>
@@ -364,19 +366,19 @@ function TabOverview() {
           {inc ? (
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
               <div>
-                <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>Total payout</div>
+                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Total payout</div>
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: "#F7F7FA", marginTop: 2 }}>{fmtRp(incomeTotal)}</div>
               </div>
-              <div style={{ borderLeft: "1px solid #262430", paddingLeft: 14 }}>
-                <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>Transaksi payout</div>
+              <div style={{ borderLeft: "1px solid #2A1B0F", paddingLeft: 14 }}>
+                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Transaksi payout</div>
                 <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{incomeCount}</div>
               </div>
-              <div style={{ borderLeft: "1px solid #262430", paddingLeft: 14 }}>
-                <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>Rata-rata / hari</div>
+              <div style={{ borderLeft: "1px solid #2A1B0F", paddingLeft: 14 }}>
+                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Rata-rata / hari</div>
                 <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{fmtRpShort(incomeAvg)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
-                <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>Payout per hari (30 hari terakhir)</div>
+                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>Payout per hari (30 hari terakhir)</div>
                 <ResponsiveContainer width="100%" height={90}>
                   <AreaChart data={incomeDaily.map((x) => ({ date: x.date, v: x.total }))}>
                     <defs>
@@ -387,7 +389,7 @@ function TabOverview() {
                     </defs>
                     <XAxis dataKey="date" hide />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} formatter={(v) => fmtRp(v)} labelFormatter={(l) => l} />
+                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} formatter={(v) => fmtRp(v)} labelFormatter={(l) => l} />
                     <Area type="monotone" dataKey="v" stroke="#1E9E6F" strokeWidth={2} fill="url(#ovInc)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -561,7 +563,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
     }
     for (let d = 1; d <= dim; d++) {
       const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      let bg = "#15131C", color = "#F7F7FA", radius = 0;
+      let bg = "#171009", color = "#F7F7FA", radius = 0;
       const inRange = selFrom && selTo && iso >= selFrom && iso <= selTo;
       const isStart = selFrom === iso;
       const isEnd = selTo === iso;
@@ -583,7 +585,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
           {_BLN[m]} {y}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,34px)", gap: 1, justifyContent: "center" }}>
-          {_HR.map((h, i) => <div key={i} style={{ width: 34, textAlign: "center", fontSize: 10.5, color: "#9898A2", paddingBottom: 4 }}>{h}</div>)}
+          {_HR.map((h, i) => <div key={i} style={{ width: 34, textAlign: "center", fontSize: 10.5, color: "#A89F92", paddingBottom: 4 }}>{h}</div>)}
           {cells}
         </div>
       </div>
@@ -608,13 +610,13 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
   return (
     <div style={{
       position: "absolute", zIndex: 50, top: "calc(100% + 6px)", left: 0,
-      background:"#15131C", border: "1px solid #292633", borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.55)",
+      background:"#171009", border: "1px solid #33200F", borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.55)",
       padding: "14px 16px", width: 700, maxWidth: "94vw",
     }}>
       <div style={{ display: "flex", gap: 14 }}>
         {/* Side panel preset — klik langsung terapkan (gaya Shopee) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 118, borderRight: "1px solid #262430", paddingRight: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#9898A2", marginBottom: 4, fontFamily: "Inter, sans-serif", letterSpacing: 0.4 }}>PRESET</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 118, borderRight: "1px solid #2A1B0F", paddingRight: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#A89F92", marginBottom: 4, fontFamily: "Inter, sans-serif", letterSpacing: 0.4 }}>PRESET</div>
           {RANGE_FILTERS.map((f) => {
             const pd = RANGE_PRESETS[f.key]();
             const active = from === pd.from && to === pd.to;
@@ -622,7 +624,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
               <button key={f.key} onClick={() => quickApply(f.key)} style={{
                 textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer",
                 background: active ? "#FF6B1A" : "transparent",
-                color: active ? "#fff" : "#C4C4CC", fontSize: 12, fontWeight: active ? 700 : 500,
+                color: active ? "#fff" : "#D8D2C8", fontSize: 12, fontWeight: active ? 700 : 500,
                 fontFamily: "Inter, sans-serif",
               }}>{f.label}</button>
             );
@@ -640,18 +642,18 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#9898A2" }}>Dari</span>
+            <span style={{ fontSize: 12, color: "#A89F92" }}>Dari</span>
             <input value={fromTxt} onChange={(e) => setFromTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #292633", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
-            <span style={{ fontSize: 12, color: "#9898A2" }}>sampai</span>
+              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
+            <span style={{ fontSize: 12, color: "#A89F92" }}>sampai</span>
             <input value={toTxt} onChange={(e) => setToTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #292633", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
+              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono', monospace" }} />
             <button onClick={onClose} style={{
-              padding: "7px 12px", borderRadius: 9, border: "1px solid #292633", background:"#15131C",
-              color: "#A6A6B0", fontSize: 12.5, cursor: "pointer",
+              padding: "7px 12px", borderRadius: 9, border: "1px solid #33200F", background:"#171009",
+              color: "#B8AEA0", fontSize: 12.5, cursor: "pointer",
             }}>Batal</button>
           </div>
-          <div style={{ fontSize: 11, color: "#9898A2", textAlign: "center", marginTop: 8, fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 11, color: "#A89F92", textAlign: "center", marginTop: 8, fontFamily: "Inter, sans-serif" }}>
             Klik tanggal awal & akhir di kalender — rentang langsung diterapkan.
           </div>
         </div>
@@ -763,16 +765,16 @@ function TabPesanan() {
     <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
       {FILTERS.map((f) => (
         <button key={f.key} onClick={() => clickPreset(f.key)} style={{
-          padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #292633",
-          background: !isCustom && range === f.key ? "#FF6B1A" : "#1C1924", color: !isCustom && range === f.key ? "#fff" : "#A6A6B0",
+          padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #33200F",
+          background: !isCustom && range === f.key ? "#FF6B1A" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
           fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
         }}>{f.label}</button>
       ))}
-      <span style={{ fontSize: 12, color: "#9898A2", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
+      <span style={{ fontSize: 12, color: "#A89F92", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
       <div style={{ position: "relative", display: "inline-block" }}>
         <button onClick={() => setCalOpen((v) => !v)} style={{
-          padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #292633",
-          background: isCustom ? "#FFA940" : "#1C1924", color: isCustom ? "#fff" : "#FFA940",
+          padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
+          background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
           fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace",
         }}>
           {fmtDmy(fromVal)} – {fmtDmy(toVal)}
@@ -799,7 +801,7 @@ function TabPesanan() {
     return (
       <>
         {filterRow}
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#9898A2", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
           Memuat data pesanan dari Shopee API…
         </div>
       </>
@@ -835,7 +837,7 @@ function TabPesanan() {
     { label: "Perlu dikirim", value: so["Perlu dikirim"] || 0, color: "#E5484D" },
     { label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), color: "#FFA940" },
     { label: "Selesai", value: so["Selesai"] || 0, color: "#1E9E6F" },
-    { label: "Batal", value: so["Batal"] || 0, color: "#9898A2" },
+    { label: "Batal", value: so["Batal"] || 0, color: "#A89F92" },
   ];
   const chartData = (daily && daily.length ? daily : []).map((x) => ({ d: x.date_label || x.d, total: x.total }));
   const manyBars = chartData.length > 14;
@@ -903,8 +905,8 @@ function TabPesanan() {
       )}
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <select value={produk} onChange={(e) => setProduk(e.target.value)} style={{
-          padding: "7px 12px", borderRadius: 9, border: "1px solid #292633", background:"#15131C",
-          fontSize: 12.5, fontWeight: 600, color: "#A6A6B0", cursor: "pointer", fontFamily: "Inter, sans-serif",
+          padding: "7px 12px", borderRadius: 9, border: "1px solid #33200F", background:"#171009",
+          fontSize: 12.5, fontWeight: 600, color: "#B8AEA0", cursor: "pointer", fontFamily: "Inter, sans-serif",
         }}>
           {PRODUK_OPTIONS.map((p) => (
             <option key={p.key || "all"} value={p.key}>{p.label}</option>
@@ -917,7 +919,7 @@ function TabPesanan() {
         }}>
           {csvBusy ? "Menyiapkan CSV…" : "⬇ Download CSV"}
         </button>
-        <span style={{ fontSize: 12, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>{produkLabel} · {displayLabel}</span>
+        <span style={{ fontSize: 12, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>{produkLabel} · {displayLabel}</span>
       </div>
 
       {/* Card status bisa dipilih (toggle) manual — Total = jumlah card yang AKTIF */}
@@ -926,7 +928,7 @@ function TabPesanan() {
           { key: "Perlu dikirim", label: "Perlu dikirim", value: so["Perlu dikirim"] || 0, accent: "#E5484D", icon: Package },
           { key: "Sedang dikirim", label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), accent: "#FFA940", icon: Package },
           { key: "Selesai", label: "Selesai", value: so["Selesai"] || 0, accent: "#1E9E6F", icon: Package },
-          { key: "Batal", label: "Batal", value: so["Batal"] || 0, accent: "#9898A2", icon: Package },
+          { key: "Batal", label: "Batal", value: so["Batal"] || 0, accent: "#A89F92", icon: Package },
         ];
         const toggleCard = (key) =>
           setActiveCards((prev) =>
@@ -951,9 +953,9 @@ function TabPesanan() {
                 />
               ))}
               <StatCard icon={Users2} label="Customer" value={String(custAll)} accent="#B8860B" />
-              <StatCard icon={Package} label="Total" value={String(totalSelected)} accent="#3A3646" />
+              <StatCard icon={Package} label="Total" value={String(totalSelected)} accent="#453014" />
             </div>
-            <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif", marginBottom: 14 }}>
+            <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 14 }}>
               Total mulai dari 0 — klik card status untuk menambahkan nilainya ke Total.
               {anyActive && (
                 <span
@@ -982,7 +984,7 @@ function TabPesanan() {
           <Card title="Resume Pesanan" subtitle={`${displayDate}`}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
               <thead>
-                <tr style={{ textAlign: "left", color: "#9898A2", fontSize: 11.5, borderBottom: "1px solid #292633" }}>
+                <tr style={{ textAlign: "left", color: "#A89F92", fontSize: 11.5, borderBottom: "1px solid #33200F" }}>
                   <th style={{ padding: "8px 0", fontWeight: 500 }}>Status</th>
                   <th style={{ padding: "8px 0", fontWeight: 500, textAlign: "right" }}>Customer</th>
                   <th style={{ padding: "8px 0", fontWeight: 500, textAlign: "right" }}>Qty</th>
@@ -990,13 +992,13 @@ function TabPesanan() {
               </thead>
               <tbody>
                 {resumeRows.map((r) => (
-                  <tr key={r.label} style={{ borderBottom: "1px solid #221F2A" }}>
+                  <tr key={r.label} style={{ borderBottom: "1px solid #2A1B0F" }}>
                     <td style={{ padding: "9px 0", color: "#F7F7FA" }}>{r.label}</td>
                     <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{r.cust}</td>
                     <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{r.qty}</td>
                   </tr>
                 ))}
-                <tr style={{ background: "#1B1824" }}>
+                <tr style={{ background: "#171009" }}>
                   <td style={{ padding: "10px 0", fontWeight: 700, color: "#F7F7FA" }}>TOTAL</td>
                   <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{sumCust}</td>
                   <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{sumQty}</td>
@@ -1010,9 +1012,9 @@ function TabPesanan() {
       <div className="mp-grid2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
         <Card title={`Pesanan masuk — ${displayDate}`} subtitle="Export Shopee (Pesanan Saya) · bukan realtime">
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6 }}>
-            <div><span style={{ fontSize: 11.5, color: "#9898A2", display: "block", fontFamily: "Inter, sans-serif" }}>Total order</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{totalDist}</span></div>
-            <div><span style={{ fontSize: 11.5, color: "#9898A2", display: "block", fontFamily: "Inter, sans-serif" }}>Total qty (produk)</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{(viewExp && viewExp.total_qty) || 0}</span></div>
-            <div><span style={{ fontSize: 11.5, color: "#9898A2", display: "block", fontFamily: "Inter, sans-serif" }}>Qty non-batal</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#1E9E6F" }}>{(viewExp && viewExp.total_qty_nonbatal) || 0}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total order</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{totalDist}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total qty (produk)</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{(viewExp && viewExp.total_qty) || 0}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Qty non-batal</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#1E9E6F" }}>{(viewExp && viewExp.total_qty_nonbatal) || 0}</span></div>
           </div>
         </Card>
 
@@ -1021,10 +1023,10 @@ function TabPesanan() {
             {distOrder.map((s) => (
               <div key={s.label}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
-                  <span style={{ color: "#C4C4CC" }}>{s.label}</span>
+                  <span style={{ color: "#D8D2C8" }}>{s.label}</span>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{s.value}</span>
                 </div>
-                <div style={{ background: "#221F2A", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                <div style={{ background: "#2A1B0F", borderRadius: 4, height: 6, overflow: "hidden" }}>
                   <div style={{ width: `${totalDist > 0 ? (s.value / totalDist) * 100 : 0}%`, height: "100%", background: s.color, borderRadius: 4 }} />
                 </div>
               </div>
@@ -1039,14 +1041,14 @@ function TabPesanan() {
             <div key={st.status} style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "#F7F7FA", fontFamily: "'Space Grotesk', sans-serif" }}>{st.status}</span>
-                <span style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>
+                <span style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>
                   Customer <b style={{ fontFamily: "'JetBrains Mono', monospace", color: "#F7F7FA" }}>{st.customer}</b>
                   {" · "}Qty <b style={{ fontFamily: "'JetBrains Mono', monospace", color: "#F7F7FA" }}>{st.qty}</b>
                 </span>
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
                 <thead>
-                  <tr style={{ textAlign: "left", color: "#9898A2", fontSize: 11 }}>
+                  <tr style={{ textAlign: "left", color: "#A89F92", fontSize: 11 }}>
                     <th style={{ padding: "5px 0", fontWeight: 500, width: 130 }}>SKU</th>
                     <th style={{ padding: "5px 0", fontWeight: 500 }}>Produk</th>
                     <th style={{ padding: "5px 0", fontWeight: 500, textAlign: "right", width: 90 }}>Customer</th>
@@ -1055,14 +1057,14 @@ function TabPesanan() {
                 </thead>
                 <tbody>
                   {st.sku_rows.map((r) => (
-                    <tr key={r.sku} style={{ borderTop: "1px solid #221F2A" }}>
-                      <td style={{ padding: "7px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#A6A6B0" }}>{r.sku}</td>
-                      <td style={{ padding: "7px 0", color: "#C4C4CC" }}>{r.produk}</td>
+                    <tr key={r.sku} style={{ borderTop: "1px solid #2A1B0F" }}>
+                      <td style={{ padding: "7px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#B8AEA0" }}>{r.sku}</td>
+                      <td style={{ padding: "7px 0", color: "#D8D2C8" }}>{r.produk}</td>
                       <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{r.customer}</td>
                       <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{r.qty}</td>
                     </tr>
                   ))}
-                  <tr style={{ borderTop: "2px solid #292633", background: "#1B1824" }}>
+                  <tr style={{ borderTop: "2px solid #33200F", background: "#171009" }}>
                     <td colSpan={2} style={{ padding: "7px 0", fontWeight: 700, color: "#F7F7FA" }}>TOTAL {st.status.toUpperCase()}</td>
                     <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{st.customer}</td>
                     <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{st.qty}</td>
@@ -1077,7 +1079,7 @@ function TabPesanan() {
       <Card title="Pesanan terbaru" subtitle={`${filteredOrders.length} transaksi · ${produkLabel} · ${displayLabel}`}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
           <thead>
-            <tr style={{ textAlign: "left", color: "#9898A2", fontSize: 11.5 }}>
+            <tr style={{ textAlign: "left", color: "#A89F92", fontSize: 11.5 }}>
               <th style={{ paddingBottom: 8, fontWeight: 500 }}>No. pesanan</th>
               <th style={{ paddingBottom: 8, fontWeight: 500 }}>Tanggal</th>
               <th style={{ paddingBottom: 8, fontWeight: 500 }}>Pembeli</th>
@@ -1090,12 +1092,12 @@ function TabPesanan() {
           </thead>
           <tbody>
             {filteredOrders.map((o) => (
-              <tr key={o.order_sn} style={{ borderTop: "1px solid #221F2A" }}>
-                <td style={{ padding: "9px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#C4C4CC" }}>{o.order_sn}</td>
-                <td style={{ padding: "9px 0", fontSize: 12, color: "#C4C4CC" }}>{fmtDate(o.create_time)}</td>
+              <tr key={o.order_sn} style={{ borderTop: "1px solid #2A1B0F" }}>
+                <td style={{ padding: "9px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#D8D2C8" }}>{o.order_sn}</td>
+                <td style={{ padding: "9px 0", fontSize: 12, color: "#D8D2C8" }}>{fmtDate(o.create_time)}</td>
                 <td style={{ padding: "9px 0", color: "#F7F7FA" }}>{o.buyer || "-"}</td>
-                <td style={{ padding: "9px 0", color: "#C4C4CC", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.produk ? shortProduk(o.produk) : "-"}</td>
-                <td style={{ padding: "9px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#A6A6B0" }}>{o.sku || "-"}</td>
+                <td style={{ padding: "9px 0", color: "#D8D2C8", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.produk ? shortProduk(o.produk) : "-"}</td>
+                <td style={{ padding: "9px 0", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "#B8AEA0" }}>{o.sku || "-"}</td>
                 <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{o.qty || 0}</td>
                 <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{o.total ? fmtRp(o.total) : "-"}</td>
                 <td style={{ padding: "9px 0", textAlign: "right" }}>
@@ -1104,7 +1106,7 @@ function TabPesanan() {
               </tr>
             ))}
             {filteredOrders.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: "14px 0", color: "#9898A2", textAlign: "center" }}>Belum ada pesanan terbaru{produk ? ` untuk ${produkLabel}` : ""}.</td></tr>
+              <tr><td colSpan={8} style={{ padding: "14px 0", color: "#A89F92", textAlign: "center" }}>Belum ada pesanan terbaru{produk ? ` untuk ${produkLabel}` : ""}.</td></tr>
             )}
           </tbody>
         </table>
@@ -1142,7 +1144,7 @@ function TabPenghasilan() {
 
   if (loading) {
     return (
-      <div style={{ padding: "40px 0", textAlign: "center", color: "#9898A2", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
         Memuat data penghasilan dari Shopee API…
       </div>
     );
@@ -1187,24 +1189,24 @@ function TabPenghasilan() {
                   <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9898A2" }} axisLine={false} tickLine={false} interval={4} />
-              <YAxis tick={{ fontSize: 10, fill: "#9898A2" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v)} />
-              <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#A89F92" }} axisLine={false} tickLine={false} interval={4} />
+              <YAxis tick={{ fontSize: 10, fill: "#A89F92" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v)} />
+              <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} />
               <Area type="monotone" dataKey="v" name="Payout" stroke="#FF6B1A" strokeWidth={2} fill="url(#incomeGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
         <Card title="Saldo Shopee & pencairan">
-          <div style={{ border: "1px dashed #6B4A2E", background: "#141118", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+          <div style={{ border: "1px dashed #6B4A2E", background: "#0D0805", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
             <div style={{ fontSize: 12.5, color: "#E88A67", fontWeight: 600, marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
               Data tidak tersedia
             </div>
-            <div style={{ fontSize: 12, color: "#A6A6B0", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}>
+            <div style={{ fontSize: 12, color: "#B8AEA0", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}>
               Saldo Shopee, jadwal pencairan, dan tarik saldo tidak tersedia lewat API partner — hanya bisa diakses & ditarik manual di Seller Centre (Seller Centre → Keuangan).
             </div>
           </div>
-          <div style={{ fontSize: 12, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>
+          <div style={{ fontSize: 12, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>
             Yang bisa ditampilkan di sini hanya payout yang sudah masuk (escrow release), bukan saldo mengambang.
           </div>
         </Card>
@@ -1219,16 +1221,16 @@ function TabPenghasilan() {
 
       <Card title="Rincian penghasilan">
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ border: "1px dashed #6B4A2E", background: "#141118", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+          <div style={{ border: "1px dashed #6B4A2E", background: "#0D0805", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
             <div style={{ fontSize: 12.5, color: "#E88A67", fontWeight: 600, marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
               Data tidak tersedia
             </div>
-            <div style={{ fontSize: 12, color: "#A6A6B0", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}>
+            <div style={{ fontSize: 12, color: "#B8AEA0", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}>
               Rincian komponen (pendapatan produk, ongkir, subsidi, biaya admin, biaya layanan, promo) tidak tersedia lewat API partner. Detail itu cuma bisa dilihat di Seller Centre → Laporan Keuangan / laporan penghasilan.
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "none", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
-            <span style={{ color: "#C4C4CC" }}>Total payout diterima (30 hari)</span>
+            <span style={{ color: "#D8D2C8" }}>Total payout diterima (30 hari)</span>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#1E9E6F" }}>+{fmtRp(totalPayout)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", marginTop: 4, borderTop: "1px solid #2A2733", fontSize: 13.5 }}>
@@ -1334,12 +1336,12 @@ const afKind = (kind, v) => {
   if (kind === "roas") return afRoas(v);
   return afRaw(v);
 };
-const AF_TH = { fontSize: 10.5, color: "#9898A2", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", borderBottom: "1px solid #292633" };
+const AF_TH = { fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", borderBottom: "1px solid #33200F" };
 const AF_THL = { ...AF_TH, textAlign: "left" };
-const AF_TD = { padding: "7px 8px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "#F7F7FA", whiteSpace: "nowrap", borderTop: "1px solid #221F2A" };
-const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", color: "#C4C4CC" };
-const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #292633" };
-const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#F7F7FA", borderTop: "2px solid #292633" };
+const AF_TD = { padding: "7px 8px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "#F7F7FA", whiteSpace: "nowrap", borderTop: "1px solid #2A1B0F" };
+const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", color: "#D8D2C8" };
+const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #33200F" };
+const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#F7F7FA", borderTop: "2px solid #33200F" };
 
 // Tab produk. `group` = nama grup dari backend iklan v2 (master SKU di
 // parse_export.py); backend memetakan campaign & listing GMS ke grup lewat
@@ -1353,22 +1355,22 @@ const AF_PRODUCT_GROUPS = [
 
 function AfTile({ label, value, accent = "#FF6B1A", sub }) {
   return (
-    <div style={{ background: "#17141F", border: "1px solid #292633", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "10px 12px", minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, color: "#9898A2", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
+    <div className="mp-hov" style={{ background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))", border: "1px solid rgba(255,255,255,0.08)", borderLeft: `3px solid ${accent}`, borderRadius: 16, padding: "10px 12px", minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
       <div className="mp-tile-val" title={typeof value === "string" ? value : undefined} style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9898A2", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: "#A89F92", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
     </div>
   );
 }
 function AfSource({ text, at }) {
   return (
-    <div style={{ fontSize: 11, color: "#9898A2", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
+    <div style={{ fontSize: 11, color: "#A89F92", marginTop: 10, fontFamily: "Inter, sans-serif" }}>
       Sumber: {text || "—"}{at ? ` · ${afTs(at)}` : ""}
     </div>
   );
 }
 function AfMuted({ children }) {
-  return <div style={{ fontSize: 12.5, color: "#9898A2", fontFamily: "Inter, sans-serif", padding: "6px 0" }}>{children}</div>;
+  return <div style={{ fontSize: 12.5, color: "#A89F92", fontFamily: "Inter, sans-serif", padding: "6px 0" }}>{children}</div>;
 }
 function AfKV({ title, obj }) {
   const entries = Object.entries(obj || {});
@@ -1377,8 +1379,8 @@ function AfKV({ title, obj }) {
       <div style={AF_THL}>{title}</div>
       {entries.length === 0 && <AfMuted>—</AfMuted>}
       {entries.map(([k, v]) => (
-        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", borderTop: "1px solid #221F2A", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
-          <span style={{ color: "#C4C4CC" }}>{k === "null" || k === "undefined" || k === "" ? "(tidak diset)" : k}</span>
+        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", borderTop: "1px solid #2A1B0F", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+          <span style={{ color: "#D8D2C8" }}>{k === "null" || k === "undefined" || k === "" ? "(tidak diset)" : k}</span>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{afNum(v)}</span>
         </div>
       ))}
@@ -1442,7 +1444,7 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
         <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7FA" }}>Data lengkap Shopee Ads</span>
-        <span style={{ fontSize: 12, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>semua field yang backend tarik dari Shopee Ads API · {displayLabel}</span>
+        <span style={{ fontSize: 12, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>semua field yang backend tarik dari Shopee Ads API · {displayLabel}</span>
       </div>
 
       {/* 1. Akun iklan — realtime */}
@@ -1662,7 +1664,7 @@ const afBudget = (v) => (Number(v) === 0 ? "Tanpa batas" : afMoney(v));
 const AfCell2 = ({ main, sub }) => (
   <>
     <div>{main}</div>
-    {sub && <div style={{ fontSize: 10.5, color: "#9898A2", fontFamily: "Inter, sans-serif", marginTop: 2 }}>{sub}</div>}
+    {sub && <div style={{ fontSize: 10.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginTop: 2 }}>{sub}</div>}
   </>
 );
 
@@ -1679,7 +1681,7 @@ function AdsPaceTip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
   const x = payload[0].payload;
   return (
-    <div style={{ background:"#15131C", border: "1px solid #262430", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(0,0,0,0.45)" }}>
+    <div style={{ background:"#171009", border: "1px solid #2A1B0F", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(0,0,0,0.45)" }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{String(x.hour).padStart(2, "0")}:00 – {String(x.hour).padStart(2, "0")}:59</div>
       <div>Biaya jam ini: <b>{fmtRp(x.expense)}</b></div>
       <div>Biaya kumulatif: {fmtRp(x.cum_expense)}</div>
@@ -1707,7 +1709,7 @@ function AdsPacingCard({ pace, group }) {
     <Card title={title} subtitle={`Iklan manual · data Shopee sampai jam ${pace.last_hour_with_data != null ? String(pace.last_hour_with_data).padStart(2, "0") + ":00" : "—"} · GMS tidak punya data per jam`}>
       <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
         <AfTile label="Biaya iklan manual" value={afMoney(g.spent)} accent="#FF6B1A" sub={pace.is_today ? "sejauh ini hari ini" : "sepanjang hari"} />
-        <AfTile label="Budget (setelan)" value={g.budget > 0 ? afMoney(g.budget) : "—"} accent="#9898A2"
+        <AfTile label="Budget (setelan)" value={g.budget > 0 ? afMoney(g.budget) : "—"} accent="#A89F92"
           sub={g.unlimited ? `+${afNum(g.unlimited)} campaign tanpa batas` : "jumlah budget campaign"} />
         <AfTile label="Budget terpakai" value={pct != null ? afPct(pct) : "—"} accent={pct != null && pct >= 95 ? "#B3261E" : "#F09040"}
           sub={(g.capped ? `${afNum(g.capped)} campaign budget-nya habis` : "belum ada yang habis") + (g.unlimited ? " · di luar campaign tanpa batas" : "")} />
@@ -1721,9 +1723,9 @@ function AdsPacingCard({ pace, group }) {
               <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} stroke="#221F2A" />
-          <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#9898A2" }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: "#9898A2" }} axisLine={false} tickLine={false} width={46}
+          <CartesianGrid vertical={false} stroke="#2A1B0F" />
+          <XAxis dataKey="lbl" tick={{ fontSize: 11, fill: "#A89F92" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: "#A89F92" }} axisLine={false} tickLine={false} width={46}
             tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} domain={[0, yMax]} ticks={[0, yMax / 4, yMax / 2, (yMax * 3) / 4, yMax]} />
           <Tooltip content={<AdsPaceTip />} />
           {showBudgetLine && (
@@ -1746,7 +1748,7 @@ function AdsPacingCard({ pace, group }) {
                 <td style={AF_TD}>{afBudget(c.budget)}</td>
                 <td style={AF_TD}>{afMoney(c.spent)}</td>
                 <td style={AF_TD}>{c.pct_budget != null ? afPct(c.pct_budget) : "—"}</td>
-                <td style={{ ...AF_TD, color: c.out_hour != null ? "#B3261E" : "#9898A2", fontWeight: c.out_hour != null ? 700 : 400 }}>
+                <td style={{ ...AF_TD, color: c.out_hour != null ? "#B3261E" : "#A89F92", fontWeight: c.out_hour != null ? 700 : 400 }}>
                   {c.out_hour != null ? `jam ${String(c.out_hour).padStart(2, "0")}:00` : "—"}
                 </td>
                 <td style={AF_TD}>{afRoas(c.direct_roas)}</td>
@@ -1799,7 +1801,7 @@ function AdsProductBreakdown({ camps, pace, productKey, dRange, displayLabel }) 
               <AfTile label="ROAS langsung" value={afRoas(t.direct_roas)} accent="#1E9E6F" sub="GMV langsung ÷ biaya" />
               <AfTile label="Pesanan langsung" value={afNum(t.direct_orders)} accent="#F09040" />
               <AfTile label="Klik" value={afNum(t.clicks)} accent="#FF8A3D" sub={`CTR ${afPct(t.ctr)} · ${afNum(t.impressions)} impresi`} />
-              <AfTile label="ROAS broad" value={afRoas(t.broad_roas)} accent="#9898A2" sub={`GMV broad ${afMoney(t.broad_gmv)}`} />
+              <AfTile label="ROAS broad" value={afRoas(t.broad_roas)} accent="#A89F92" sub={`GMV broad ${afMoney(t.broad_gmv)}`} />
             </div>
             <div style={{ overflowX: "auto", marginTop: 12 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -2171,10 +2173,10 @@ function TabAds() {
           return (
             <button key={g.key} onClick={() => setProdTab(g.key)} style={{
               padding: "10px 22px", borderRadius: 12, cursor: "pointer",
-              background: on ? "#FF6B1A" : "#35323F",
-              color: on ? "#fff" : "#9D9DA7", fontSize: 14, fontWeight: 700,
+              background: on ? "#FF6B1A" : "#453014",
+              color: on ? "#fff" : "#B0A696", fontSize: 14, fontWeight: 700,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 14px rgba(124,92,191,.4)" : "0 1px 2px rgba(0,0,0,.05)",
-              border: on ? "none" : "1px solid #292633",
+              border: on ? "none" : "1px solid #33200F",
             }}>{g.label}</button>
           );
         })}
@@ -2184,16 +2186,16 @@ function TabAds() {
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         {FILTERS.map((f) => (
           <button key={f.key} onClick={() => clickPreset(f.key)} style={{
-            padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #292633",
-            background: !isCustom && range === f.key ? "#FF6B1A" : "#1C1924", color: !isCustom && range === f.key ? "#fff" : "#A6A6B0",
+            padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #33200F",
+            background: !isCustom && range === f.key ? "#FF6B1A" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
             fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
           }}>{f.label}</button>
         ))}
-        <span style={{ fontSize: 12, color: "#9898A2", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
+        <span style={{ fontSize: 12, color: "#A89F92", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
         <div style={{ position: "relative", display: "inline-block" }}>
           <button onClick={() => setCalOpen((v) => !v)} style={{
-            padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #292633",
-            background: isCustom ? "#FFA940" : "#1C1924", color: isCustom ? "#fff" : "#FFA940",
+            padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
+            background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
             fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace",
           }}>
             {fmtDmy(fromVal)} – {fmtDmy(toVal)}
@@ -2213,7 +2215,7 @@ function TabAds() {
             />
           )}
         </div>
-        <span style={{ fontSize: 12, color: "#9898A2", marginLeft: 8, fontFamily: "Inter, sans-serif" }}>
+        <span style={{ fontSize: 12, color: "#A89F92", marginLeft: 8, fontFamily: "Inter, sans-serif" }}>
           {displayLabel} · auto refresh 30 detik
         </span>
       </div>
@@ -2226,10 +2228,10 @@ function TabAds() {
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
               padding: "8px 18px", borderRadius: 10, cursor: "pointer",
-              background: on ? "#FF6B1A" : "#35323F",
-              color: on ? "#fff" : "#9D9DA7", fontSize: 13, fontWeight: 600,
+              background: on ? "#FF6B1A" : "#453014",
+              color: on ? "#fff" : "#B0A696", fontSize: 13, fontWeight: 600,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(255,107,26,.35)" : "0 1px 2px rgba(0,0,0,.05)",
-              border: on ? "none" : "1px solid #292633",
+              border: on ? "none" : "1px solid #33200F",
             }}>{t.label}</button>
           );
         })}
@@ -2269,7 +2271,7 @@ function TabAds() {
         </InfoNote>
       )}
       {lastErr === "METRIC_NOT_AVAILABLE" && (
-        <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif", marginBottom: 12 }}>
+        <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 12 }}>
           Catatan: Produk Terjual & SOV tidak disediakan API Shopee sama sekali (walau dihitung
           selisih) — card terkait tampil "—", bukan data palsu.
         </div>
@@ -2285,22 +2287,22 @@ function TabAds() {
           const isEstimate = adTab === "shop" && ok && m.is_estimate;
           const clickable = !(adTab === "shop" && SHOP_UNAVAILABLE_METRICS.includes(c.metric));
           return (
-            <div
+            <div className="mp-hov"
               key={c.id}
               onClick={() => clickable && setSeriesMetric(c.metric)}
               title={clickable ? "Klik untuk lihat tren harian metrik ini" : "Metrik ini tidak tersedia untuk Iklan Toko+"}
               style={{
-                background: "#15131C",
+                background: "#171009",
                 borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10,
                 minWidth: 0, boxShadow: `inset 0 1px 0 ${c.accent}66, 0 4px 14px rgba(0,0,0,0.4)`,
-                border: "1px solid #2C2833",
+                border: "1px solid #33200F",
                 cursor: clickable ? "pointer" : "default",
                 opacity: busy ? 0.75 : 1, transition: "opacity .2s ease",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>{c.label}</span>
+                  <span style={{ fontSize: 12.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>{c.label}</span>
                   {isEstimate && (
                     <span style={{
                       fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,0.28)",
@@ -2322,7 +2324,7 @@ function TabAds() {
               }}>
                 {busy ? "…" : ok ? m.formatted_value : "—"}
               </div>
-              <div style={{ fontSize: 11, fontFamily: "Inter, sans-serif", color: ok ? "#9898A2" : "#FF9A8A" }}>
+              <div style={{ fontSize: 11, fontFamily: "Inter, sans-serif", color: ok ? "#A89F92" : "#FF9A8A" }}>
                 {ok
                   ? (m.updated_at ? `Update ${m.updated_at.slice(11, 16)} WIB` : "Realtime")
                   : (m && m.error ? m.error : "Gagal dimuat")}
@@ -2348,11 +2350,11 @@ function TabAds() {
                     <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="lbl" tick={{ fontSize: 10.5, fill: "#9898A2" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 10.5, fill: "#9898A2" }} axisLine={false} tickLine={false} width={52} tickFormatter={(v) => fmtSeriesVal(seriesMetric, v)} />
+                <XAxis dataKey="lbl" tick={{ fontSize: 10.5, fill: "#A89F92" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10.5, fill: "#A89F92" }} axisLine={false} tickLine={false} width={52} tickFormatter={(v) => fmtSeriesVal(seriesMetric, v)} />
                 <Tooltip
                   formatter={(v) => [fmtSeriesVal(seriesMetric, v), metricLabel(seriesMetric)]}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }}
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }}
                 />
                 <Area type="monotone" dataKey="value" stroke="#FF6B1A" strokeWidth={2.2} fill="url(#adsSeriesGrad)" />
               </AreaChart>
@@ -2394,7 +2396,7 @@ function AffTip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
   const x = payload[0].payload;
   return (
-    <div style={{ background:"#15131C", border: "1px solid #262430", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(0,0,0,0.45)" }}>
+    <div style={{ background:"#171009", border: "1px solid #2A1B0F", borderRadius: 8, padding: "8px 10px", fontSize: 12, fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(0,0,0,0.45)" }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{x.date}</div>
       <div>Penjualan affiliate: <b>{fmtRp(x.aff_gmv)}</b></div>
       <div>Komisi: {fmtRp(x.commission)}</div>
@@ -2461,13 +2463,13 @@ function TabAffiliate() {
           const on = range === f.key;
           return (
             <button key={f.key} onClick={() => setRange(f.key)} style={{
-              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid #FF6B1A" : "1px solid #292633",
-              background: on ? "#FF6B1A" : "#1C1924", color: on ? "#fff" : "#A6A6B0",
+              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid #FF6B1A" : "1px solid #33200F",
+              background: on ? "#FF6B1A" : "#1D130A", color: on ? "#fff" : "#B8AEA0",
               fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
             }}>{f.label}</button>
           );
         })}
-        <span style={{ fontSize: 12, color: "#9898A2", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
+        <span style={{ fontSize: 12, color: "#A89F92", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
           {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari escrow pesanan yang sudah selesai
         </span>
       </div>
@@ -2497,7 +2499,7 @@ function TabAffiliate() {
               <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#FFA940" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan selesai`} />
               <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent="#FF6B1A" sub="dipotong dari escrow" />
               <AfTile label="Rate komisi" value={afPct(t.rate)} accent="#F09040" sub="komisi ÷ penjualan affiliate" />
-              <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#9898A2"
+              <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#A89F92"
                 sub={w.available ? `${afNum(w.count)} transaksi di luar escrow` : "tidak tersedia"} />
               <AfTile label="ROAS affiliate" value={afRoas(affRoas)} accent="#1E9E6F" sub="penjualan ÷ (komisi + biaya saldo)" />
             </div>
@@ -2551,13 +2553,13 @@ function TabAffiliate() {
         <Card title="Penjualan affiliate per hari" subtitle="Tanggal = tanggal pesanan dibuat · tanggal oranye bertanda * = sebagian besar pesanannya belum selesai, angkanya masih bertambah">
           <ResponsiveContainer width="100%" height={190}>
             <BarChart data={data.daily.map((x) => ({ ...x, lbl: affDay(x.date), done: x.orders + x.pending ? x.orders / (x.orders + x.pending) : 1 }))} barSize={data.daily.length > 14 ? 12 : 24}>
-              <CartesianGrid vertical={false} stroke="#221F2A" />
+              <CartesianGrid vertical={false} stroke="#2A1B0F" />
               <XAxis dataKey="lbl" axisLine={false} tickLine={false} interval={data.daily.length > 14 ? 2 : 0}
                 tick={({ x, y, payload }) => {
                   const nf = notFinalDays.has(payload.value);
-                  return <text x={x} y={y + 12} textAnchor="middle" fontSize={11} fontWeight={nf ? 600 : 400} fill={nf ? "#B7791F" : "#9898A2"}>{payload.value}{nf ? "*" : ""}</text>;
+                  return <text x={x} y={y + 12} textAnchor="middle" fontSize={11} fontWeight={nf ? 600 : 400} fill={nf ? "#B7791F" : "#A89F92"}>{payload.value}{nf ? "*" : ""}</text>;
                 }} />
-              <YAxis tick={{ fontSize: 11, fill: "#9898A2" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} />
+              <YAxis tick={{ fontSize: 11, fill: "#A89F92" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v).replace("Rp ", "")} />
               <Tooltip content={<AffTip />} cursor={{ fill: "rgba(124,92,191,.06)" }} />
               <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]}>
                 {data.daily.map((x) => (
@@ -2599,8 +2601,8 @@ function TabAffiliate() {
               </div>
               {recent.length > shown.length || showAll ? (
                 <button onClick={() => setShowAll(!showAll)} style={{
-                  marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid #292633", background:"#15131C",
-                  color: "#9D9DA7", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                  marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid #33200F", background:"#171009",
+                  color: "#B0A696", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
                 }}>{showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${afNum(recent.length)})`}</button>
               ) : null}
             </>
@@ -2679,10 +2681,10 @@ function TabLive() {
         <Card title="GMV per sesi — 7 hari terakhir" subtitle="Nilai dalam juta rupiah">
           <ResponsiveContainer width="100%" height={190}>
             <BarChart data={liveSessions} barSize={26}>
-              <CartesianGrid vertical={false} stroke="#221F2A" />
-              <XAxis dataKey="d" tick={{ fontSize: 11.5, fill: "#9898A2" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#9898A2" }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip formatter={(v) => fmtRp(v * 1_000_000)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} />
+              <CartesianGrid vertical={false} stroke="#2A1B0F" />
+              <XAxis dataKey="d" tick={{ fontSize: 11.5, fill: "#A89F92" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "#A89F92" }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip formatter={(v) => fmtRp(v * 1_000_000)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} />
               <Bar dataKey="gmv" radius={[5, 5, 0, 0]}>
                 {liveSessions.map((_, i) => <Cell key={i} fill="#FF6B1A" />)}
               </Bar>
@@ -2696,7 +2698,7 @@ function TabLive() {
               <div key={p.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
                 <div>
                   <div style={{ color: "#F7F7FA", fontWeight: 500 }}>{p.name}</div>
-                  <div style={{ color: "#9898A2", fontSize: 11.5, marginTop: 2 }}>{p.qty} terjual</div>
+                  <div style={{ color: "#A89F92", fontSize: 11.5, marginTop: 2 }}>{p.qty} terjual</div>
                 </div>
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: "#F7F7FA" }}>{fmtRpShort(p.gmv)}</div>
               </div>
@@ -2747,7 +2749,9 @@ export default function ShopeePartnerDashboard() {
 
   return (
     <div className="mp-root" style={{
-      fontFamily: "Inter, sans-serif", background: "#0B0A0F", backgroundImage: "radial-gradient(ellipse 90% 480px at 70% -80px, rgba(255,107,26,0.13), rgba(255,107,26,0) 70%)", color: "#F7F7FA", minHeight: "100vh",
+      fontFamily: "Inter, sans-serif", background: "#050303",
+      backgroundImage: "radial-gradient(1000px 620px at 108% -12%, rgba(255,110,26,0.34), rgba(255,110,26,0) 60%), radial-gradient(820px 560px at 112% 60%, rgba(255,84,12,0.20), rgba(255,84,12,0) 62%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)",
+      color: "#F7F7FA", minHeight: "100vh", padding: 12, boxSizing: "border-box",
       display: "flex", flexDirection: "row",
     }}>
       <style>{`
@@ -2762,9 +2766,9 @@ export default function ShopeePartnerDashboard() {
             width: 100% !important; max-width: none !important; height: auto !important;
             flex-direction: row !important; align-items: center !important;
             padding: 8px 10px !important; border-right: none !important;
-            border-bottom: 1px solid #292633 !important; overflow-x: auto !important;
+            border-bottom: 1px solid #33200F !important; overflow-x: auto !important;
           }
-          .mp-sb-brand { border-bottom: none !important; margin: 0 10px 0 0 !important; padding: 0 10px 0 2px !important; border-right: 1px solid #292633 !important; }
+          .mp-sb-brand { border-bottom: none !important; margin: 0 10px 0 0 !important; padding: 0 10px 0 2px !important; border-right: 1px solid #33200F !important; }
           .mp-sb-brand-text { display: none !important; }
           .mp-menu { flex-direction: row !important; gap: 4px !important; width: max-content !important; }
           .mp-menu button { padding: 8px 10px !important; white-space: nowrap !important; }
@@ -2781,6 +2785,16 @@ export default function ShopeePartnerDashboard() {
           .mp-card { padding: 14px !important; }
           .mp-root table { display: block !important; overflow-x: auto !important; white-space: nowrap !important; }
         }
+        .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.05) !important; }
+        .mp-hov { position: relative; }
+        .mp-hov::before { content: ""; position: absolute; top: -25%; left: -90%; width: 55%; height: 150%; transform: rotate(18deg); background: linear-gradient(90deg, rgba(255,140,50,0) 0%, rgba(255,170,90,0.14) 42%, rgba(255,225,190,0.32) 50%, rgba(255,170,90,0.14) 58%, rgba(255,140,50,0) 100%); filter: blur(7px); opacity: 0; pointer-events: none; transition: left .85s ease, opacity .3s ease; z-index: 3; }
+        .mp-hov:hover::before { left: 135%; opacity: 1; }
+        .mp-hov::after { content: ""; position: absolute; left: 5%; right: 5%; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,110,26,0), #FF7A1A, #FFD9AE, #FF7A1A, rgba(255,110,26,0)); box-shadow: 0 0 16px 4px rgba(255,120,30,0.55); opacity: .5; pointer-events: none; transition: opacity .25s ease; z-index: 3; }
+        .mp-hov:hover::after { opacity: 1; }
+        .mp-hov:hover { border-color: rgba(255,170,110,0.38) !important; }
+        .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(255,150,80,0.45)); }
+        .recharts-area-area { filter: drop-shadow(0 0 12px rgba(255,120,40,0.18)); }
+        .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(255,150,80,0.30)); }
         @media (max-width: 420px) {
           .mp-grid4 { gap: 8px !important; }
           .mp-grid6 { gap: 8px !important; }
@@ -2789,58 +2803,46 @@ export default function ShopeePartnerDashboard() {
       `}</style>
 
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
-      <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%" }}>
-        {/* sidebar — hitam netral full height, brand di sidebar (pola referensi Fusion) */}
-        <div className="mp-sidebar" style={{ width: collapsed ? 64 : 218, background: "#0E0C12", padding: collapsed ? "14px 8px" : "16px 14px", display: "flex", flexDirection: "column", flexShrink: 0, borderRight: "1px solid #292633", transition: "width .2s ease, padding .2s ease", overflowY: "auto" }}>
-          {/* brand */}
-          <div className="mp-sb-brand" style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 14, marginBottom: 10, borderBottom: "1px solid #292633" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Store size={18} color="#fff" strokeWidth={2.3} />
+      <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14 }}>
+        {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
+        <div className="mp-sidebar" style={{ width: 224, background: "linear-gradient(180deg, rgba(24,16,10,0.82), rgba(10,6,4,0.92))", padding: "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
+          <svg width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
+            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(255,110,26,0.10)" />
+            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke="#FF7A1A" strokeWidth="1.6" />
+            <path d="M0,110 C44,82 78,134 116,108 C152,84 186,120 224,98" fill="none" stroke="#FF9E45" strokeWidth="1" opacity="0.6" />
+            <path d="M0,124 C48,100 84,142 120,120 C156,100 188,130 224,112" fill="none" stroke="#FF6B1A" strokeWidth="0.8" opacity="0.4" />
+          </svg>
+          <div className="mp-sb-brand" style={{ display: "flex", alignItems: "center", gap: 11, padding: "2px 4px 16px", position: "relative" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(255,122,26,0.5)" }}>
+              <Store size={19} color="#fff" strokeWidth={2.3} />
             </div>
-            {!collapsed && (
-              <div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
-                <div style={{ color: "#fff", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, whiteSpace: "nowrap" }}>MP — Marketplace</div>
-                <div style={{ color: "#9A9AA4", fontSize: 11, whiteSpace: "nowrap", marginTop: 1 }}>Generos Official Store</div>
-              </div>
-            )}
+            <div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
+              <div style={{ color: "#fff", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.15 }}>MP — Marketplace</div>
+              <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>Generos Official Store</div>
+            </div>
           </div>
-
-          <button className="mp-toggle" onClick={() => setCollapsed(!collapsed)} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} style={{
-            display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-end",
-            padding: "8px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent",
-            color: "#9A9AA4", marginBottom: 8,
-          }}>
-            {collapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
-          </button>
-          <div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
             {MENU.map((m) => {
               const active = tab === m.key;
               const Icon = m.icon;
               return (
                 <button key={m.key} onClick={() => changeTab(m.key)} title={m.label} style={{
-                  display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: "10px 12px",
-                  borderRadius: 9, border: "none", cursor: "pointer", textAlign: "left",
-                  background: active ? "rgba(255,107,26,0.22)" : "transparent",
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", width: "100%",
+                  borderRadius: 12, border: active ? "1px solid rgba(255,190,130,0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
+                  background: active ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
+                  boxShadow: active ? "0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
                 }}>
-                  <Icon size={16} color={active ? "#FFC79A" : "#9A9AA4"} strokeWidth={2.2} />
-                  {!collapsed && (
-                    <span style={{
-                      fontSize: 13.5, color: active ? "#fff" : "#8B8B94", fontWeight: active ? 600 : 500,
-                      fontFamily: "Inter, sans-serif",
-                    }}>{m.label}</span>
-                  )}
+                  <Icon size={18} color={active ? "#fff" : "#8A94A6"} strokeWidth={2.2} />
+                  <span style={{ fontSize: 13.5, color: active ? "#fff" : "#B8AEA0", fontWeight: active ? 600 : 500, fontFamily: "Inter, sans-serif" }}>{m.label}</span>
                 </button>
               );
             })}
           </div>
-
-          {!collapsed && (
-            <div className="mp-statusbox" style={{ marginTop: "auto", padding: "13px 14px", borderRadius: 12, background: "#17141F", border: "1px solid #4A2E17", boxShadow: "inset 0 1px 0 rgba(255,107,26,0.35)" }}>
-              <div style={{ fontSize: 10.5, color: "#9898A2", fontWeight: 600, letterSpacing: ".4px", textTransform: "uppercase", marginBottom: 3 }}>Status toko</div>
-              <div style={{ fontSize: 14, color: "#FF8A3D", fontWeight: 700 }}>Mall</div>
-              <div style={{ fontSize: 10.5, color: "#9898A2", marginTop: 1 }}>Generos Official Store</div>
-            </div>
-          )}
+          <div className="mp-statusbox" style={{ marginTop: "auto", position: "relative", padding: "13px 14px", borderRadius: 14, background: "rgba(255,120,40,0.07)", border: "1px solid rgba(255,140,60,0.28)", boxShadow: "inset 0 1px 0 rgba(255,150,80,0.25)" }}>
+            <div style={{ fontSize: 10.5, color: "#B0A696", fontWeight: 600, letterSpacing: ".4px", textTransform: "uppercase", marginBottom: 3 }}>Status toko</div>
+            <div style={{ fontSize: 14, color: "#FF8A3D", fontWeight: 700 }}>Mall</div>
+            <div style={{ fontSize: 10.5, color: "#B0A696", marginTop: 1 }}>Generos Official Store</div>
+          </div>
         </div>
 
         {/* main */}
@@ -2848,24 +2850,24 @@ export default function ShopeePartnerDashboard() {
           {/* top bar putih (header konten, bukan gradient) */}
           <div className="mp-topbar" style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 26px", background:"#15131C", borderBottom: "1px solid #292633", flexShrink: 0,
+            padding: "12px 26px 4px", background: "transparent", backgroundImage: "radial-gradient(640px 220px at 88% -70px, rgba(255,110,26,0.22), rgba(255,110,26,0) 70%)", borderBottom: "none", flexShrink: 0,
           }}>
             <div>
               <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 18, color: "#F7F7FA" }}>{title}</div>
-              <div style={{ fontSize: 12.5, color: "#9898A2", marginTop: 1 }}>{subtitle}</div>
+              <div style={{ fontSize: 12.5, color: "#A89F92", marginTop: 1 }}>{subtitle}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <Search size={17} color="#9D9DA7" />
-              <Bell size={17} color="#9D9DA7" />
+              <Search size={17} color="#B0A696" />
+              <Bell size={17} color="#B0A696" />
               <span className="mp-topbar-hide" style={{
-                fontSize: 12, color: "#9D9DA7", background: "#1C1924", padding: "6px 12px",
+                fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "6px 12px", borderRadius: 999,
                 borderRadius: 8, fontFamily: "'JetBrains Mono', monospace",
               }}>{new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
               <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>G</div>
             </div>
           </div>
 
-          <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "22px 26px", overflowY: "auto", background: "#0D0B12", backgroundImage: "radial-gradient(ellipse 90% 560px at 50% -120px, rgba(255,107,26,0.17), rgba(255,107,26,0) 70%)" }}>
+          <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "18px 26px 26px", overflowY: "auto", background: "transparent" }}>
             {tab === "overview" && <TabOverview />}
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}

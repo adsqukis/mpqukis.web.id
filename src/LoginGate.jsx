@@ -29,11 +29,11 @@ export default function LoginGate({ children }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #17141F 0%, #2A1A0E 100%)", fontFamily: "Inter, sans-serif", color: "#F7F7FA",
+      background: "#050303", backgroundImage: "radial-gradient(900px 620px at 108% -12%, rgba(255,110,26,0.32), rgba(255,110,26,0) 60%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)", fontFamily: "Inter, sans-serif", color: "#F7F7FA",
     }}>
       <form onSubmit={submit} style={{
-        background:"#15131C", borderRadius: 18, padding: "40px 36px", width: 340,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid #262430",
+        background: "linear-gradient(165deg, rgba(28,20,13,0.85), rgba(11,7,5,0.92))", borderRadius: 20, padding: "40px 36px", width: 340,
+        boxShadow: "0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
       }}>
         <div style={{
           width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)",
