@@ -2841,7 +2841,8 @@ export default function ShopeePartnerDashboard() {
       return "overview";
     }
   });
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("mp_sb_collapsed") === "1"; } catch { return false; } });
+  const toggleSidebar = () => setCollapsed((c) => { const v = !c; try { localStorage.setItem("mp_sb_collapsed", v ? "1" : "0"); } catch { /* ignore */ } return v; });
   const [title, subtitle] = TITLES[tab];
   const changeTab = (key) => {
     setTab(key);
@@ -2874,6 +2875,7 @@ export default function ShopeePartnerDashboard() {
           .mp-menu { flex-direction: row !important; gap: 4px !important; width: max-content !important; }
           .mp-menu button { padding: 8px 10px !important; white-space: nowrap !important; }
           .mp-toggle { display: none !important; }
+          .mp-sidebar.mp-sb-hidden { display: none !important; }
           .mp-statusbox { display: none !important; }
           .mp-body { flex-direction: column !important; height: auto !important; }
           .mp-main { height: auto !important; }
@@ -2932,7 +2934,7 @@ export default function ShopeePartnerDashboard() {
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
       <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14, position: "relative", zIndex: 1 }}>
         {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
-        <div className="mp-sidebar" style={{ width: 224, background: "linear-gradient(180deg, rgba(24,16,10,0.82), rgba(10,6,4,0.92))", padding: "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
+        <div className={"mp-sidebar" + (collapsed ? " mp-sb-hidden" : "")} style={{ width: collapsed ? 0 : 224, background: "linear-gradient(180deg, rgba(24,16,10,0.58), rgba(10,6,4,0.74))", backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)", padding: collapsed ? "18px 0" : "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: collapsed ? "1px solid transparent" : "1px solid rgba(255,255,255,0.10)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", opacity: collapsed ? 0 : 1, transition: "width .45s cubic-bezier(.4,0,.2,1), padding .45s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .3s ease" }}>
           <svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(255,110,26,0.10)" />
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke="#FF7A1A" strokeWidth="1.6" />
@@ -2976,9 +2978,12 @@ export default function ShopeePartnerDashboard() {
         <div className="mp-main" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100vh" }}>
           {/* header — cluster utilitas jadi header bar tersendiri */}
           <div className="mp-header" style={{
-            display: "flex", alignItems: "center", justifyContent: "flex-end",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
+            <button onClick={toggleSidebar} aria-label={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} title={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+              {collapsed ? <ChevronsRight size={16} color="#D8D2C8" /> : <ChevronsLeft size={16} color="#D8D2C8" />}
+            </button>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Bell size={16} color="#D8D2C8" />
