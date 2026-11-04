@@ -2884,8 +2884,8 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-        @keyframes mpDrift1 { 0% { transform: translate(0, 0) scale(1); } 22% { transform: translate(-13vw, 9vh) scale(1.22); } 48% { transform: translate(-5vw, 24vh) scale(0.86); } 72% { transform: translate(-20vw, 5vh) scale(1.12); } 100% { transform: translate(0, 0) scale(1); } }
-        @keyframes mpDrift2 { 0% { transform: translate(0, 0) scale(1); } 30% { transform: translate(-9vw, 16vh) scale(1.3); } 55% { transform: translate(-18vw, 2vh) scale(0.8); } 80% { transform: translate(-4vw, 10vh) scale(1.18); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes mpDrift1 { 0% { transform: translate(0, 0) scale(1); } 20% { transform: translate(-22vw, 12vh) scale(1.3); } 45% { transform: translate(-8vw, 30vh) scale(0.82); } 70% { transform: translate(-30vw, 8vh) scale(1.18); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes mpDrift2 { 0% { transform: translate(0, 0) scale(1); } 30% { transform: translate(-16vw, 20vh) scale(1.35); } 55% { transform: translate(-28vw, 4vh) scale(0.78); } 80% { transform: translate(-6vw, 14vh) scale(1.22); } 100% { transform: translate(0, 0) scale(1); } }
         .mp-ask-pulse { animation: mpAskPulse 1.1s ease-in-out infinite; }
         .mp-content > * { animation: mpFade .35s ease both; }
         .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; }
@@ -2916,8 +2916,8 @@ export default function ShopeePartnerDashboard() {
       `}</style>
 
       {/* glow ambient melayang ala Gemini — blob orange yang drift & membesar-mengecil perlahan */}
-      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 760, height: 760, top: -280, right: -200, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,118,26,0.42), rgba(255,84,12,0.16) 45%, rgba(255,84,12,0) 70%)", filter: "blur(24px)", animation: "mpDrift1 26s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
-      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 520, height: 520, top: -140, right: -40, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,176,66,0.30), rgba(255,140,40,0.10) 50%, rgba(255,140,40,0) 72%)", filter: "blur(30px)", animation: "mpDrift2 34s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 760, height: 760, top: -280, right: -200, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,118,26,0.42), rgba(255,84,12,0.16) 45%, rgba(255,84,12,0) 70%)", filter: "blur(24px)", animation: "mpDrift1 16s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 520, height: 520, top: -140, right: -40, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,176,66,0.30), rgba(255,140,40,0.10) 50%, rgba(255,140,40,0) 72%)", filter: "blur(30px)", animation: "mpDrift2 21s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
 
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
       <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14, position: "relative", zIndex: 1 }}>
