@@ -387,7 +387,7 @@ function TabOverview() {
                     </defs>
                     <XAxis dataKey="date" hide />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #262430" }} formatter={(v) => fmtRp(v)} labelFormatter={(l) => l} />
+                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} formatter={(v) => fmtRp(v)} labelFormatter={(l) => l} />
                     <Area type="monotone" dataKey="v" stroke="#1E9E6F" strokeWidth={2} fill="url(#ovInc)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -951,7 +951,7 @@ function TabPesanan() {
                 />
               ))}
               <StatCard icon={Users2} label="Customer" value={String(custAll)} accent="#B8860B" />
-              <StatCard icon={Package} label="Total" value={String(totalSelected)} accent="#F7F7FA" />
+              <StatCard icon={Package} label="Total" value={String(totalSelected)} accent="#3A3646" />
             </div>
             <div style={{ fontSize: 11.5, color: "#9898A2", fontFamily: "Inter, sans-serif", marginBottom: 14 }}>
               Total mulai dari 0 — klik card status untuk menambahkan nilainya ke Total.
@@ -1189,7 +1189,7 @@ function TabPenghasilan() {
               </defs>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9898A2" }} axisLine={false} tickLine={false} interval={4} />
               <YAxis tick={{ fontSize: 10, fill: "#9898A2" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v)} />
-              <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430" }} />
+              <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} />
               <Area type="monotone" dataKey="v" name="Payout" stroke="#FF6B1A" strokeWidth={2} fill="url(#incomeGrad)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -2352,7 +2352,7 @@ function TabAds() {
                 <YAxis tick={{ fontSize: 10.5, fill: "#9898A2" }} axisLine={false} tickLine={false} width={52} tickFormatter={(v) => fmtSeriesVal(seriesMetric, v)} />
                 <Tooltip
                   formatter={(v) => [fmtSeriesVal(seriesMetric, v), metricLabel(seriesMetric)]}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430" }}
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }}
                 />
                 <Area type="monotone" dataKey="value" stroke="#FF6B1A" strokeWidth={2.2} fill="url(#adsSeriesGrad)" />
               </AreaChart>
@@ -2682,7 +2682,7 @@ function TabLive() {
               <CartesianGrid vertical={false} stroke="#221F2A" />
               <XAxis dataKey="d" tick={{ fontSize: 11.5, fill: "#9898A2" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: "#9898A2" }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip formatter={(v) => fmtRp(v * 1_000_000)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430" }} />
+              <Tooltip formatter={(v) => fmtRp(v * 1_000_000)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #262430", backgroundColor: "#15131C", color: "#F7F7FA" }} />
               <Bar dataKey="gmv" radius={[5, 5, 0, 0]}>
                 {liveSessions.map((_, i) => <Cell key={i} fill="#FF6B1A" />)}
               </Bar>
@@ -2747,7 +2747,7 @@ export default function ShopeePartnerDashboard() {
 
   return (
     <div className="mp-root" style={{
-      fontFamily: "Inter, sans-serif", background: "#0B0A0F", minHeight: "100vh",
+      fontFamily: "Inter, sans-serif", background: "#0B0A0F", color: "#F7F7FA", minHeight: "100vh",
       display: "flex", flexDirection: "row",
     }}>
       <style>{`

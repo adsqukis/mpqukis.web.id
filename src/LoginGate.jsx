@@ -29,7 +29,7 @@ export default function LoginGate({ children }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #17141F 0%, #2A1A0E 100%)", fontFamily: "Inter, sans-serif",
+      background: "linear-gradient(135deg, #17141F 0%, #2A1A0E 100%)", fontFamily: "Inter, sans-serif", color: "#F7F7FA",
     }}>
       <form onSubmit={submit} style={{
         background:"#15131C", borderRadius: 18, padding: "40px 36px", width: 340,
