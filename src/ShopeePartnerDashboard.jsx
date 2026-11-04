@@ -159,7 +159,7 @@ function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accen
         background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))",
         border: active ? "1px solid rgba(255,255,255,0.08)" : "1px dashed #453014",
         borderRadius: 20,
-        boxShadow: active ? `inset 0 1px 0 ${accent}55, 0 18px 40px rgba(0,0,0,0.42), 0 14px 30px -10px ${accent}40` : "none",
+        boxShadow: active ? `inset 0 1px 0 ${accent}55, 0 18px 40px rgba(0,0,0,0.42), 0 10px 22px -12px ${accent}40` : "none",
         padding: "16px 18px", display: "flex", flexDirection: "row", alignItems: "center", gap: 14, minWidth: 0,
         opacity: active ? 1 : 0.45,
         cursor: onClick ? "pointer" : "default",
@@ -2786,12 +2786,28 @@ export default function ShopeePartnerDashboard() {
           .mp-root table { display: block !important; overflow-x: auto !important; white-space: nowrap !important; }
         }
         .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.05) !important; }
-        .mp-hov { position: relative; }
-        .mp-hov::before { content: ""; position: absolute; top: -25%; left: -90%; width: 55%; height: 150%; transform: rotate(18deg); background: linear-gradient(90deg, rgba(255,140,50,0) 0%, rgba(255,170,90,0.14) 42%, rgba(255,225,190,0.32) 50%, rgba(255,170,90,0.14) 58%, rgba(255,140,50,0) 100%); filter: blur(7px); opacity: 0; pointer-events: none; transition: left .85s ease, opacity .3s ease; z-index: 3; }
-        .mp-hov:hover::before { left: 135%; opacity: 1; }
-        .mp-hov::after { content: ""; position: absolute; left: 5%; right: 5%; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,110,26,0), #FF7A1A, #FFD9AE, #FF7A1A, rgba(255,110,26,0)); box-shadow: 0 0 16px 4px rgba(255,120,30,0.55); opacity: .5; pointer-events: none; transition: opacity .25s ease; z-index: 3; }
+        @keyframes mpRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
+        @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .mp-content > * { animation: mpFade .35s ease both; }
+        .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; }
+        .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > * { animation: mpRise .5s ease both; }
+        .mp-grid2 > *:nth-child(2), .mp-grid3 > *:nth-child(2), .mp-grid4 > *:nth-child(2), .mp-grid6 > *:nth-child(2) { animation-delay: .05s; }
+        .mp-grid2 > *:nth-child(3), .mp-grid3 > *:nth-child(3), .mp-grid4 > *:nth-child(3), .mp-grid6 > *:nth-child(3) { animation-delay: .10s; }
+        .mp-grid4 > *:nth-child(4), .mp-grid6 > *:nth-child(4) { animation-delay: .15s; }
+        .mp-grid6 > *:nth-child(5) { animation-delay: .20s; }
+        .mp-grid6 > *:nth-child(6) { animation-delay: .25s; }
+        .mp-hov:hover { transform: translateY(-2px); border-color: rgba(255,170,110,0.38) !important; }
+        .mp-hov::before { content: ""; position: absolute; top: 0; left: -70%; width: 45%; height: 100%; transform: rotate(14deg) scaleY(1.3); background: linear-gradient(90deg, rgba(255,140,50,0) 0%, rgba(255,170,90,0.13) 42%, rgba(255,225,190,0.30) 50%, rgba(255,170,90,0.13) 58%, rgba(255,140,50,0) 100%); filter: blur(6px); opacity: 0; pointer-events: none; transition: left .8s ease, opacity .3s ease; z-index: 3; }
+        .mp-hov:hover::before { left: 125%; opacity: 1; }
+        .mp-hov::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,110,26,0), #FF7A1A, #FFD9AE, #FF7A1A, rgba(255,110,26,0)); box-shadow: 0 0 8px 1px rgba(255,120,30,0.45); opacity: .5; pointer-events: none; transition: opacity .25s ease; z-index: 3; }
         .mp-hov:hover::after { opacity: 1; }
-        .mp-hov:hover { border-color: rgba(255,170,110,0.38) !important; }
+        .mp-menu button { transition: all .2s ease; }
+        .mp-menu button:hover { background: rgba(255,255,255,0.05); }
+        .mp-pill { animation: mpGlow 2.6s ease-in-out infinite; }
+        .mp-wave { animation: mpWave 6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave { animation: none !important; transition: none !important; } }
         .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(255,150,80,0.45)); }
         .recharts-area-area { filter: drop-shadow(0 0 12px rgba(255,120,40,0.18)); }
         .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(255,150,80,0.30)); }
@@ -2806,7 +2822,7 @@ export default function ShopeePartnerDashboard() {
       <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14 }}>
         {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
         <div className="mp-sidebar" style={{ width: 224, background: "linear-gradient(180deg, rgba(24,16,10,0.82), rgba(10,6,4,0.92))", padding: "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
-          <svg width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
+          <svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(255,110,26,0.10)" />
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke="#FF7A1A" strokeWidth="1.6" />
             <path d="M0,110 C44,82 78,134 116,108 C152,84 186,120 224,98" fill="none" stroke="#FF9E45" strokeWidth="1" opacity="0.6" />
@@ -2826,7 +2842,7 @@ export default function ShopeePartnerDashboard() {
               const active = tab === m.key;
               const Icon = m.icon;
               return (
-                <button key={m.key} onClick={() => changeTab(m.key)} title={m.label} style={{
+                <button key={m.key} className={active ? "mp-pill" : undefined} onClick={() => changeTab(m.key)} title={m.label} style={{
                   display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", width: "100%",
                   borderRadius: 12, border: active ? "1px solid rgba(255,190,130,0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
                   background: active ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
