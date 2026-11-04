@@ -2841,9 +2841,9 @@ export default function ShopeePartnerDashboard() {
   return (
     <div className="mp-root" style={{
       fontFamily: "Roboto, sans-serif", fontWeight: 100, background: "#050303",
-      backgroundImage: "radial-gradient(1000px 620px at 108% -12%, rgba(255,110,26,0.34), rgba(255,110,26,0) 60%), radial-gradient(820px 560px at 112% 60%, rgba(255,84,12,0.20), rgba(255,84,12,0) 62%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)",
+      backgroundImage: "radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)",
       color: "#F7F7FA", minHeight: "100vh", padding: 12, boxSizing: "border-box",
-      display: "flex", flexDirection: "row",
+      display: "flex", flexDirection: "row", position: "relative", overflow: "hidden",
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
@@ -2884,6 +2884,8 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+        @keyframes mpDrift1 { 0% { transform: translate(0, 0) scale(1); } 22% { transform: translate(-13vw, 9vh) scale(1.22); } 48% { transform: translate(-5vw, 24vh) scale(0.86); } 72% { transform: translate(-20vw, 5vh) scale(1.12); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes mpDrift2 { 0% { transform: translate(0, 0) scale(1); } 30% { transform: translate(-9vw, 16vh) scale(1.3); } 55% { transform: translate(-18vw, 2vh) scale(0.8); } 80% { transform: translate(-4vw, 10vh) scale(1.18); } 100% { transform: translate(0, 0) scale(1); } }
         .mp-ask-pulse { animation: mpAskPulse 1.1s ease-in-out infinite; }
         .mp-content > * { animation: mpFade .35s ease both; }
         .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; }
@@ -2902,7 +2904,7 @@ export default function ShopeePartnerDashboard() {
         .mp-menu button:hover { background: rgba(255,255,255,0.05); }
         .mp-pill { animation: mpGlow 2.6s ease-in-out infinite; }
         .mp-wave { animation: mpWave 6s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave { animation: none !important; transition: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave, .mp-glowblob { animation: none !important; transition: none !important; } }
         .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(255,150,80,0.45)); }
         .recharts-area-area { filter: drop-shadow(0 0 12px rgba(255,120,40,0.18)); }
         .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(255,150,80,0.30)); }
@@ -2913,8 +2915,12 @@ export default function ShopeePartnerDashboard() {
         }
       `}</style>
 
+      {/* glow ambient melayang ala Gemini — blob orange yang drift & membesar-mengecil perlahan */}
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 760, height: 760, top: -280, right: -200, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,118,26,0.42), rgba(255,84,12,0.16) 45%, rgba(255,84,12,0) 70%)", filter: "blur(24px)", animation: "mpDrift1 26s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 520, height: 520, top: -140, right: -40, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,176,66,0.30), rgba(255,140,40,0.10) 50%, rgba(255,140,40,0) 72%)", filter: "blur(30px)", animation: "mpDrift2 34s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
-      <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14 }}>
+      <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14, position: "relative", zIndex: 1 }}>
         {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
         <div className="mp-sidebar" style={{ width: 224, background: "linear-gradient(180deg, rgba(24,16,10,0.82), rgba(10,6,4,0.92))", padding: "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
           <svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
