@@ -29,41 +29,41 @@ export default function LoginGate({ children }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #F4F5F8 0%, #ECEAF7 100%)", fontFamily: "Inter, sans-serif",
+      background: "linear-gradient(135deg, #17141F 0%, #2A1A0E 100%)", fontFamily: "Inter, sans-serif",
     }}>
       <form onSubmit={submit} style={{
-        background: "#fff", borderRadius: 18, padding: "40px 36px", width: 340,
-        boxShadow: "0 20px 60px rgba(31,23,64,0.12)", border: "1px solid #ECECEF",
+        background:"#15131C", borderRadius: 18, padding: "40px 36px", width: 340,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid #262430",
       }}>
         <div style={{
-          width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#7C5CBF,#5B7CFA)",
+          width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)",
           display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18,
         }}>
           <Lock size={20} color="#fff" strokeWidth={2.2} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "#17171A", marginBottom: 4 }}>MP — Marketplace</div>
-        <div style={{ fontSize: 13, color: "#8A8A82", marginBottom: 24 }}>Masuk buat lihat dashboard.</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#F7F7FA", marginBottom: 4 }}>MP — Marketplace</div>
+        <div style={{ fontSize: 13, color: "#9898A2", marginBottom: 24 }}>Masuk buat lihat dashboard.</div>
 
-        <label style={{ fontSize: 12, fontWeight: 600, color: "#5F6368", display: "block", marginBottom: 6 }}>Username</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "#9D9DA7", display: "block", marginBottom: 6 }}>Username</label>
         <input
           autoFocus
           value={username}
           onChange={(e) => { setUsername(e.target.value); setErr(false); }}
           style={{
             width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10,
-            border: err ? "1px solid #E0574C" : "1px solid #E4E4E8", fontSize: 14, fontFamily: "Inter, sans-serif",
+            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Inter, sans-serif",
             marginBottom: 14, outline: "none",
           }}
         />
 
-        <label style={{ fontSize: 12, fontWeight: 600, color: "#5F6368", display: "block", marginBottom: 6 }}>Password</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "#9D9DA7", display: "block", marginBottom: 6 }}>Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => { setPassword(e.target.value); setErr(false); }}
           style={{
             width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10,
-            border: err ? "1px solid #E0574C" : "1px solid #E4E4E8", fontSize: 14, fontFamily: "Inter, sans-serif",
+            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Inter, sans-serif",
             marginBottom: err ? 10 : 20, outline: "none",
           }}
         />
@@ -76,8 +76,8 @@ export default function LoginGate({ children }) {
 
         <button type="submit" style={{
           width: "100%", padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
-          background: "linear-gradient(135deg,#7C5CBF,#5B7CFA)", color: "#fff", fontSize: 14, fontWeight: 700,
-          fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(124,92,191,.35)",
+          background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", color: "#fff", fontSize: 14, fontWeight: 700,
+          fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(255,107,26,.35)",
         }}>
           Masuk
         </button>
