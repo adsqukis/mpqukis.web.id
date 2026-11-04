@@ -2961,7 +2961,7 @@ export default function ShopeePartnerDashboard() {
           {/* header — cluster utilitas jadi header bar tersendiri */}
           <div className="mp-header" style={{
             display: "flex", alignItems: "center", justifyContent: "flex-end",
-            padding: "13px 26px", background: "rgba(255,255,255,0.02)", backgroundImage: "radial-gradient(640px 220px at 88% -70px, rgba(255,110,26,0.22), rgba(255,110,26,0) 70%)", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0,
+            padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button onClick={() => setAskOpen(true)} className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 15px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 12.5, cursor: "pointer", fontFamily: "'Montserrat', sans-serif" }}>
@@ -2989,11 +2989,9 @@ export default function ShopeePartnerDashboard() {
           </div>
 
           {/* section sapaan — field luas full-width */}
-          <div className="mp-greet" style={{ padding: "20px 26px 0", flexShrink: 0 }}>
-            <div className="mp-hov" style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "24px 28px" }}>
-              <div style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, Febi Adithia</div>
-              <div style={{ fontSize: 13, color: "#A89F92", marginTop: 6 }}>{title} — {subtitle}</div>
-            </div>
+          <div className="mp-greet" style={{ padding: "18px 28px 0", flexShrink: 0 }}>
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, Febi Adithia</div>
+            <div style={{ fontSize: 13, color: "#A89F92", marginTop: 6 }}>{title} — {subtitle}</div>
           </div>
 
           <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
