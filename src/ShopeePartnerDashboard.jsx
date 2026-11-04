@@ -179,7 +179,7 @@ function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accen
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>{label}</div>
         <div style={{
-          fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 22, fontWeight: 600,
+          fontFamily: "'Roboto', sans-serif", fontSize: 22, fontWeight: 600,
           color: "#fff", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1,
         }}>{value}</div>
         {delta && (
@@ -201,7 +201,7 @@ function Card({ title, subtitle, children, right }) {
     <div className="mp-card mp-hov" style={{ background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)", padding: "20px 22px" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div>
-          <div style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 600, fontSize: 14.5, color: "#F7F7FA" }}>{title}</div>
+          <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600, fontSize: 14.5, color: "#F7F7FA" }}>{title}</div>
           {subtitle && <div style={{ fontSize: 12, color: "#A89F92", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{subtitle}</div>}
         </div>
         {right}
@@ -325,12 +325,12 @@ function TabOverview() {
                   ].map(([lbl, val]) => (
                     <tr key={lbl} style={{ borderTop: "1px solid #2A1B0F" }}>
                       <td style={{ padding: "8px 0", color: "#D8D2C8" }}>{lbl}</td>
-                      <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 600, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{val}</td>
+                      <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{val}</td>
                     </tr>
                   ))}
                   <tr style={{ borderTop: "2px solid #33200F" }}>
                     <td style={{ padding: "9px 0", fontWeight: 700, color: "#F7F7FA" }}>Total pesanan</td>
-                    <td style={{ padding: "9px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{totalOrder}</td>
+                    <td style={{ padding: "9px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{totalOrder}</td>
                   </tr>
                 </tbody>
               </table>
@@ -347,7 +347,7 @@ function TabOverview() {
                   {adsMetrics.map((m) => (
                     <div key={m.label} style={{ background: "#171009", border: "1px solid #33200F", borderRadius: 10, padding: "10px 12px" }}>
                       <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{m.label}</div>
-                      <div style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{m.value}</div>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'Roboto', sans-serif" }}>{m.value}</div>
                     </div>
                   ))}
                 </div>
@@ -368,15 +368,15 @@ function TabOverview() {
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
               <div>
                 <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Total payout</div>
-                <div style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 24, fontWeight: 700, color: "#F7F7FA", marginTop: 2 }}>{fmtRp(incomeTotal)}</div>
+                <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: 24, fontWeight: 700, color: "#F7F7FA", marginTop: 2 }}>{fmtRp(incomeTotal)}</div>
               </div>
               <div style={{ borderLeft: "1px solid #2A1B0F", paddingLeft: 14 }}>
                 <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Transaksi payout</div>
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", marginTop: 2 }}>{incomeCount}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>{incomeCount}</div>
               </div>
               <div style={{ borderLeft: "1px solid #2A1B0F", paddingLeft: 14 }}>
                 <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>Rata-rata / hari</div>
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", marginTop: 2 }}>{fmtRpShort(incomeAvg)}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>{fmtRpShort(incomeAvg)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>Payout per hari (30 hari terakhir)</div>
@@ -575,14 +575,14 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
         <div key={iso} onClick={() => !disabled && pickDay(y, m, d)}
           style={{
             width: 34, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", cursor: disabled ? "default" : "pointer",
+            fontSize: 12, fontFamily: "'Roboto', sans-serif", cursor: disabled ? "default" : "pointer",
             background: bg, color: disabled ? "#3A352E" : color, borderRadius: radius, margin: 1,
           }}>{d}</div>
       );
     }
     return (
       <div>
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13.5, marginBottom: 8, color: "#F7F7FA", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 13.5, marginBottom: 8, color: "#F7F7FA", fontFamily: "'Roboto', sans-serif" }}>
           {_BLN[m]} {y}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,34px)", gap: 1, justifyContent: "center" }}>
@@ -645,10 +645,10 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
           <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "#A89F92" }}>Dari</span>
             <input value={fromTxt} onChange={(e) => setFromTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }} />
+              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'Roboto', sans-serif" }} />
             <span style={{ fontSize: 12, color: "#A89F92" }}>sampai</span>
             <input value={toTxt} onChange={(e) => setToTxt(e.target.value)} placeholder="dd/mm/yyyy"
-              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }} />
+              style={{ width: 92, padding: "6px 8px", borderRadius: 8, border: "1px solid #33200F", fontSize: 12, textAlign: "center", fontFamily: "'Roboto', sans-serif" }} />
             <button onClick={onClose} style={{
               padding: "7px 12px", borderRadius: 9, border: "1px solid #33200F", background:"#171009",
               color: "#B8AEA0", fontSize: 12.5, cursor: "pointer",
@@ -776,7 +776,7 @@ function TabPesanan() {
         <button onClick={() => setCalOpen((v) => !v)} style={{
           padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
           background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
-          fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Trench Thin', 'Montserrat', sans-serif",
+          fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Roboto', sans-serif",
         }}>
           {fmtDmy(fromVal)} – {fmtDmy(toVal)}
         </button>
@@ -995,14 +995,14 @@ function TabPesanan() {
                 {resumeRows.map((r) => (
                   <tr key={r.label} style={{ borderBottom: "1px solid #2A1B0F" }}>
                     <td style={{ padding: "9px 0", color: "#F7F7FA" }}>{r.label}</td>
-                    <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{r.cust}</td>
-                    <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{r.qty}</td>
+                    <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{r.cust}</td>
+                    <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{r.qty}</td>
                   </tr>
                 ))}
                 <tr style={{ background: "#171009" }}>
                   <td style={{ padding: "10px 0", fontWeight: 700, color: "#F7F7FA" }}>TOTAL</td>
-                  <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{sumCust}</td>
-                  <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{sumQty}</td>
+                  <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{sumCust}</td>
+                  <td style={{ padding: "10px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{sumQty}</td>
                 </tr>
               </tbody>
             </table>
@@ -1013,9 +1013,9 @@ function TabPesanan() {
       <div className="mp-grid2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
         <Card title={`Pesanan masuk — ${displayDate}`} subtitle="Export Shopee (Pesanan Saya) · bukan realtime">
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6 }}>
-            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total order</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{totalDist}</span></div>
-            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total qty (produk)</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{(viewExp && viewExp.total_qty) || 0}</span></div>
-            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Qty non-batal</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", color: "#1E9E6F" }}>{(viewExp && viewExp.total_qty_nonbatal) || 0}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total order</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{totalDist}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Total qty (produk)</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{(viewExp && viewExp.total_qty) || 0}</span></div>
+            <div><span style={{ fontSize: 11.5, color: "#A89F92", display: "block", fontFamily: "Inter, sans-serif" }}>Qty non-batal</span><span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Roboto', sans-serif", color: "#1E9E6F" }}>{(viewExp && viewExp.total_qty_nonbatal) || 0}</span></div>
           </div>
         </Card>
 
@@ -1025,7 +1025,7 @@ function TabPesanan() {
               <div key={s.label}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
                   <span style={{ color: "#D8D2C8" }}>{s.label}</span>
-                  <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 600 }}>{s.value}</span>
+                  <span style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600 }}>{s.value}</span>
                 </div>
                 <div style={{ background: "#2A1B0F", borderRadius: 4, height: 6, overflow: "hidden" }}>
                   <div style={{ width: `${totalDist > 0 ? (s.value / totalDist) * 100 : 0}%`, height: "100%", background: s.color, borderRadius: 4 }} />
@@ -1041,10 +1041,10 @@ function TabPesanan() {
           {sts.map((st) => (
             <div key={st.status} style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#F7F7FA", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{st.status}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: "#F7F7FA", fontFamily: "'Roboto', sans-serif" }}>{st.status}</span>
                 <span style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>
-                  Customer <b style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", color: "#F7F7FA" }}>{st.customer}</b>
-                  {" · "}Qty <b style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", color: "#F7F7FA" }}>{st.qty}</b>
+                  Customer <b style={{ fontFamily: "'Roboto', sans-serif", color: "#F7F7FA" }}>{st.customer}</b>
+                  {" · "}Qty <b style={{ fontFamily: "'Roboto', sans-serif", color: "#F7F7FA" }}>{st.qty}</b>
                 </span>
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
@@ -1059,16 +1059,16 @@ function TabPesanan() {
                 <tbody>
                   {st.sku_rows.map((r) => (
                     <tr key={r.sku} style={{ borderTop: "1px solid #2A1B0F" }}>
-                      <td style={{ padding: "7px 0", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 11.5, color: "#B8AEA0" }}>{r.sku}</td>
+                      <td style={{ padding: "7px 0", fontFamily: "'Roboto', sans-serif", fontSize: 11.5, color: "#B8AEA0" }}>{r.sku}</td>
                       <td style={{ padding: "7px 0", color: "#D8D2C8" }}>{r.produk}</td>
-                      <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{r.customer}</td>
-                      <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{r.qty}</td>
+                      <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{r.customer}</td>
+                      <td style={{ padding: "7px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{r.qty}</td>
                     </tr>
                   ))}
                   <tr style={{ borderTop: "2px solid #33200F", background: "#171009" }}>
                     <td colSpan={2} style={{ padding: "7px 0", fontWeight: 700, color: "#F7F7FA" }}>TOTAL {st.status.toUpperCase()}</td>
-                    <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{st.customer}</td>
-                    <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{st.qty}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{st.customer}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{st.qty}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1094,13 +1094,13 @@ function TabPesanan() {
           <tbody>
             {filteredOrders.map((o) => (
               <tr key={o.order_sn} style={{ borderTop: "1px solid #2A1B0F" }}>
-                <td style={{ padding: "9px 0", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12, color: "#D8D2C8" }}>{o.order_sn}</td>
+                <td style={{ padding: "9px 0", fontFamily: "'Roboto', sans-serif", fontSize: 12, color: "#D8D2C8" }}>{o.order_sn}</td>
                 <td style={{ padding: "9px 0", fontSize: 12, color: "#D8D2C8" }}>{fmtDate(o.create_time)}</td>
                 <td style={{ padding: "9px 0", color: "#F7F7FA" }}>{o.buyer || "-"}</td>
                 <td style={{ padding: "9px 0", color: "#D8D2C8", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.produk ? shortProduk(o.produk) : "-"}</td>
-                <td style={{ padding: "9px 0", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 11.5, color: "#B8AEA0" }}>{o.sku || "-"}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{o.qty || 0}</td>
-                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>{o.total ? fmtRp(o.total) : "-"}</td>
+                <td style={{ padding: "9px 0", fontFamily: "'Roboto', sans-serif", fontSize: 11.5, color: "#B8AEA0" }}>{o.sku || "-"}</td>
+                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{o.qty || 0}</td>
+                <td style={{ padding: "9px 0", textAlign: "right", fontFamily: "'Roboto', sans-serif" }}>{o.total ? fmtRp(o.total) : "-"}</td>
                 <td style={{ padding: "9px 0", textAlign: "right" }}>
                   <Badge text={o.status} color={statusColor[o.status]} />
                 </td>
@@ -1175,7 +1175,7 @@ function TabPenghasilan() {
       <div className="mp-grid2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
         <Card title="Payout masuk — 30 hari" subtitle="Sumber: payment.get_escrow_list (uang bersih diterima)">
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 26, fontWeight: 600 }}>{fmtRp(totalPayout)}</span>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 26, fontWeight: 600 }}>{fmtRp(totalPayout)}</span>
             {pct !== null ? (
               <span style={{ fontSize: 12.5, color: up ? "#1E9E6F" : "#E5484D", fontWeight: 500 }}>
                 {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}% dari 7 hari sebelumnya
@@ -1232,11 +1232,11 @@ function TabPenghasilan() {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "none", fontSize: 13, fontFamily: "Inter, sans-serif" }}>
             <span style={{ color: "#D8D2C8" }}>Total payout diterima (30 hari)</span>
-            <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 700, color: "#1E9E6F" }}>+{fmtRp(totalPayout)}</span>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700, color: "#1E9E6F" }}>+{fmtRp(totalPayout)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", marginTop: 4, borderTop: "1px solid #2A2733", fontSize: 13.5 }}>
             <span style={{ fontWeight: 600, color: "#F7F7FA" }}>Pendapatan bersih (payout)</span>
-            <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 700, color: "#F7F7FA" }}>{fmtRp(totalPayout)}</span>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700, color: "#F7F7FA" }}>{fmtRp(totalPayout)}</span>
           </div>
         </div>
       </Card>
@@ -1339,7 +1339,7 @@ const afKind = (kind, v) => {
 };
 const AF_TH = { fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "Inter, sans-serif", borderBottom: "1px solid #33200F" };
 const AF_THL = { ...AF_TH, textAlign: "left" };
-const AF_TD = { padding: "7px 8px", textAlign: "right", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12.5, color: "#F7F7FA", whiteSpace: "nowrap", borderTop: "1px solid #2A1B0F" };
+const AF_TD = { padding: "7px 8px", textAlign: "right", fontFamily: "'Roboto', sans-serif", fontSize: 12.5, color: "#F7F7FA", whiteSpace: "nowrap", borderTop: "1px solid #2A1B0F" };
 const AF_TDL = { ...AF_TD, textAlign: "left", fontFamily: "Inter, sans-serif", color: "#D8D2C8" };
 const AF_TDT = { ...AF_TD, fontWeight: 700, borderTop: "2px solid #33200F" };
 const AF_TDLT = { ...AF_TDL, fontWeight: 700, color: "#F7F7FA", borderTop: "2px solid #33200F" };
@@ -1358,7 +1358,7 @@ function AfTile({ label, value, accent = "#FF6B1A", sub }) {
   return (
     <div className="mp-hov" style={{ background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))", border: "1px solid rgba(255,255,255,0.08)", borderLeft: `3px solid ${accent}`, borderRadius: 16, padding: "10px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
-      <div className="mp-tile-val" title={typeof value === "string" ? value : undefined} style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+      <div className="mp-tile-val" title={typeof value === "string" ? value : undefined} style={{ fontSize: 17, fontWeight: 700, color: "#F7F7FA", marginTop: 3, fontFamily: "'Roboto', sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "#A89F92", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{sub}</div>}
     </div>
   );
@@ -1382,7 +1382,7 @@ function AfKV({ title, obj }) {
       {entries.map(([k, v]) => (
         <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", borderTop: "1px solid #2A1B0F", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
           <span style={{ color: "#D8D2C8" }}>{k === "null" || k === "undefined" || k === "" ? "(tidak diset)" : k}</span>
-          <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 600 }}>{afNum(v)}</span>
+          <span style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600 }}>{afNum(v)}</span>
         </div>
       ))}
     </div>
@@ -1444,7 +1444,7 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-        <span style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7FA" }}>Data lengkap Shopee Ads</span>
+        <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: 15, fontWeight: 600, color: "#F7F7FA" }}>Data lengkap Shopee Ads</span>
         <span style={{ fontSize: 12, color: "#A89F92", fontFamily: "Inter, sans-serif" }}>semua field yang backend tarik dari Shopee Ads API · {displayLabel}</span>
       </div>
 
@@ -2197,7 +2197,7 @@ function TabAds() {
           <button onClick={() => setCalOpen((v) => !v)} style={{
             padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
             background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
-            fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Trench Thin', 'Montserrat', sans-serif",
+            fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Roboto', sans-serif",
           }}>
             {fmtDmy(fromVal)} – {fmtDmy(toVal)}
           </button>
@@ -2320,7 +2320,7 @@ function TabAds() {
                 </div>
               </div>
               <div style={{
-                fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 22, fontWeight: 600, color: "#fff",
+                fontFamily: "'Roboto', sans-serif", fontSize: 22, fontWeight: 600, color: "#fff",
                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               }}>
                 {busy ? "…" : ok ? m.formatted_value : "—"}
@@ -2588,7 +2588,7 @@ function TabAffiliate() {
                     {shown.map((o) => (
                       <tr key={o.order_sn}>
                         <td style={AF_TDL}>{affDay(o.date)}</td>
-                        <td style={{ ...AF_TDL, fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontSize: 12 }}>{o.order_sn}</td>
+                        <td style={{ ...AF_TDL, fontFamily: "'Roboto', sans-serif", fontSize: 12 }}>{o.order_sn}</td>
                         <td style={{ ...AF_TDL, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }}
                           title={(o.items || []).map((i) => `${i.group} · ${i.sku} × ${i.qty}`).join(", ")}>
                           {(o.items || []).map((i) => `${i.group === "Lainnya" ? i.sku : i.group} × ${i.qty}`).join(", ")}
@@ -2701,7 +2701,7 @@ function TabLive() {
                   <div style={{ color: "#F7F7FA", fontWeight: 500 }}>{p.name}</div>
                   <div style={{ color: "#A89F92", fontSize: 11.5, marginTop: 2 }}>{p.qty} terjual</div>
                 </div>
-                <div style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 600, color: "#F7F7FA" }}>{fmtRpShort(p.gmv)}</div>
+                <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600, color: "#F7F7FA" }}>{fmtRpShort(p.gmv)}</div>
               </div>
             ))}
           </div>
@@ -2787,7 +2787,7 @@ function AskPanel({ open, onClose }) {
             <Sparkles size={18} color="#fff" />
           </div>
           <div style={{ flex: 1, lineHeight: 1.2 }}>
-            <div style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 700, fontSize: 15.5, color: "#F7F7FA" }}>Asisten Qukis</div>
+            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700, fontSize: 15.5, color: "#F7F7FA" }}>Asisten Qukis</div>
             <div style={{ fontSize: 11.5, color: "#A89F92" }}>Tanya apa saja soal tokomu</div>
           </div>
           <button onClick={onClose} aria-label="Tutup" style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -2809,7 +2809,7 @@ function AskPanel({ open, onClose }) {
           {busy && <div className="mp-ask-pulse" style={{ alignSelf: "flex-start", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "#A89F92", fontSize: 12.5, padding: "9px 13px", borderRadius: "16px 16px 16px 4px" }}>Lagi mikir…</div>}
         </div>
         <form onSubmit={(e) => { e.preventDefault(); send(input); }} style={{ display: "flex", gap: 9, padding: "12px 14px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tanya apa saja…" style={{ flex: 1, height: 42, borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", color: "#F7F7FA", fontSize: 13.5, padding: "0 16px", outline: "none", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }} />
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tanya apa saja…" style={{ flex: 1, height: 42, borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", color: "#F7F7FA", fontSize: 13.5, padding: "0 16px", outline: "none", fontFamily: "'Roboto', sans-serif" }} />
           <button type="submit" disabled={busy || !input.trim()} aria-label="Kirim" style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: busy || !input.trim() ? "rgba(255,110,26,0.35)" : "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", cursor: busy || !input.trim() ? "default" : "pointer", flexShrink: 0, boxShadow: "0 6px 16px rgba(255,110,26,0.35)" }}>
             <Send size={16} color="#fff" />
           </button>
@@ -2840,14 +2840,13 @@ export default function ShopeePartnerDashboard() {
 
   return (
     <div className="mp-root" style={{
-      fontFamily: "Trench Thin, Montserrat, sans-serif", fontWeight: 100, background: "#050303",
+      fontFamily: "Roboto, sans-serif", fontWeight: 100, background: "#050303",
       backgroundImage: "radial-gradient(1000px 620px at 108% -12%, rgba(255,110,26,0.34), rgba(255,110,26,0) 60%), radial-gradient(820px 560px at 112% 60%, rgba(255,84,12,0.20), rgba(255,84,12,0) 62%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)",
       color: "#F7F7FA", minHeight: "100vh", padding: 12, boxSizing: "border-box",
       display: "flex", flexDirection: "row",
     }}>
       <style>{`
-        @font-face { font-family: 'Trench Thin'; src: url('/fonts/TrenchThin.ttf') format('truetype'); font-weight: 100 700; font-display: swap; }
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
         @media (max-width: 1180px) {
           .mp-grid6 { grid-template-columns: repeat(3, 1fr) !important; }
         }
@@ -2929,7 +2928,7 @@ export default function ShopeePartnerDashboard() {
               <Store size={19} color="#fff" strokeWidth={2.3} />
             </div>
             <div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
-              <div style={{ color: "#fff", fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.15 }}>MP — Marketplace</div>
+              <div style={{ color: "#fff", fontFamily: "'Roboto', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.15 }}>MP — Marketplace</div>
               <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>Generos Official Store</div>
             </div>
           </div>
@@ -2965,7 +2964,7 @@ export default function ShopeePartnerDashboard() {
             padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button onClick={() => setAskOpen(true)} className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 15px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 12.5, cursor: "pointer", fontFamily: "'Trench Thin', 'Montserrat', sans-serif" }}>
+              <button onClick={() => setAskOpen(true)} className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 15px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 12.5, cursor: "pointer", fontFamily: "'Roboto', sans-serif" }}>
                 <Sparkles size={15} color="#FF8A3D" />
                 Tanya apa saja soal tokomu…
               </button>
@@ -2977,7 +2976,7 @@ export default function ShopeePartnerDashboard() {
               </button>
               <span className="mp-topbar-hide" style={{
                 fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "7px 13px",
-                borderRadius: 999, fontFamily: "'Trench Thin', 'Montserrat', sans-serif",
+                borderRadius: 999, fontFamily: "'Roboto', sans-serif",
               }}>{new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
               <div className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "5px 14px 5px 5px" }}>
                 <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>F</div>
@@ -2991,7 +2990,7 @@ export default function ShopeePartnerDashboard() {
 
           {/* section sapaan — field luas full-width */}
           <div className="mp-greet" style={{ padding: "18px 28px 0", flexShrink: 0 }}>
-            <div style={{ fontFamily: "'Trench Thin', 'Montserrat', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
+            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
             <div style={{ fontSize: 13, color: "#A89F92", marginTop: 6 }}>{title} — {subtitle}</div>
           </div>
 

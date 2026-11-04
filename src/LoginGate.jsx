@@ -29,7 +29,7 @@ export default function LoginGate({ children }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "#050303", backgroundImage: "radial-gradient(900px 620px at 108% -12%, rgba(255,110,26,0.32), rgba(255,110,26,0) 60%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)", fontFamily: "Trench Thin, Montserrat, sans-serif", fontWeight: 100, color: "#F7F7FA",
+      background: "#050303", backgroundImage: "radial-gradient(900px 620px at 108% -12%, rgba(255,110,26,0.32), rgba(255,110,26,0) 60%), radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)", fontFamily: "Roboto, sans-serif", fontWeight: 100, color: "#F7F7FA",
     }}>
       <form onSubmit={submit} style={{
         background: "linear-gradient(165deg, rgba(28,20,13,0.85), rgba(11,7,5,0.92))", borderRadius: 20, padding: "40px 36px", width: 340,
@@ -51,7 +51,7 @@ export default function LoginGate({ children }) {
           onChange={(e) => { setUsername(e.target.value); setErr(false); }}
           style={{
             width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10,
-            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Trench Thin, Montserrat, sans-serif",
+            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Roboto, sans-serif",
             marginBottom: 14, outline: "none",
           }}
         />
@@ -63,7 +63,7 @@ export default function LoginGate({ children }) {
           onChange={(e) => { setPassword(e.target.value); setErr(false); }}
           style={{
             width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 10,
-            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Trench Thin, Montserrat, sans-serif",
+            border: err ? "1px solid #E0574C" : "1px solid #292633", fontSize: 14, fontFamily: "Roboto, sans-serif",
             marginBottom: err ? 10 : 20, outline: "none",
           }}
         />
@@ -77,7 +77,7 @@ export default function LoginGate({ children }) {
         <button type="submit" style={{
           width: "100%", padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
           background: "#FF6B1A", color: "#fff", fontSize: 14, fontWeight: 700,
-          fontFamily: "Trench Thin, Montserrat, sans-serif", boxShadow: "0 4px 14px rgba(255,107,26,.35)",
+          fontFamily: "Roboto, sans-serif", boxShadow: "0 4px 14px rgba(255,107,26,.35)",
         }}>
           Masuk
         </button>
