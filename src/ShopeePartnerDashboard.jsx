@@ -2733,6 +2733,15 @@ const TITLES = {
 };
 
 
+// ─── Sapaan mengikuti jam lokal pengunjung ───────────────────────────────────
+function sapaanWaktu(d = new Date()) {
+  const h = d.getHours();
+  if (h >= 4 && h < 11) return "Selamat pagi";
+  if (h >= 11 && h < 15) return "Selamat siang";
+  if (h >= 15 && h < 19) return "Selamat sore";
+  return "Selamat malam";
+}
+
 // ─── Ask Anything — panel tanya AI (endpoint /api/ask di backend) ────────────
 function AskPanel({ open, onClose }) {
   const [msgs, setMsgs] = useState([]);
@@ -2788,7 +2797,7 @@ function AskPanel({ open, onClose }) {
         <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
           {msgs.length === 0 && (
             <div>
-              <div style={{ fontSize: 13.5, color: "#EDE7DC", lineHeight: 1.6 }}>Halo, Febi. Tanya apa aja soal toko — pesanan, iklan, penghasilan, affiliate. Aku jawab dari data dashboard ini.</div>
+              <div style={{ fontSize: 13.5, color: "#EDE7DC", lineHeight: 1.6 }}>Welcome, Febi. Tanya apa aja soal toko — pesanan, iklan, penghasilan, affiliate. Aku jawab dari data dashboard ini.</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 13 }}>
                 {suggestions.map((sug) => (
                   <button key={sug} onClick={() => send(sug)} style={{ fontSize: 12, color: "#FFD9A8", background: "rgba(255,110,26,0.08)", border: "1px solid rgba(255,138,61,0.30)", padding: "6px 11px", borderRadius: 999, cursor: "pointer" }}>{sug}</button>
@@ -2812,6 +2821,8 @@ function AskPanel({ open, onClose }) {
 
 export default function ShopeePartnerDashboard() {
   const [askOpen, setAskOpen] = useState(false);
+  const [, setMenitTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setMenitTick((m) => m + 1), 60000); return () => clearInterval(t); }, []);
   const [tab, setTab] = useState(() => {
     try {
       const saved = localStorage.getItem("mp_tab");
@@ -2951,7 +2962,7 @@ export default function ShopeePartnerDashboard() {
             padding: "12px 26px 4px", background: "transparent", backgroundImage: "radial-gradient(640px 220px at 88% -70px, rgba(255,110,26,0.22), rgba(255,110,26,0) 70%)", borderBottom: "none", flexShrink: 0,
           }}>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: "#F7F7FA", letterSpacing: "-0.01em" }}>Hello, Febi Adithia</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: "#F7F7FA", letterSpacing: "-0.01em" }}>{sapaanWaktu()}, Febi Adithia</div>
               <div style={{ fontSize: 12.5, color: "#A89F92", marginTop: 2 }}>{title} — {subtitle}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
