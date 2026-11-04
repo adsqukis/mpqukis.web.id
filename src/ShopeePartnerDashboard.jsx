@@ -2742,6 +2742,14 @@ function sapaanWaktu(d = new Date()) {
   return "Selamat Malam";
 }
 
+const ASK_HINTS = [
+  "Tanya apa saja soal tokomu…",
+  "Berapa pesanan kemarin?",
+  "ROAS iklan 7 hari terakhir gimana?",
+  "Penghasilan 30 hari terakhir berapa?",
+  "Komisi affiliate terakhir berapa?",
+];
+
 // ─── Ask Anything — panel tanya AI (endpoint /api/ask di backend) ────────────
 function AskPanel({ open, onClose }) {
   const [msgs, setMsgs] = useState([]);
@@ -2823,6 +2831,8 @@ export default function ShopeePartnerDashboard() {
   const [askOpen, setAskOpen] = useState(false);
   const [, setMenitTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setMenitTick((m) => m + 1), 60000); return () => clearInterval(t); }, []);
+  const [askIdx, setAskIdx] = useState(0);
+  useEffect(() => { const t = setInterval(() => setAskIdx((i) => (i + 1) % ASK_HINTS.length), 3500); return () => clearInterval(t); }, []);
   const [tab, setTab] = useState(() => {
     try {
       const saved = localStorage.getItem("mp_tab");
@@ -2970,13 +2980,6 @@ export default function ShopeePartnerDashboard() {
             padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button onClick={() => setAskOpen(true)} className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 15px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 12.5, cursor: "pointer", fontFamily: "'Roboto', sans-serif" }}>
-                <Sparkles size={15} color="#FF8A3D" />
-                Tanya apa saja soal tokomu…
-              </button>
-              <button aria-label="Cari" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <Search size={16} color="#D8D2C8" />
-              </button>
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Bell size={16} color="#D8D2C8" />
               </button>
@@ -2995,9 +2998,12 @@ export default function ShopeePartnerDashboard() {
           </div>
 
           {/* section sapaan — field luas full-width */}
-          <div className="mp-greet" style={{ padding: "18px 28px 0", flexShrink: 0 }}>
+          <div className="mp-greet" style={{ padding: "18px 28px 0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 31, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
-            <div style={{ fontSize: 13, color: "#A89F92", marginTop: 6 }}>{title} — {subtitle}</div>
+            <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 38, padding: "0 16px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
+              <Sparkles size={15} color="#FF8A3D" />
+              <span key={askIdx} style={{ display: "inline-block", animation: "mpFade .45s ease both" }}>{ASK_HINTS[askIdx]}</span>
+            </button>
           </div>
 
           <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
