@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
@@ -8,6 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, Circle, Search, Bell, Store,
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
+  Sparkles, Send, X,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2731,7 +2732,86 @@ const TITLES = {
   live: ["Live", "Statistik penjualan dari siaran langsung"],
 };
 
+
+// ─── Ask Anything — panel tanya AI (endpoint /api/ask di backend) ────────────
+function AskPanel({ open, onClose }) {
+  const [msgs, setMsgs] = useState([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const listRef = useRef(null);
+  useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [msgs, busy, open]);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+  const suggestions = ["Berapa pesanan kemarin?", "ROAS iklan 7 hari terakhir gimana?", "Penghasilan 30 hari terakhir berapa?", "Komisi affiliate terakhir berapa?"];
+  const send = async (raw) => {
+    const q = (raw || "").trim();
+    if (!q || busy) return;
+    setInput("");
+    setMsgs((m) => [...m, { role: "user", text: q }]);
+    setBusy(true);
+    try {
+      const r = await fetch(`https://api.qukis.id/api/ask?q=${encodeURIComponent(q)}`);
+      const d = await r.json().catch(() => null);
+      if (d && d.ok && d.answer) setMsgs((m) => [...m, { role: "ai", text: d.answer }]);
+      else if (d && d.error === "ai_not_configured") setMsgs((m) => [...m, { role: "sys", text: "Fitur tanya AI belum aktif — API key AI belum dipasang di server. Pasang key Gemini di slot GEMINI_API_KEY pada file .env di VPS, setelah itu fitur ini langsung nyala." }]);
+      else setMsgs((m) => [...m, { role: "sys", text: "AI lagi nggak bisa dihubungi. Coba lagi sebentar ya." }]);
+    } catch (e) {
+      setMsgs((m) => [...m, { role: "sys", text: "Koneksi ke server gagal. Cek koneksi lalu coba lagi." }]);
+    }
+    setBusy(false);
+  };
+  const bubble = (m, i) => {
+    if (m.role === "user") return <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", color: "#fff", fontSize: 13, lineHeight: 1.5, padding: "9px 13px", borderRadius: "16px 16px 4px 16px", whiteSpace: "pre-wrap" }}>{m.text}</div>;
+    if (m.role === "sys") return <div key={i} style={{ alignSelf: "stretch", background: "rgba(255,176,102,0.10)", border: "1px solid rgba(255,176,102,0.30)", color: "#FFD9A8", fontSize: 12.5, lineHeight: 1.55, padding: "10px 13px", borderRadius: 12 }}>{m.text}</div>;
+    return <div key={i} style={{ alignSelf: "flex-start", maxWidth: "88%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "#EDE7DC", fontSize: 13, lineHeight: 1.55, padding: "10px 13px", borderRadius: "16px 16px 16px 4px", whiteSpace: "pre-wrap" }}>{m.text}</div>;
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 80, pointerEvents: open ? "auto" : "none" }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", opacity: open ? 1 : 0, transition: "opacity .3s ease" }} />
+      <div style={{ position: "absolute", top: 0, right: 0, height: "100dvh", width: "min(400px, 94vw)", transform: open ? "translateX(0)" : "translateX(106%)", transition: "transform .38s cubic-bezier(.32,.72,.24,1)", background: "linear-gradient(180deg, rgba(26,16,9,0.94), rgba(13,9,6,0.97))", backdropFilter: "blur(18px)", borderLeft: "1px solid rgba(255,138,61,0.28)", boxShadow: "-24px 0 60px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "16px 18px 13px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(255,110,26,0.40)", flexShrink: 0 }}>
+            <Sparkles size={18} color="#fff" />
+          </div>
+          <div style={{ flex: 1, lineHeight: 1.2 }}>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15.5, color: "#F7F7FA" }}>Asisten Qukis</div>
+            <div style={{ fontSize: 11.5, color: "#A89F92" }}>Tanya apa saja soal tokomu</div>
+          </div>
+          <button onClick={onClose} aria-label="Tutup" style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <X size={15} color="#D8D2C8" />
+          </button>
+        </div>
+        <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {msgs.length === 0 && (
+            <div>
+              <div style={{ fontSize: 13.5, color: "#EDE7DC", lineHeight: 1.6 }}>Halo, Febi. Tanya apa aja soal toko — pesanan, iklan, penghasilan, affiliate. Aku jawab dari data dashboard ini.</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 13 }}>
+                {suggestions.map((sug) => (
+                  <button key={sug} onClick={() => send(sug)} style={{ fontSize: 12, color: "#FFD9A8", background: "rgba(255,110,26,0.08)", border: "1px solid rgba(255,138,61,0.30)", padding: "6px 11px", borderRadius: 999, cursor: "pointer" }}>{sug}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {msgs.map(bubble)}
+          {busy && <div className="mp-ask-pulse" style={{ alignSelf: "flex-start", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "#A89F92", fontSize: 12.5, padding: "9px 13px", borderRadius: "16px 16px 16px 4px" }}>Lagi mikir…</div>}
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }} style={{ display: "flex", gap: 9, padding: "12px 14px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tanya apa saja…" style={{ flex: 1, height: 42, borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", color: "#F7F7FA", fontSize: 13.5, padding: "0 16px", outline: "none", fontFamily: "'Inter', sans-serif" }} />
+          <button type="submit" disabled={busy || !input.trim()} aria-label="Kirim" style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: busy || !input.trim() ? "rgba(255,110,26,0.35)" : "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", cursor: busy || !input.trim() ? "default" : "pointer", flexShrink: 0, boxShadow: "0 6px 16px rgba(255,110,26,0.35)" }}>
+            <Send size={16} color="#fff" />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function ShopeePartnerDashboard() {
+  const [askOpen, setAskOpen] = useState(false);
   const [tab, setTab] = useState(() => {
     try {
       const saved = localStorage.getItem("mp_tab");
@@ -2790,6 +2870,8 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+        .mp-ask-pulse { animation: mpAskPulse 1.1s ease-in-out infinite; }
         .mp-content > * { animation: mpFade .35s ease both; }
         .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; }
         .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > * { animation: mpRise .5s ease both; }
@@ -2869,17 +2951,31 @@ export default function ShopeePartnerDashboard() {
             padding: "12px 26px 4px", background: "transparent", backgroundImage: "radial-gradient(640px 220px at 88% -70px, rgba(255,110,26,0.22), rgba(255,110,26,0) 70%)", borderBottom: "none", flexShrink: 0,
           }}>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 18, color: "#F7F7FA" }}>{title}</div>
-              <div style={{ fontSize: 12.5, color: "#A89F92", marginTop: 1 }}>{subtitle}</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: "#F7F7FA", letterSpacing: "-0.01em" }}>Hello, Febi Adithia</div>
+              <div style={{ fontSize: 12.5, color: "#A89F92", marginTop: 2 }}>{title} — {subtitle}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <Search size={17} color="#B0A696" />
-              <Bell size={17} color="#B0A696" />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button onClick={() => setAskOpen(true)} className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 15px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 12.5, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                <Sparkles size={15} color="#FF8A3D" />
+                Tanya apa saja soal tokomu…
+              </button>
+              <button aria-label="Cari" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <Search size={16} color="#D8D2C8" />
+              </button>
+              <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <Bell size={16} color="#D8D2C8" />
+              </button>
               <span className="mp-topbar-hide" style={{
-                fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "6px 12px", borderRadius: 999,
-                borderRadius: 8, fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "7px 13px",
+                borderRadius: 999, fontFamily: "'JetBrains Mono', monospace",
               }}>{new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>G</div>
+              <div className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "5px 14px 5px 5px" }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>F</div>
+                <div style={{ lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#F7F7FA" }}>Febi Adithia</div>
+                  <div style={{ fontSize: 11, color: "#A89F92" }}>Generos Official Store</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2893,6 +2989,7 @@ export default function ShopeePartnerDashboard() {
           </div>
         </div>
       </div>
+      <AskPanel open={askOpen} onClose={() => setAskOpen(false)} />
     </div>
   );
 }
