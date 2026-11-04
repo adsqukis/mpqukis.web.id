@@ -76,7 +76,7 @@ export default function LoginGate({ children }) {
 
         <button type="submit" style={{
           width: "100%", padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
-          background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", color: "#fff", fontSize: 14, fontWeight: 700,
+          background: "#FF6B1A", color: "#fff", fontSize: 14, fontWeight: 700,
           fontFamily: "Inter, sans-serif", boxShadow: "0 4px 14px rgba(255,107,26,.35)",
         }}>
           Masuk

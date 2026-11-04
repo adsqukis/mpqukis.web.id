@@ -155,10 +155,10 @@ function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accen
       onClick={onClick}
       title={onClick ? (active ? "Klik untuk sembunyikan dari Total" : "Klik untuk tampilkan lagi") : undefined}
       style={{
-        background: active ? `linear-gradient(135deg, ${accent} 0%, ${lightenHex(accent)} 100%)` : `linear-gradient(135deg, ${accent} 0%, ${lightenHex(accent)} 100%)`,
-        border: active ? "1px solid rgba(255,255,255,0.18)" : "1px dashed rgba(255,255,255,0.6)",
+        background: "#15131C",
+        border: active ? "1px solid #2C2833" : "1px dashed #3A3646",
         borderRadius: 14,
-        boxShadow: active ? `0 8px 20px ${accent}38` : "none",
+        boxShadow: active ? `inset 0 1px 0 ${accent}66, 0 4px 14px rgba(0,0,0,0.4)` : "none",
         padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, minWidth: 0,
         opacity: active ? 1 : 0.45,
         cursor: onClick ? "pointer" : "default",
@@ -167,13 +167,13 @@ function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accen
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.88)", fontFamily: "Inter, sans-serif" }}>{label}</span>
+        <span style={{ fontSize: 12.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>{label}</span>
         <div style={{
-          width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,0.22)",
+          width: 34, height: 34, borderRadius: 10, background: `${accent}22`,
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-          border: "1px solid rgba(255,255,255,0.25)",
+          border: `1px solid ${accent}45`,
         }}>
-          <Icon size={16} color="#fff" strokeWidth={2.3} />
+          <Icon size={16} color={accent} strokeWidth={2.3} />
         </div>
       </div>
       <div style={{
@@ -183,7 +183,7 @@ function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accen
       {delta && (
         <div style={{
           display: "flex", alignItems: "center", gap: 3, fontSize: 12,
-          color: "rgba(255,255,255,0.92)", fontFamily: "Inter, sans-serif", fontWeight: 500,
+          color: "#C4C4CC", fontFamily: "Inter, sans-serif", fontWeight: 500,
         }}>
           {deltaPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
           {delta}
@@ -621,7 +621,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
             return (
               <button key={f.key} onClick={() => quickApply(f.key)} style={{
                 textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer",
-                background: active ? "linear-gradient(135deg,#FF6B1A,#FF8A3D)" : "transparent",
+                background: active ? "#FF6B1A" : "transparent",
                 color: active ? "#fff" : "#C4C4CC", fontSize: 12, fontWeight: active ? 700 : 500,
                 fontFamily: "Inter, sans-serif",
               }}>{f.label}</button>
@@ -2171,7 +2171,7 @@ function TabAds() {
           return (
             <button key={g.key} onClick={() => setProdTab(g.key)} style={{
               padding: "10px 22px", borderRadius: 12, cursor: "pointer",
-              background: on ? "linear-gradient(135deg,#FF6B1A,#FF8A3D)" : "#35323F",
+              background: on ? "#FF6B1A" : "#35323F",
               color: on ? "#fff" : "#9D9DA7", fontSize: 14, fontWeight: 700,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 14px rgba(124,92,191,.4)" : "0 1px 2px rgba(0,0,0,.05)",
               border: on ? "none" : "1px solid #292633",
@@ -2226,7 +2226,7 @@ function TabAds() {
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
               padding: "8px 18px", borderRadius: 10, cursor: "pointer",
-              background: on ? "linear-gradient(135deg,#FF6B1A,#FF8A3D)" : "#35323F",
+              background: on ? "#FF6B1A" : "#35323F",
               color: on ? "#fff" : "#9D9DA7", fontSize: 13, fontWeight: 600,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(255,107,26,.35)" : "0 1px 2px rgba(0,0,0,.05)",
               border: on ? "none" : "1px solid #292633",
@@ -2290,17 +2290,17 @@ function TabAds() {
               onClick={() => clickable && setSeriesMetric(c.metric)}
               title={clickable ? "Klik untuk lihat tren harian metrik ini" : "Metrik ini tidak tersedia untuk Iklan Toko+"}
               style={{
-                background: `linear-gradient(135deg, ${c.accent} 0%, ${lightenHex(c.accent)} 100%)`,
+                background: "#15131C",
                 borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10,
-                minWidth: 0, boxShadow: `0 8px 20px ${c.accent}30`,
-                border: "1px solid rgba(255,255,255,0.18)",
+                minWidth: 0, boxShadow: `inset 0 1px 0 ${c.accent}66, 0 4px 14px rgba(0,0,0,0.4)`,
+                border: "1px solid #2C2833",
                 cursor: clickable ? "pointer" : "default",
                 opacity: busy ? 0.75 : 1, transition: "opacity .2s ease",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, color: "rgba(255,255,255,0.9)", fontFamily: "Inter, sans-serif" }}>{c.label}</span>
+                  <span style={{ fontSize: 12.5, color: "#9898A2", fontFamily: "Inter, sans-serif" }}>{c.label}</span>
                   {isEstimate && (
                     <span style={{
                       fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(0,0,0,0.28)",
@@ -2309,11 +2309,11 @@ function TabAds() {
                   )}
                 </div>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,0.22)",
+                  width: 34, height: 34, borderRadius: 10, background: `${c.accent}22`,
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  border: "1px solid rgba(255,255,255,0.25)",
+                  border: `1px solid ${c.accent}45`,
                 }}>
-                  <Icon size={16} color="#fff" strokeWidth={2.2} />
+                  <Icon size={16} color={c.accent} strokeWidth={2.2} />
                 </div>
               </div>
               <div style={{
@@ -2322,7 +2322,7 @@ function TabAds() {
               }}>
                 {busy ? "…" : ok ? m.formatted_value : "—"}
               </div>
-              <div style={{ fontSize: 11, fontFamily: "Inter, sans-serif", color: ok ? "rgba(255,255,255,0.8)" : "#FFE0E0" }}>
+              <div style={{ fontSize: 11, fontFamily: "Inter, sans-serif", color: ok ? "#9898A2" : "#FF9A8A" }}>
                 {ok
                   ? (m.updated_at ? `Update ${m.updated_at.slice(11, 16)} WIB` : "Realtime")
                   : (m && m.error ? m.error : "Gagal dimuat")}
@@ -2747,7 +2747,7 @@ export default function ShopeePartnerDashboard() {
 
   return (
     <div className="mp-root" style={{
-      fontFamily: "Inter, sans-serif", background: "#0B0A0F", color: "#F7F7FA", minHeight: "100vh",
+      fontFamily: "Inter, sans-serif", background: "#0B0A0F", backgroundImage: "radial-gradient(ellipse 90% 480px at 70% -80px, rgba(255,107,26,0.13), rgba(255,107,26,0) 70%)", color: "#F7F7FA", minHeight: "100vh",
       display: "flex", flexDirection: "row",
     }}>
       <style>{`
@@ -2835,10 +2835,10 @@ export default function ShopeePartnerDashboard() {
           </div>
 
           {!collapsed && (
-            <div className="mp-statusbox" style={{ marginTop: "auto", padding: "13px 14px", borderRadius: 12, background: "linear-gradient(160deg,#FF8A3D,#FF8A3D)" }}>
-              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.85)", fontWeight: 600, letterSpacing: ".4px", textTransform: "uppercase", marginBottom: 3 }}>Status toko</div>
-              <div style={{ fontSize: 14, color: "#fff", fontWeight: 700 }}>Mall</div>
-              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.75)", marginTop: 1 }}>Generos Official Store</div>
+            <div className="mp-statusbox" style={{ marginTop: "auto", padding: "13px 14px", borderRadius: 12, background: "#17141F", border: "1px solid #4A2E17", boxShadow: "inset 0 1px 0 rgba(255,107,26,0.35)" }}>
+              <div style={{ fontSize: 10.5, color: "#9898A2", fontWeight: 600, letterSpacing: ".4px", textTransform: "uppercase", marginBottom: 3 }}>Status toko</div>
+              <div style={{ fontSize: 14, color: "#FF8A3D", fontWeight: 700 }}>Mall</div>
+              <div style={{ fontSize: 10.5, color: "#9898A2", marginTop: 1 }}>Generos Official Store</div>
             </div>
           )}
         </div>
