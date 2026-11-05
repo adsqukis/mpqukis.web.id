@@ -3144,7 +3144,8 @@ export default function ShopeePartnerDashboard() {
             </div>
           </div>
 
-          {/* section sapaan — field luas full-width */}
+          {/* section sapaan — hanya tampil di menu Overview */}
+          {tab === "overview" && (
           <div className="mp-greet" style={{ padding: "30px 28px 16px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
             <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -3157,6 +3158,7 @@ export default function ShopeePartnerDashboard() {
               </span>
             </button>
           </div>
+          )}
 
           <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
             {tab === "overview" && <TabOverview />}
