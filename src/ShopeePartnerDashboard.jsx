@@ -2905,6 +2905,14 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes mpRollIn { from { opacity: 0; transform: translateY(105%); } to { opacity: 1; transform: translateY(0); } }
         @keyframes mpRollOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-105%); } }
+        .mp-navitem { transition: transform .25s ease, background .25s ease, box-shadow .25s ease, filter .25s ease; }
+        .mp-navitem:not(.mp-pill):hover { background: rgba(255,138,61,0.10) !important; border-color: rgba(255,150,80,0.35) !important; transform: translateX(4px); box-shadow: inset 0 1px 0 rgba(255,170,100,0.18), 0 6px 16px rgba(0,0,0,0.25); }
+        .mp-navitem > svg { transition: transform .28s cubic-bezier(.34,1.56,.64,1), filter .25s ease; }
+        .mp-navitem:hover > svg { transform: scale(1.18) rotate(-4deg); filter: drop-shadow(0 0 6px rgba(255,150,60,0.65)); }
+        .mp-navitem > span { transition: color .25s ease; }
+        .mp-navitem:not(.mp-pill):hover > span { color: #FFD9A8 !important; }
+        .mp-pill:hover { transform: scale(1.02); filter: brightness(1.08); }
+        @media (prefers-reduced-motion: reduce) { .mp-navitem, .mp-navitem > svg, .mp-navitem > span { transition: none !important; } .mp-navitem:hover, .mp-pill:hover { transform: none; } }
         @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
@@ -2969,7 +2977,7 @@ export default function ShopeePartnerDashboard() {
               const active = tab === m.key;
               const Icon = m.icon;
               return (
-                <button key={m.key} className={active ? "mp-pill" : undefined} onClick={() => changeTab(m.key)} title={m.label} style={{
+                <button key={m.key} className={active ? "mp-pill mp-navitem" : "mp-navitem"} onClick={() => changeTab(m.key)} title={m.label} style={{
                   display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", width: "100%",
                   borderRadius: 12, border: active ? "1px solid rgba(255,190,130,0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
                   background: active ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
