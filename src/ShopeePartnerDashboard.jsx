@@ -2833,6 +2833,16 @@ export default function ShopeePartnerDashboard() {
   useEffect(() => { const t = setInterval(() => setMenitTick((m) => m + 1), 60000); return () => clearInterval(t); }, []);
   const [askIdx, setAskIdx] = useState(0);
   useEffect(() => { const t = setInterval(() => setAskIdx((i) => (i + 1) % ASK_HINTS.length), 3500); return () => clearInterval(t); }, []);
+  const askPrevRef = useRef(0);
+  const [askLeaving, setAskLeaving] = useState(null);
+  useEffect(() => {
+    const prev = askPrevRef.current;
+    if (prev === askIdx) return;
+    askPrevRef.current = askIdx;
+    setAskLeaving(prev);
+    const t = setTimeout(() => setAskLeaving(null), 700);
+    return () => clearTimeout(t);
+  }, [askIdx]);
   const [tab, setTab] = useState(() => {
     try {
       const saved = localStorage.getItem("mp_tab");
@@ -2893,6 +2903,8 @@ export default function ShopeePartnerDashboard() {
         .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.05) !important; }
         @keyframes mpRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes mpMorphIn { from { opacity: 0; filter: blur(7px); transform: translateY(4px) scale(.965); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
+        @keyframes mpMorphOut { from { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } to { opacity: 0; filter: blur(7px); transform: translateY(-4px) scale(1.035); } }
         @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
@@ -3009,7 +3021,12 @@ export default function ShopeePartnerDashboard() {
             <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
             <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
               <Sparkles size={15} color="#FF8A3D" />
-              <span key={askIdx} style={{ display: "inline-block", animation: "mpFade .45s ease both" }}>{ASK_HINTS[askIdx]}</span>
+              <span style={{ position: "relative", display: "inline-block" }}>
+                {askLeaving !== null && (
+                  <span key={"out-" + askLeaving + "-" + askIdx} style={{ position: "absolute", left: 0, top: 0, whiteSpace: "nowrap", pointerEvents: "none", animation: "mpMorphOut .65s ease both" }}>{ASK_HINTS[askLeaving]}</span>
+                )}
+                <span key={"in-" + askIdx} style={{ display: "inline-block", animation: "mpMorphIn .65s ease both" }}>{ASK_HINTS[askIdx]}</span>
+              </span>
             </button>
           </div>
 
