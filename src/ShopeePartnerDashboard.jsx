@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, Circle, Search, Bell, Store,
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
-  Sparkles, Send, X,
+  Sparkles, Send, X, ChevronDown, Check,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,10 +232,119 @@ function InfoNote({ children }) {
 // ---------- tab content ----------
 
 // ========== OVERVIEW — gabungan pesanan + iklan + penghasilan ==========
+
+// ─── Filter bar Overview: dropdown Akun + filter Periode ────────────────────
+const OV_AKUN_OPTIONS = [
+  { key: "semua", label: "Semua Akun", sub: null, disabled: false },
+  { key: "generos-shopee", label: "Generos Official Store", sub: "Shopee · Mall", disabled: false },
+  { key: "surgabotani", label: "surgabotani", sub: "Shopee · Star", disabled: true },
+  { key: "generos-lazada", label: "Generos Official Store", sub: "Lazada", disabled: true },
+];
+const OV_PERIODE_PRESETS = [
+  { key: "hari-ini", label: "Hari Ini" },
+  { key: "kemarin", label: "Kemarin" },
+  { key: "7-hari", label: "7 Hari Terakhir" },
+  { key: "30-hari", label: "30 Hari Terakhir" },
+  { key: "bulan-ini", label: "Bulan Ini" },
+];
+const ovRangeForPreset = (key) => {
+  const today = isoDaysAgo(0);
+  if (key === "kemarin") return { from: isoDaysAgo(1), to: isoDaysAgo(1) };
+  if (key === "7-hari") return { from: isoDaysAgo(6), to: today };
+  if (key === "30-hari") return { from: isoDaysAgo(29), to: today };
+  if (key === "bulan-ini") return { from: today.slice(0, 8) + "01", to: today };
+  return { from: today, to: today };
+};
+const ovSpanDays = (from, to) => Math.max(1, Math.round((new Date(to + "T00:00:00") - new Date(from + "T00:00:00")) / 86400000) + 1);
+const fmtDMY = (iso) => { const p = String(iso || "").split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso; };
+
+function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
+  const [open, setOpen] = useState(null);
+  const [cf, setCf] = useState(periode.from);
+  const [ct, setCt] = useState(periode.to);
+  useEffect(() => { if (open === "periode") { setCf(periode.from); setCt(periode.to); } }, [open ]);
+  const akunOpt = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
+  const pillStyle = (isOpen) => ({
+    display: "flex", alignItems: "center", gap: 9, height: 42, padding: "0 15px", borderRadius: 999, cursor: "pointer",
+    background: "linear-gradient(180deg, rgba(38,24,13,0.72), rgba(18,11,6,0.82))",
+    border: isOpen ? "1px solid rgba(255,150,80,0.55)" : "1px solid rgba(255,255,255,0.13)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 22px rgba(0,0,0,0.35)", backdropFilter: "blur(14px)",
+  });
+  const panelStyle = {
+    position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 264, zIndex: 45, padding: 6,
+    background: "linear-gradient(180deg, rgba(30,19,10,0.97), rgba(15,9,5,0.98))",
+    border: "1px solid rgba(255,150,80,0.30)", borderRadius: 14, boxShadow: "0 24px 50px rgba(0,0,0,0.55)",
+  };
+  const rowStyle = (sel, dis) => ({
+    display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9,
+    background: sel ? "rgba(255,110,26,0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
+  });
+  const chev = (which) => <ChevronDown size={14} color="#FFB37A" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
+  return (
+    <div style={{ position: "relative", zIndex: 60, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      {open && <div onClick={() => setOpen(null)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />}
+      <div style={{ position: "relative" }}>
+        <button onClick={() => setOpen(open === "akun" ? null : "akun")} style={pillStyle(open === "akun")}>
+          <span style={{ fontSize: 11, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Akun</span>
+          <span style={{ fontSize: 13, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{akunOpt.label}</span>
+          {chev("akun")}
+        </button>
+        {open === "akun" && (
+          <div style={panelStyle}>
+            {OV_AKUN_OPTIONS.map((o) => (
+              <button key={o.key} disabled={o.disabled} onClick={() => { setAkun(o.key); setOpen(null); }} style={rowStyle(akun === o.key, o.disabled)}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13, color: "#F7F7FA", fontWeight: akun === o.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{o.label}</span>
+                  {o.sub && <span style={{ display: "block", fontSize: 11, color: "#A89F92", marginTop: 1 }}>{o.sub}</span>}
+                </span>
+                {o.disabled && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "#FFB37A", background: "rgba(255,110,26,0.14)", border: "1px solid rgba(255,150,80,0.35)", padding: "2px 7px", borderRadius: 999, textTransform: "uppercase" }}>Segera</span>}
+                {!o.disabled && akun === o.key && <Check size={15} color="#FF8A3D" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ position: "relative" }}>
+        <button onClick={() => setOpen(open === "periode" ? null : "periode")} style={pillStyle(open === "periode")}>
+          <span style={{ fontSize: 11, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Periode</span>
+          <span style={{ fontSize: 13, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{fmtDMY(periode.from)} - {fmtDMY(periode.to)}</span>
+          {chev("periode")}
+        </button>
+        {open === "periode" && (
+          <div style={{ ...panelStyle, minWidth: 252 }}>
+            {OV_PERIODE_PRESETS.map((p) => (
+              <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
+                <span style={{ flex: 1, fontSize: 13, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
+                {periode.key === p.key && <Check size={15} color="#FF8A3D" />}
+              </button>
+            ))}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 5, padding: "10px 11px 7px" }}>
+              <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>Custom</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <input type="date" value={cf} max={ct || undefined} onChange={(e) => setCf(e.target.value)} style={{ flex: 1, minWidth: 0, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.13)", color: "#F7F7FA", fontSize: 12, padding: "0 8px", colorScheme: "dark", fontFamily: "'Roboto', sans-serif" }} />
+                <span style={{ color: "#A89F92", fontSize: 12 }}>–</span>
+                <input type="date" value={ct} min={cf || undefined} onChange={(e) => setCt(e.target.value)} style={{ flex: 1, minWidth: 0, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.13)", color: "#F7F7FA", fontSize: 12, padding: "0 8px", colorScheme: "dark", fontFamily: "'Roboto', sans-serif" }} />
+              </div>
+              <button disabled={!cf || !ct || cf > ct} onClick={() => { if (cf && ct && cf <= ct) { onPeriode({ key: "custom", from: cf, to: ct }); setOpen(null); } }} style={{ width: "100%", height: 34, marginTop: 9, borderRadius: 9, border: "none", background: "linear-gradient(90deg,#FF6B1A,#FF9E45)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: !cf || !ct || cf > ct ? "not-allowed" : "pointer", opacity: !cf || !ct || cf > ct ? 0.45 : 1, fontFamily: "'Roboto', sans-serif" }}>Terapkan</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#8A7E6E", fontFamily: "Inter, sans-serif" }}>Kartu Pesanan & Customer tetap snapshot D-1</span>
+    </div>
+  );
+}
+
 function TabOverview() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [akun, setAkun] = useState("semua");
+  const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
+  const spanDays = Math.min(ovSpanDays(periode.from, periode.to), 92);
+  const adsDays = spanDays > 7 ? 30 : 7;
+  const incomeTitle = spanDays === 1 ? (periode.key === "kemarin" ? "Penghasilan — kemarin" : "Penghasilan — hari ini") : `Penghasilan — ${spanDays} hari`;
+  const incomeStatLabel = spanDays === 1 ? (periode.key === "kemarin" ? "Payout kemarin" : "Payout hari ini") : `Payout masuk ${spanDays} hari`;
 
   useEffect(() => {
     let active = true;
@@ -243,8 +352,8 @@ function TabOverview() {
       if (showLoading) setLoading(true);
       return Promise.all([
         fetch("https://api.qukis.id/api/export/summary").then((r) => r.json()).catch(() => null),
-        fetch("https://api.qukis.id/api/ads/overview?days=7").then((r) => r.json()).catch(() => null),
-        fetch("https://api.qukis.id/api/income/summary?days=30").then((r) => r.json()).catch(() => null),
+        fetch(`https://api.qukis.id/api/ads/overview?days=${adsDays}`).then((r) => r.json()).catch(() => null),
+        fetch(`https://api.qukis.id/api/income/summary?days=${spanDays}`).then((r) => r.json()).catch(() => null),
       ])
         .then(([exp, ads, inc]) => {
           if (!active) return;
@@ -263,18 +372,28 @@ function TabOverview() {
     // Auto-refresh 60 detik: angka iklan ikut update tanpa reload halaman (backend cache 60s + warmer).
     const iv = setInterval(() => load(false), 60000);
     return () => { active = false; clearInterval(iv); };
-  }, []);
+  }, [adsDays, spanDays]);
+
+  const filterBar = <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />;
 
   if (loading) {
     return (
-      <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
-        Memuat overview toko…
-      </div>
+      <>
+        {filterBar}
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
+          Memuat overview toko…
+        </div>
+      </>
     );
   }
 
   if (error) {
-    return <InfoNote>Data overview gagal dimuat: {error}</InfoNote>;
+    return (
+      <>
+        {filterBar}
+        <InfoNote>Data overview gagal dimuat: {error}</InfoNote>
+      </>
+    );
   }
 
   const exp = data.exp;
@@ -294,7 +413,7 @@ function TabOverview() {
 
   // Metrik iklan (kolom Budget | Klik | Closing + Rasio); Box diisi item terjual kalau ada
   const adsMetrics = [
-    { label: "Budget (7 hari)", value: at.expense != null ? fmtRp(at.expense) : "—", accent: "#FF6B1A" },
+    { label: `Budget (${adsDays} hari)`, value: at.expense != null ? fmtRp(at.expense) : "—", accent: "#FF6B1A" },
     { label: "Klik", value: at.clicks != null ? String(at.clicks) : "—", accent: "#FFA940" },
     { label: "Closing (order)", value: at.broad_order != null ? String(at.broad_order) : "—", accent: "#1E9E6F" },
     { label: "ROAS", value: at.broad_roas != null ? at.broad_roas + "x" : "—", accent: "#B8860B" },
@@ -302,12 +421,13 @@ function TabOverview() {
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {filterBar}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
         {/* ===== Baris ringkasan utama ===== */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
           <StatCard icon={Package} label="Pesanan (D-1)" value={totalOrder ? String(totalOrder) : "—"} accent="#D04C8F" />
-          <StatCard icon={Megaphone} label="Belanja iklan 7 hari" value={at.expense != null ? fmtRpShort(at.expense) : "—"} accent="#FF8A3D" />
-          <StatCard icon={Wallet} label="Payout masuk 30 hari" value={incomeTotal ? fmtRpShort(incomeTotal) : "—"} accent="#FFB25E" />
+          <StatCard icon={Megaphone} label={`Belanja iklan ${adsDays} hari`} value={at.expense != null ? fmtRpShort(at.expense) : "—"} accent="#FF8A3D" />
+          <StatCard icon={Wallet} label={incomeStatLabel} value={incomeTotal ? fmtRpShort(incomeTotal) : "—"} accent="#FFB25E" />
           <StatCard icon={Users2} label="Customer (D-1)" value={custAll ? String(custAll) : "—"} accent="#F09040" />
         </div>
 
@@ -340,7 +460,7 @@ function TabOverview() {
           </Card>
 
           {/* ===== Iklan ===== */}
-          <Card title="Iklan — 7 hari" subtitle={ads ? `${campaignInfo.count || 0} campaign terdeteksi` : "Belum ada data iklan"}>
+          <Card title={`Iklan — ${adsDays} hari`} subtitle={ads ? `${campaignInfo.count || 0} campaign terdeteksi${adsDays !== spanDays ? ` · rentang iklan dibulatkan ke ${adsDays} hari (tersedia 7/30 hari)` : ""}` : "Belum ada data iklan"}>
             {ads ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
@@ -363,7 +483,7 @@ function TabOverview() {
         </div>
 
         {/* ===== Penghasilan ===== */}
-        <Card title="Penghasilan — 30 hari" subtitle="Sumber: payment.get_escrow_list (uang bersih diterima)">
+        <Card title={incomeTitle} subtitle="Sumber: payment.get_escrow_list (uang bersih diterima)">
           {inc ? (
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
               <div>
@@ -379,7 +499,7 @@ function TabOverview() {
                 <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>{fmtRpShort(incomeAvg)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
-                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>Payout per hari (30 hari terakhir)</div>
+                <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginBottom: 6 }}>Payout per hari ({fmtDMY(periode.from)} – {fmtDMY(periode.to)})</div>
                 <ResponsiveContainer width="100%" height={90}>
                   <AreaChart data={incomeDaily.map((x) => ({ date: x.date, v: x.total }))}>
                     <defs>
