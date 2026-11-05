@@ -3129,23 +3129,23 @@ export default function ShopeePartnerDashboard() {
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
       <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14, position: "relative", zIndex: 1 }}>
         {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
-        <div className={"mp-sidebar" + (collapsed ? " mp-sb-hidden" : "")} style={{ width: collapsed ? 0 : 224, background: "linear-gradient(180deg, rgba(30,20,12,0.42), rgba(12,7,4,0.56))", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)", padding: collapsed ? "18px 0" : "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: collapsed ? "1px solid transparent" : "1px solid rgba(255,255,255,0.16)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 32px rgba(255,140,50,0.05)", position: "relative", overflow: "hidden", opacity: collapsed ? 0 : 1, transition: "width .45s cubic-bezier(.4,0,.2,1), padding .45s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .3s ease" }}>
-          <svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
+        <div className={"mp-sidebar" + (collapsed ? " mp-sb-hidden" : "")} style={{ width: collapsed ? 64 : 224, background: "linear-gradient(180deg, rgba(30,20,12,0.42), rgba(12,7,4,0.56))", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)", padding: collapsed ? "18px 0" : "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 32px rgba(255,140,50,0.05)", position: "relative", overflow: "hidden", transition: "width .45s cubic-bezier(.4,0,.2,1), padding .45s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .3s ease" }}>
+          {!collapsed && (<svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(255,110,26,0.10)" />
             <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke="#FF7A1A" strokeWidth="1.6" />
             <path d="M0,110 C44,82 78,134 116,108 C152,84 186,120 224,98" fill="none" stroke="#FF9E45" strokeWidth="1" opacity="0.6" />
             <path d="M0,124 C48,100 84,142 120,120 C156,100 188,130 224,112" fill="none" stroke="#FF6B1A" strokeWidth="0.8" opacity="0.4" />
-          </svg>
-          <div className="mp-sb-brand" style={{ display: "flex", alignItems: "center", gap: 11, padding: "2px 4px 16px", position: "relative" }}>
+          </svg>)}
+          <div className="mp-sb-brand" onClick={collapsed ? toggleSidebar : undefined} title={collapsed ? "Tampilkan sidebar" : undefined} style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 11, padding: collapsed ? "2px 0 16px" : "2px 4px 16px", position: "relative", cursor: collapsed ? "pointer" : "default" }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(255,122,26,0.5)" }}>
               <Store size={19} color="#fff" strokeWidth={2.3} />
             </div>
-            <div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
+            {!collapsed && (<div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
               <div style={{ color: "#fff", fontFamily: "'Roboto', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.15 }}>MP — Marketplace</div>
               <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>Generos Official Store</div>
-            </div>
+            </div>)}
           </div>
-          <div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
+          {!collapsed && (<div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
             {MENU.map((m) => {
               const active = tab === m.key;
               const Icon = m.icon;
@@ -3161,14 +3161,14 @@ export default function ShopeePartnerDashboard() {
                 </button>
               );
             })}
-          </div>
-          <div className="mp-usercard" style={{ position: "relative", marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
+          </div>)}
+          {!collapsed && (<div className="mp-usercard" style={{ position: "relative", marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
             <div style={{ lineHeight: 1.2, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", whiteSpace: "nowrap" }}>Febi Adithia</div>
               <div style={{ fontSize: 11, color: "#B0A696", whiteSpace: "nowrap" }}>Generos Official Store</div>
             </div>
-          </div>
+          </div>)}
         </div>
 
         {/* main */}
