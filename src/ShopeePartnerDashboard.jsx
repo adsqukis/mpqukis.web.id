@@ -3145,23 +3145,23 @@ export default function ShopeePartnerDashboard() {
               <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>Generos Official Store</div>
             </div>)}
           </div>
-          {!collapsed && (<div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
+          <div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: collapsed ? 6 : 4, position: "relative", alignItems: collapsed ? "center" : "stretch", marginTop: collapsed ? 2 : 0 }}>
             {MENU.map((m) => {
               const active = tab === m.key;
               const Icon = m.icon;
               return (
                 <button key={m.key} className={active ? "mp-pill mp-navitem" : "mp-navitem"} onClick={() => changeTab(m.key)} title={m.label} style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", width: "100%",
+                  display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? 0 : "11px 14px", width: collapsed ? 40 : "100%", height: collapsed ? 40 : undefined, flexShrink: 0,
                   borderRadius: 12, border: active ? "1px solid rgba(255,190,130,0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
                   background: active ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
                   boxShadow: active ? "0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
                 }}>
                   <Icon size={18} color={active ? "#fff" : "#8A94A6"} strokeWidth={2.2} />
-                  <span style={{ fontSize: 13.5, color: active ? "#fff" : "#B8AEA0", fontWeight: active ? 600 : 500, fontFamily: "Inter, sans-serif" }}>{m.label}</span>
+                  {!collapsed && (<span style={{ fontSize: 13.5, color: active ? "#fff" : "#B8AEA0", fontWeight: active ? 600 : 500, fontFamily: "Inter, sans-serif" }}>{m.label}</span>)}
                 </button>
               );
             })}
-          </div>)}
+          </div>
           {!collapsed && (<div className="mp-usercard" style={{ position: "relative", marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
             <div style={{ lineHeight: 1.2, minWidth: 0 }}>
