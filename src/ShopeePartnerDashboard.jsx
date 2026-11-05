@@ -265,7 +265,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
   useEffect(() => { if (open === "periode") { setCf(periode.from); setCt(periode.to); } }, [open ]);
   const akunOpt = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
   const pillStyle = (isOpen) => ({
-    display: "flex", alignItems: "center", gap: 9, height: 42, padding: "0 15px", borderRadius: 999, cursor: "pointer",
+    display: "flex", alignItems: "center", gap: 7, height: 34, padding: "0 12px", borderRadius: 999, cursor: "pointer",
     background: "linear-gradient(180deg, rgba(38,24,13,0.72), rgba(18,11,6,0.82))",
     border: isOpen ? "1px solid rgba(255,150,80,0.55)" : "1px solid rgba(255,255,255,0.13)",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 22px rgba(0,0,0,0.35)", backdropFilter: "blur(14px)",
@@ -279,14 +279,14 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
     display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9,
     background: sel ? "rgba(255,110,26,0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
   });
-  const chev = (which) => <ChevronDown size={14} color="#FFB37A" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
+  const chev = (which) => <ChevronDown size={13} color="#FFB37A" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
   return (
     <div style={{ position: "relative", zIndex: 60, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
       {open && <div onClick={() => setOpen(null)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />}
       <div style={{ position: "relative" }}>
         <button onClick={() => setOpen(open === "akun" ? null : "akun")} style={pillStyle(open === "akun")}>
-          <span style={{ fontSize: 11, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Akun</span>
-          <span style={{ fontSize: 13, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{akunOpt.label}</span>
+          <span style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Akun</span>
+          <span style={{ fontSize: 12.5, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{akunOpt.label}</span>
           {chev("akun")}
         </button>
         {open === "akun" && (
@@ -306,8 +306,8 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
       </div>
       <div style={{ position: "relative" }}>
         <button onClick={() => setOpen(open === "periode" ? null : "periode")} style={pillStyle(open === "periode")}>
-          <span style={{ fontSize: 11, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Periode</span>
-          <span style={{ fontSize: 13, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{fmtDMY(periode.from)} - {fmtDMY(periode.to)}</span>
+          <span style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Periode</span>
+          <span style={{ fontSize: 12.5, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{fmtDMY(periode.from)} - {fmtDMY(periode.to)}</span>
           {chev("periode")}
         </button>
         {open === "periode" && (
@@ -2994,7 +2994,7 @@ export default function ShopeePartnerDashboard() {
           .mp-menu button { padding: 8px 10px !important; white-space: nowrap !important; }
           .mp-toggle { display: none !important; }
           .mp-sidebar.mp-sb-hidden { display: none !important; }
-          .mp-statusbox { display: none !important; }
+          .mp-statusbox, .mp-usercard { display: none !important; }
           .mp-body { flex-direction: column !important; height: auto !important; }
           .mp-main { height: auto !important; }
           .mp-content { overflow: visible !important; }
@@ -3102,6 +3102,13 @@ export default function ShopeePartnerDashboard() {
             <div style={{ fontSize: 14, color: "#FF8A3D", fontWeight: 700 }}>Mall</div>
             <div style={{ fontSize: 10.5, color: "#B0A696", marginTop: 1 }}>Generos Official Store</div>
           </div>
+          <div className="mp-usercard" style={{ position: "relative", marginTop: 10, display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
+            <div style={{ lineHeight: 1.2, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", whiteSpace: "nowrap" }}>Febi Adithia</div>
+              <div style={{ fontSize: 11, color: "#B0A696", whiteSpace: "nowrap" }}>Generos Official Store</div>
+            </div>
+          </div>
         </div>
 
         {/* main */}
@@ -3125,13 +3132,6 @@ export default function ShopeePartnerDashboard() {
                 fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "7px 13px",
                 borderRadius: 999, fontFamily: "'Roboto', sans-serif",
               }}>{new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
-              <div className="mp-topbar-hide" style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 999, padding: "5px 14px 5px 5px" }}>
-                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>F</div>
-                <div style={{ lineHeight: 1.15 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#F7F7FA" }}>Febi Adithia</div>
-                  <div style={{ fontSize: 11, color: "#A89F92" }}>Generos Official Store</div>
-                </div>
-              </div>
             </div>
           </div>
 
