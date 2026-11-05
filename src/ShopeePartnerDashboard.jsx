@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, Circle, Search, Bell, Store,
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
-  Sparkles, Send, X, ChevronDown, Check,
+  Sparkles, Send, X, ChevronDown, ChevronLeft, Check,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,43 +243,108 @@ const OV_AKUN_OPTIONS = [
 const OV_PERIODE_PRESETS = [
   { key: "hari-ini", label: "Hari Ini" },
   { key: "kemarin", label: "Kemarin" },
-  { key: "7-hari", label: "7 Hari Terakhir" },
-  { key: "30-hari", label: "30 Hari Terakhir" },
-  { key: "bulan-ini", label: "Bulan Ini" },
+  { key: "1-minggu", label: "1 Minggu Terakhir" },
+  { key: "1-bulan", label: "1 Bulan Terakhir" },
+  { key: "3-bulan", label: "3 Bulan Terakhir" },
 ];
 const ovRangeForPreset = (key) => {
   const today = isoDaysAgo(0);
   if (key === "kemarin") return { from: isoDaysAgo(1), to: isoDaysAgo(1) };
-  if (key === "7-hari") return { from: isoDaysAgo(6), to: today };
-  if (key === "30-hari") return { from: isoDaysAgo(29), to: today };
-  if (key === "bulan-ini") return { from: today.slice(0, 8) + "01", to: today };
+  if (key === "1-minggu") return { from: isoDaysAgo(6), to: today };
+  if (key === "1-bulan") return { from: isoDaysAgo(29), to: today };
+  if (key === "3-bulan") return { from: isoDaysAgo(89), to: today };
   return { from: today, to: today };
 };
 const ovSpanDays = (from, to) => Math.max(1, Math.round((new Date(to + "T00:00:00") - new Date(from + "T00:00:00")) / 86400000) + 1);
 const fmtDMY = (iso) => { const p = String(iso || "").split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso; };
+const OV_MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const OV_DOW = ["M", "S", "S", "R", "K", "J", "S"];
+const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addMonthsYM = (y, m, delta) => { const t = m + delta; return { y: y + Math.floor(t / 12), m: ((t % 12) + 12) % 12 }; };
+
+function OvCalendar({ y, m, from, to, onPick, onNav }) {
+  const startDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7) cells.push(null);
+  const todayIso = toISODate(new Date());
+  const isoOf = (d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const navBtn = { width: 24, height: 24, borderRadius: 7, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
+  return (
+    <div style={{ width: 226, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+        <button style={navBtn} onClick={() => onNav(-12)} aria-label="Tahun sebelumnya"><ChevronsLeft size={13} color="#B0A696" /></button>
+        <button style={navBtn} onClick={() => onNav(-1)} aria-label="Bulan sebelumnya"><ChevronLeft size={13} color="#B0A696" /></button>
+        <div style={{ flex: 1, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#F7F7FA", fontFamily: "'Roboto', sans-serif" }}>{OV_MONTHS_ID[m]} {y}</div>
+        <button style={navBtn} onClick={() => onNav(1)} aria-label="Bulan berikutnya"><ChevronRight size={13} color="#B0A696" /></button>
+        <button style={navBtn} onClick={() => onNav(12)} aria-label="Tahun berikutnya"><ChevronsRight size={13} color="#B0A696" /></button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 3 }}>
+        {OV_DOW.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 700, color: "#8A7E6E", fontFamily: "Inter, sans-serif" }}>{d}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const iso = isoOf(d);
+          const isEnd = iso === from || iso === to;
+          const inRange = from && to && iso > from && iso < to;
+          const isToday = iso === todayIso;
+          return (
+            <button key={i} onClick={() => onPick(iso)} style={{
+              height: 30, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12,
+              fontFamily: "'Roboto', sans-serif", fontWeight: isEnd ? 700 : isToday ? 700 : 400,
+              background: isEnd ? "linear-gradient(135deg,#FF6B1A,#FF9E45)" : inRange ? "rgba(255,110,26,0.16)" : "transparent",
+              color: isEnd ? "#fff" : isToday ? "#FF8A3D" : "#D8D2C8",
+            }}>{d}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
   const [open, setOpen] = useState(null);
-  const [cf, setCf] = useState(periode.from);
-  const [ct, setCt] = useState(periode.to);
-  useEffect(() => { if (open === "periode") { setCf(periode.from); setCt(periode.to); } }, [open ]);
+  const [selFrom, setSelFrom] = useState(periode.from);
+  const [selTo, setSelTo] = useState(periode.to);
+  const [base, setBase] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  useEffect(() => {
+    if (open === "periode") {
+      setSelFrom(periode.from);
+      setSelTo(periode.to);
+      const p = String(periode.from || "").split("-");
+      if (p.length === 3) setBase({ y: Number(p[0]), m: Number(p[1]) - 1 });
+    }
+  }, [open ]);
+  const pickDay = (iso) => {
+    if (!selFrom || (selFrom && selTo)) { setSelFrom(iso); setSelTo(null); }
+    else if (iso >= selFrom) setSelTo(iso);
+    else setSelFrom(iso);
+  };
+  const nav = (delta) => setBase((b) => addMonthsYM(b.y, b.m, delta));
   const akunOpt = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
   const pillStyle = (isOpen) => ({
     display: "flex", alignItems: "center", gap: 7, height: 32, padding: "0 13px", borderRadius: 999, cursor: "pointer",
-    background: "rgba(255,255,255,0.05)",
-    border: isOpen ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.09)",
-    boxShadow: "none",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
+    border: isOpen ? "1px solid rgba(255,255,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 20px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)",
   });
   const panelStyle = {
     position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 264, zIndex: 45, padding: 6,
-    background: "linear-gradient(180deg, rgba(30,19,10,0.97), rgba(15,9,5,0.98))",
-    border: "1px solid rgba(255,150,80,0.30)", borderRadius: 14, boxShadow: "0 24px 50px rgba(0,0,0,0.55)",
+    background: "linear-gradient(180deg, rgba(34,23,14,0.88), rgba(16,10,6,0.92))",
+    backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)",
+    border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 24px 50px rgba(0,0,0,0.55)",
   };
   const rowStyle = (sel, dis) => ({
     display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9,
     background: sel ? "rgba(255,110,26,0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
   });
   const chev = (which) => <ChevronDown size={13} color="#A89F92" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
+  const calA = base;
+  const calB = addMonthsYM(base.y, base.m, 1);
   return (
     <div style={{ position: "relative", zIndex: 60, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
       {open && <div onClick={() => setOpen(null)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />}
@@ -311,21 +376,27 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
           {chev("periode")}
         </button>
         {open === "periode" && (
-          <div style={{ ...panelStyle, minWidth: 252, left: "auto", right: 0 }}>
-            {OV_PERIODE_PRESETS.map((p) => (
-              <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
-                <span style={{ flex: 1, fontSize: 13, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
-                {periode.key === p.key && <Check size={15} color="#FF8A3D" />}
-              </button>
-            ))}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 5, padding: "10px 11px 7px" }}>
-              <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>Custom</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <input type="date" value={cf} max={ct || undefined} onChange={(e) => setCf(e.target.value)} style={{ flex: 1, minWidth: 0, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.13)", color: "#F7F7FA", fontSize: 12, padding: "0 8px", colorScheme: "dark", fontFamily: "'Roboto', sans-serif" }} />
-                <span style={{ color: "#A89F92", fontSize: 12 }}>–</span>
-                <input type="date" value={ct} min={cf || undefined} onChange={(e) => setCt(e.target.value)} style={{ flex: 1, minWidth: 0, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.13)", color: "#F7F7FA", fontSize: 12, padding: "0 8px", colorScheme: "dark", fontFamily: "'Roboto', sans-serif" }} />
+          <div style={{ ...panelStyle, left: "auto", right: 0, width: 706, maxWidth: "94vw", padding: 0, display: "flex", overflow: "hidden" }}>
+            <div style={{ width: 160, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.08)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              {OV_PERIODE_PRESETS.map((p) => (
+                <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
+                  <span style={{ flex: 1, fontSize: 12.5, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
+                  {periode.key === p.key && <Check size={14} color="#FF8A3D" />}
+                </button>
+              ))}
+              <div style={{ marginTop: "auto", fontSize: 10.5, color: "#8A7E6E", lineHeight: 1.5, padding: "6px 11px 2px", fontFamily: "Inter, sans-serif" }}>Atau pilih rentang sendiri di kalender: klik tanggal mulai, lalu tanggal selesai.</div>
+            </div>
+            <div style={{ flex: 1, padding: "13px 15px 13px", minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                <OvCalendar y={calA.y} m={calA.m} from={selFrom} to={selTo} onPick={pickDay} onNav={nav} />
+                <OvCalendar y={calB.y} m={calB.m} from={selFrom} to={selTo} onPick={pickDay} onNav={nav} />
               </div>
-              <button disabled={!cf || !ct || cf > ct} onClick={() => { if (cf && ct && cf <= ct) { onPeriode({ key: "custom", from: cf, to: ct }); setOpen(null); } }} style={{ width: "100%", height: 34, marginTop: 9, borderRadius: 9, border: "none", background: "linear-gradient(90deg,#FF6B1A,#FF9E45)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: !cf || !ct || cf > ct ? "not-allowed" : "pointer", opacity: !cf || !ct || cf > ct ? 0.45 : 1, fontFamily: "'Roboto', sans-serif" }}>Terapkan</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 13, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 11 }}>
+                <span style={{ flex: 1, fontSize: 12, color: "#B0A696", fontFamily: "'Roboto', sans-serif" }}>
+                  {selFrom ? <>{fmtDMY(selFrom)}{selTo ? ` – ${fmtDMY(selTo)}` : " – pilih tanggal selesai…"}</> : "Belum ada tanggal dipilih"}
+                </span>
+                <button disabled={!selFrom || !selTo} onClick={() => { if (selFrom && selTo) { onPeriode({ key: "custom", from: selFrom, to: selTo }); setOpen(null); } }} style={{ height: 34, padding: "0 20px", borderRadius: 9, border: "none", background: "linear-gradient(90deg,#FF6B1A,#FF9E45)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: !selFrom || !selTo ? "not-allowed" : "pointer", opacity: !selFrom || !selTo ? 0.45 : 1, fontFamily: "'Roboto', sans-serif" }}>Terapkan</button>
+              </div>
             </div>
           </div>
         )}
