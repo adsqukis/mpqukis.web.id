@@ -311,7 +311,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
           {chev("periode")}
         </button>
         {open === "periode" && (
-          <div style={{ ...panelStyle, minWidth: 252 }}>
+          <div style={{ ...panelStyle, minWidth: 252, left: "auto", right: 0 }}>
             {OV_PERIODE_PRESETS.map((p) => (
               <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
                 <span style={{ flex: 1, fontSize: 13, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
@@ -3118,16 +3118,14 @@ export default function ShopeePartnerDashboard() {
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
             padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap" }}>
             <button onClick={toggleSidebar} aria-label={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} title={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
               {collapsed ? <ChevronsRight size={16} color="#D8D2C8" /> : <ChevronsLeft size={16} color="#D8D2C8" />}
             </button>
-            {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />}
-            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                 <Bell size={16} color="#D8D2C8" />
               </button>
+              {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />}
               <span className="mp-topbar-hide" style={{
                 fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "7px 13px",
                 borderRadius: 999, fontFamily: "'Roboto', sans-serif",
