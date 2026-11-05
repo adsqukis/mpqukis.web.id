@@ -261,9 +261,9 @@ function InfoNote({ children }) {
 
 // ─── Filter bar Overview: dropdown Akun + filter Periode ────────────────────
 const OV_AKUN_OPTIONS = [
-  { key: "semua", label: "Semua Akun", sub: null, disabled: false },
-  { key: "generos-shopee", label: "Generos Official Store", sub: "Shopee · Mall", disabled: false },
-  { key: "surgabotani", label: "surgabotani", sub: "Shopee · Star", disabled: true },
+  { key: "semua", label: "Semua Akun", sub: null, disabled: false, toko: "mall" },
+  { key: "generos-shopee", label: "Generos Official Store", sub: "Shopee · Mall", disabled: false, toko: "mall" },
+  { key: "surgabotani", label: "Surga Botani", sub: "Shopee · Star", disabled: false, toko: "star" },
   { key: "generos-lazada", label: "Generos Official Store", sub: "Lazada", disabled: true },
 ];
 const OV_PERIODE_PRESETS = [
@@ -331,40 +331,7 @@ function OvCalendar({ y, m, from, to, onPick, onNav }) {
   );
 }
 
-// ─── Pemilih toko: segmented glass pill "Official | Surgabotani" ────────────
-// Selalu tampil di header (semua tab). Pilihan tersimpan di localStorage
-// "mp_toko" oleh komponen induk; fetch wrapper membaca kunci yang sama.
-function TokoSwitch({ toko, onGanti }) {
-  const opsi = [
-    { key: "mall", label: "Official" },
-    { key: "star", label: "Surgabotani" },
-  ];
-  return (
-    <div role="group" aria-label="Pilih toko" style={{
-      display: "flex", alignItems: "center", gap: 2, height: 32, padding: 2, borderRadius: 999, flexShrink: 0,
-      background: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
-      border: "1px solid rgba(255,255,255,0.14)",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 20px rgba(0,0,0,0.28)",
-      backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)",
-    }}>
-      {opsi.map((o) => {
-        const aktif = toko === o.key;
-        return (
-          <button key={o.key} onClick={() => onGanti(o.key)} aria-pressed={aktif} title={o.key === "mall" ? "Generos Official Store" : "Surga Botani"} style={{
-            height: 26, padding: "0 12px", borderRadius: 999, border: "none", cursor: "pointer",
-            fontFamily: "'Roboto', sans-serif", fontSize: 12, fontWeight: aktif ? 700 : 500, whiteSpace: "nowrap",
-            color: aktif ? "#fff" : "#B8AEA0",
-            background: aktif ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
-            boxShadow: aktif ? "0 6px 16px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
-            transition: "all .2s ease",
-          }}>{o.label}</button>
-        );
-      })}
-    </div>
-  );
-}
-
-function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
+function OvFilterBar({ akun, setAkun, periode, onPeriode, gantiToko }) {
   const [open, setOpen] = useState(null);
   const [selFrom, setSelFrom] = useState(periode.from);
   const [selTo, setSelTo] = useState(periode.to);
@@ -416,7 +383,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
         {open === "akun" && (
           <div style={panelStyle}>
             {OV_AKUN_OPTIONS.map((o) => (
-              <button key={o.key} disabled={o.disabled} onClick={() => { setAkun(o.key); setOpen(null); }} style={rowStyle(akun === o.key, o.disabled)}>
+              <button key={o.key} disabled={o.disabled} onClick={() => { setAkun(o.key); if (o.toko && gantiToko) gantiToko(o.toko); setOpen(null); }} style={rowStyle(akun === o.key, o.disabled)}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 13, color: "#F7F7FA", fontWeight: akun === o.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{o.label}</span>
                   {o.sub && <span style={{ display: "block", fontSize: 11, color: "#A89F92", marginTop: 1 }}>{o.sub}</span>}
@@ -3088,7 +3055,7 @@ export default function ShopeePartnerDashboard() {
     setTab(key);
     try { localStorage.setItem("mp_tab", key); } catch { /* ignore */ }
   };
-  const [akun, setAkun] = useState("semua");
+  const [akun, setAkun] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "surgabotani" : "semua"; } catch { return "semua"; } });
   const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
   // ── Toko aktif: "mall" = Generos Official Store, "star" = Surga Botani ──
   const [toko, setToko] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; } catch { return "mall"; } });
@@ -3257,11 +3224,10 @@ export default function ShopeePartnerDashboard() {
               {collapsed ? <ChevronsRight size={16} color="#D8D2C8" /> : <ChevronsLeft size={16} color="#D8D2C8" />}
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <TokoSwitch toko={toko} onGanti={gantiToko} />
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                 <Bell size={16} color="#D8D2C8" />
               </button>
-              {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />}
+              {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} gantiToko={gantiToko} />}
             </div>
           </div>
 
