@@ -3212,6 +3212,7 @@ export default function ShopeePartnerDashboard() {
 
   const tema = STORE_THEMES[akun] || STORE_THEMES.semua;
   ACCENT.c1 = tema.c1; ACCENT.c2 = tema.c2; ACCENT.ct = tema.ct; ACCENT.rgb = tema.rgb;
+  const akunOptAktif = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
 
   return (
     <div className="mp-root" style={{
@@ -3374,7 +3375,10 @@ export default function ShopeePartnerDashboard() {
           {/* section sapaan — hanya tampil di menu Overview */}
           {tab === "overview" && (
           <div className="mp-greet" style={{ padding: "30px 28px 16px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "var(--ac2)", fontWeight: 600 }}>Febi Adithia</span></div>
+            <div>
+              <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 14, color: "#B0A696", letterSpacing: "0.02em", marginBottom: 3 }}>Selamat Datang</div>
+              <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 33, color: "#F7F7FA", letterSpacing: "0.01em", lineHeight: 1.1 }}><span style={{ color: "var(--ac2)", fontWeight: 600 }}>{akunOptAktif.label}</span></div>
+            </div>
             <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(var(--acRGB), 0.10)", border: "1px solid rgba(var(--acRGB), 0.38)", color: "var(--acT)", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
               <Sparkles size={15} color={ACCENT.c2} />
               <span style={{ position: "relative", display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
