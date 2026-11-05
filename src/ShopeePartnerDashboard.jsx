@@ -330,17 +330,14 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
           </div>
         )}
       </div>
-      <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#8A7E6E", fontFamily: "Inter, sans-serif" }}>Kartu Pesanan & Customer tetap snapshot D-1</span>
     </div>
   );
 }
 
-function TabOverview() {
+function TabOverview({ periode }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [akun, setAkun] = useState("semua");
-  const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
   const spanDays = Math.min(ovSpanDays(periode.from, periode.to), 92);
   const adsDays = spanDays > 7 ? 30 : 7;
   const incomeTitle = spanDays === 1 ? (periode.key === "kemarin" ? "Penghasilan — kemarin" : "Penghasilan — hari ini") : `Penghasilan — ${spanDays} hari`;
@@ -374,26 +371,16 @@ function TabOverview() {
     return () => { active = false; clearInterval(iv); };
   }, [adsDays, spanDays]);
 
-  const filterBar = <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />;
-
   if (loading) {
     return (
-      <>
-        {filterBar}
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
-          Memuat overview toko…
-        </div>
-      </>
+      <div style={{ padding: "40px 0", textAlign: "center", color: "#A89F92", fontSize: 13.5, fontFamily: "Inter, sans-serif" }}>
+        Memuat overview toko…
+      </div>
     );
   }
 
   if (error) {
-    return (
-      <>
-        {filterBar}
-        <InfoNote>Data overview gagal dimuat: {error}</InfoNote>
-      </>
-    );
+    return <InfoNote>Data overview gagal dimuat: {error}</InfoNote>;
   }
 
   const exp = data.exp;
@@ -421,8 +408,7 @@ function TabOverview() {
 
   return (
     <>
-      {filterBar}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* ===== Baris ringkasan utama ===== */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
           <StatCard icon={Package} label="Pesanan (D-1)" value={totalOrder ? String(totalOrder) : "—"} accent="#D04C8F" />
@@ -2978,6 +2964,8 @@ export default function ShopeePartnerDashboard() {
     setTab(key);
     try { localStorage.setItem("mp_tab", key); } catch { /* ignore */ }
   };
+  const [akun, setAkun] = useState("semua");
+  const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
 
   return (
     <div className="mp-root" style={{
@@ -3120,12 +3108,15 @@ export default function ShopeePartnerDashboard() {
         <div className="mp-main" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100vh" }}>
           {/* header — cluster utilitas jadi header bar tersendiri */}
           <div className="mp-header" style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
             padding: "13px 26px", background: "transparent", borderBottom: "none", flexShrink: 0,
           }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flexWrap: "wrap" }}>
             <button onClick={toggleSidebar} aria-label={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} title={collapsed ? "Tampilkan sidebar" : "Sembunyikan sidebar"} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
               {collapsed ? <ChevronsRight size={16} color="#D8D2C8" /> : <ChevronsLeft size={16} color="#D8D2C8" />}
             </button>
+            {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Bell size={16} color="#D8D2C8" />
@@ -3161,7 +3152,7 @@ export default function ShopeePartnerDashboard() {
           )}
 
           <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
-            {tab === "overview" && <TabOverview />}
+            {tab === "overview" && <TabOverview periode={periode} />}
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}
             {tab === "ads" && <TabAds />}
