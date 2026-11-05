@@ -3212,6 +3212,7 @@ export default function ShopeePartnerDashboard() {
   const tema = STORE_THEMES[akun] || STORE_THEMES.semua;
   ACCENT.c1 = tema.c1; ACCENT.c2 = tema.c2; ACCENT.ct = tema.ct; ACCENT.rgb = tema.rgb;
   const akunOptAktif = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
+  const namaSapaan = akun === "generos-lazada" ? "Generos Store ID" : akunOptAktif.label;
 
   return (
     <div className="mp-root" style={{
@@ -3277,6 +3278,8 @@ export default function ShopeePartnerDashboard() {
         .mp-ask-pulse { animation: mpAskPulse 1.1s ease-in-out infinite; }
         .mp-content > * { animation: mpFade .35s ease both; }
         .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; background: linear-gradient(165deg, rgba(255,255,255,0.085), rgba(255,255,255,0.02)) !important; backdrop-filter: blur(18px) saturate(155%); -webkit-backdrop-filter: blur(18px) saturate(155%); }
+        .mp-sapaan-nama { background-image: linear-gradient(90deg, var(--ac1), var(--ac2), var(--acT), var(--ac1)); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: mpGradSapaan 6s linear infinite; }
+        @keyframes mpGradSapaan { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
         .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > * { animation: mpRise .5s ease both; }
         .mp-grid2 > *:nth-child(2), .mp-grid3 > *:nth-child(2), .mp-grid4 > *:nth-child(2), .mp-grid6 > *:nth-child(2) { animation-delay: .05s; }
         .mp-grid2 > *:nth-child(3), .mp-grid3 > *:nth-child(3), .mp-grid4 > *:nth-child(3), .mp-grid6 > *:nth-child(3) { animation-delay: .10s; }
@@ -3292,7 +3295,7 @@ export default function ShopeePartnerDashboard() {
         .mp-menu button:hover { background: rgba(255,255,255,0.05); }
         .mp-pill { animation: mpGlow 2.6s ease-in-out infinite; }
         .mp-wave { animation: mpWave 6s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave, .mp-glowblob { animation: none !important; transition: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave, .mp-glowblob, .mp-sapaan-nama { animation: none !important; transition: none !important; } }
         .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(var(--acRGB), 0.45)); }
         .recharts-area-area { filter: drop-shadow(0 0 12px rgba(var(--acRGB), 0.18)); }
         .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(var(--acRGB), 0.30)); }
@@ -3376,7 +3379,7 @@ export default function ShopeePartnerDashboard() {
           <div className="mp-greet" style={{ padding: "30px 28px 16px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 14, color: "#B0A696", letterSpacing: "0.02em", marginBottom: 3 }}>Selamat Datang</div>
-              <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 33, color: "#F7F7FA", letterSpacing: "0.01em", lineHeight: 1.1 }}><span style={{ color: "var(--ac2)", fontWeight: 600 }}>{akunOptAktif.label}</span></div>
+              <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 33, color: "#F7F7FA", letterSpacing: "0.01em", lineHeight: 1.1 }}><span className="mp-sapaan-nama" style={{ fontWeight: 600 }}>{namaSapaan}</span></div>
             </div>
             <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(var(--acRGB), 0.10)", border: "1px solid rgba(var(--acRGB), 0.38)", color: "var(--acT)", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
               <Sparkles size={15} color={ACCENT.c2} />
