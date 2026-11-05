@@ -3059,7 +3059,7 @@ export default function ShopeePartnerDashboard() {
           .mp-menu button { padding: 8px 10px !important; white-space: nowrap !important; }
           .mp-toggle { display: none !important; }
           .mp-sidebar.mp-sb-hidden { display: none !important; }
-          .mp-statusbox, .mp-usercard { display: none !important; }
+          .mp-usercard { display: none !important; }
           .mp-body { flex-direction: column !important; height: auto !important; }
           .mp-main { height: auto !important; }
           .mp-content { overflow: visible !important; }
@@ -3162,12 +3162,7 @@ export default function ShopeePartnerDashboard() {
               );
             })}
           </div>
-          <div className="mp-statusbox" style={{ marginTop: "auto", position: "relative", padding: "13px 14px", borderRadius: 14, background: "rgba(255,120,40,0.07)", border: "1px solid rgba(255,140,60,0.28)", boxShadow: "inset 0 1px 0 rgba(255,150,80,0.25)" }}>
-            <div style={{ fontSize: 10.5, color: "#B0A696", fontWeight: 600, letterSpacing: ".4px", textTransform: "uppercase", marginBottom: 3 }}>Status toko</div>
-            <div style={{ fontSize: 14, color: "#FF8A3D", fontWeight: 700 }}>Mall</div>
-            <div style={{ fontSize: 10.5, color: "#B0A696", marginTop: 1 }}>Generos Official Store</div>
-          </div>
-          <div className="mp-usercard" style={{ position: "relative", marginTop: 10, display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
+          <div className="mp-usercard" style={{ position: "relative", marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
             <div style={{ lineHeight: 1.2, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", whiteSpace: "nowrap" }}>Febi Adithia</div>
