@@ -271,18 +271,18 @@ function OvCalendar({ y, m, from, to, onPick, onNav }) {
   while (cells.length % 7) cells.push(null);
   const todayIso = toISODate(new Date());
   const isoOf = (d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  const navBtn = { width: 24, height: 24, borderRadius: 7, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
+  const navBtn = { width: 21, height: 21, borderRadius: 6, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
   return (
-    <div style={{ width: 226, flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-        <button style={navBtn} onClick={() => onNav(-12)} aria-label="Tahun sebelumnya"><ChevronsLeft size={13} color="#B0A696" /></button>
-        <button style={navBtn} onClick={() => onNav(-1)} aria-label="Bulan sebelumnya"><ChevronLeft size={13} color="#B0A696" /></button>
-        <div style={{ flex: 1, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#F7F7FA", fontFamily: "'Roboto', sans-serif" }}>{OV_MONTHS_ID[m]} {y}</div>
-        <button style={navBtn} onClick={() => onNav(1)} aria-label="Bulan berikutnya"><ChevronRight size={13} color="#B0A696" /></button>
-        <button style={navBtn} onClick={() => onNav(12)} aria-label="Tahun berikutnya"><ChevronsRight size={13} color="#B0A696" /></button>
+    <div style={{ width: 190, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 6 }}>
+        <button style={navBtn} onClick={() => onNav(-12)} aria-label="Tahun sebelumnya"><ChevronsLeft size={11} color="#B0A696" /></button>
+        <button style={navBtn} onClick={() => onNav(-1)} aria-label="Bulan sebelumnya"><ChevronLeft size={11} color="#B0A696" /></button>
+        <div style={{ flex: 1, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#F7F7FA", fontFamily: "'Roboto', sans-serif" }}>{OV_MONTHS_ID[m]} {y}</div>
+        <button style={navBtn} onClick={() => onNav(1)} aria-label="Bulan berikutnya"><ChevronRight size={11} color="#B0A696" /></button>
+        <button style={navBtn} onClick={() => onNav(12)} aria-label="Tahun berikutnya"><ChevronsRight size={11} color="#B0A696" /></button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 3 }}>
-        {OV_DOW.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 700, color: "#8A7E6E", fontFamily: "Inter, sans-serif" }}>{d}</div>)}
+        {OV_DOW.map((d, i) => <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 700, color: "#8A7E6E", fontFamily: "Inter, sans-serif" }}>{d}</div>)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
         {cells.map((d, i) => {
@@ -293,7 +293,7 @@ function OvCalendar({ y, m, from, to, onPick, onNav }) {
           const isToday = iso === todayIso;
           return (
             <button key={i} onClick={() => onPick(iso)} style={{
-              height: 30, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12,
+              height: 25, borderRadius: 7, border: "none", cursor: "pointer", fontSize: 11.5,
               fontFamily: "'Roboto', sans-serif", fontWeight: isEnd ? 700 : isToday ? 700 : 400,
               background: isEnd ? "linear-gradient(135deg,#FF6B1A,#FF9E45)" : inRange ? "rgba(255,110,26,0.16)" : "transparent",
               color: isEnd ? "#fff" : isToday ? "#FF8A3D" : "#D8D2C8",
@@ -320,7 +320,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
   }, [open ]);
   const pickDay = (iso) => {
     if (!selFrom || (selFrom && selTo)) { setSelFrom(iso); setSelTo(null); }
-    else if (iso >= selFrom) setSelTo(iso);
+    else if (iso >= selFrom) { onPeriode({ key: "custom", from: selFrom, to: iso }); setOpen(null); }
     else setSelFrom(iso);
   };
   const nav = (delta) => setBase((b) => addMonthsYM(b.y, b.m, delta));
@@ -376,8 +376,8 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
           {chev("periode")}
         </button>
         {open === "periode" && (
-          <div style={{ ...panelStyle, left: "auto", right: 0, width: 706, maxWidth: "94vw", padding: 0, display: "flex", overflow: "hidden" }}>
-            <div style={{ width: 160, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.08)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ ...panelStyle, left: "auto", right: 0, width: 588, maxWidth: "94vw", padding: 0, display: "flex", overflow: "hidden" }}>
+            <div style={{ width: 136, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.08)", padding: 6, display: "flex", flexDirection: "column", gap: 2 }}>
               {OV_PERIODE_PRESETS.map((p) => (
                 <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
                   <span style={{ flex: 1, fontSize: 12.5, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
@@ -386,16 +386,10 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
               ))}
               <div style={{ marginTop: "auto", fontSize: 10.5, color: "#8A7E6E", lineHeight: 1.5, padding: "6px 11px 2px", fontFamily: "Inter, sans-serif" }}>Atau pilih rentang sendiri di kalender: klik tanggal mulai, lalu tanggal selesai.</div>
             </div>
-            <div style={{ flex: 1, padding: "13px 15px 13px", minWidth: 0 }}>
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, padding: "10px 12px", minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <OvCalendar y={calA.y} m={calA.m} from={selFrom} to={selTo} onPick={pickDay} onNav={nav} />
                 <OvCalendar y={calB.y} m={calB.m} from={selFrom} to={selTo} onPick={pickDay} onNav={nav} />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 13, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 11 }}>
-                <span style={{ flex: 1, fontSize: 12, color: "#B0A696", fontFamily: "'Roboto', sans-serif" }}>
-                  {selFrom ? <>{fmtDMY(selFrom)}{selTo ? ` – ${fmtDMY(selTo)}` : " – pilih tanggal selesai…"}</> : "Belum ada tanggal dipilih"}
-                </span>
-                <button disabled={!selFrom || !selTo} onClick={() => { if (selFrom && selTo) { onPeriode({ key: "custom", from: selFrom, to: selTo }); setOpen(null); } }} style={{ height: 34, padding: "0 20px", borderRadius: 9, border: "none", background: "linear-gradient(90deg,#FF6B1A,#FF9E45)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: !selFrom || !selTo ? "not-allowed" : "pointer", opacity: !selFrom || !selTo ? 0.45 : 1, fontFamily: "'Roboto', sans-serif" }}>Terapkan</button>
               </div>
             </div>
           </div>
