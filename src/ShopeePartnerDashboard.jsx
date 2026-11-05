@@ -265,10 +265,10 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
   useEffect(() => { if (open === "periode") { setCf(periode.from); setCt(periode.to); } }, [open ]);
   const akunOpt = OV_AKUN_OPTIONS.find((o) => o.key === akun) || OV_AKUN_OPTIONS[0];
   const pillStyle = (isOpen) => ({
-    display: "flex", alignItems: "center", gap: 7, height: 34, padding: "0 12px", borderRadius: 999, cursor: "pointer",
-    background: "linear-gradient(180deg, rgba(38,24,13,0.72), rgba(18,11,6,0.82))",
-    border: isOpen ? "1px solid rgba(255,150,80,0.55)" : "1px solid rgba(255,255,255,0.13)",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 22px rgba(0,0,0,0.35)", backdropFilter: "blur(14px)",
+    display: "flex", alignItems: "center", gap: 7, height: 32, padding: "0 13px", borderRadius: 999, cursor: "pointer",
+    background: "rgba(255,255,255,0.05)",
+    border: isOpen ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.09)",
+    boxShadow: "none",
   });
   const panelStyle = {
     position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 264, zIndex: 45, padding: 6,
@@ -279,14 +279,14 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
     display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9,
     background: sel ? "rgba(255,110,26,0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
   });
-  const chev = (which) => <ChevronDown size={13} color="#FFB37A" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
+  const chev = (which) => <ChevronDown size={13} color="#A89F92" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
   return (
     <div style={{ position: "relative", zIndex: 60, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
       {open && <div onClick={() => setOpen(null)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />}
       <div style={{ position: "relative" }}>
         <button onClick={() => setOpen(open === "akun" ? null : "akun")} style={pillStyle(open === "akun")}>
           <span style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Akun</span>
-          <span style={{ fontSize: 12.5, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{akunOpt.label}</span>
+          <span style={{ fontSize: 12.5, color: "#EDE7DC", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{akunOpt.label}</span>
           {chev("akun")}
         </button>
         {open === "akun" && (
@@ -307,7 +307,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode }) {
       <div style={{ position: "relative" }}>
         <button onClick={() => setOpen(open === "periode" ? null : "periode")} style={pillStyle(open === "periode")}>
           <span style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>Periode</span>
-          <span style={{ fontSize: 12.5, color: "#F7F7FA", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{fmtDMY(periode.from)} - {fmtDMY(periode.to)}</span>
+          <span style={{ fontSize: 12.5, color: "#EDE7DC", fontWeight: 600, fontFamily: "'Roboto', sans-serif" }}>{fmtDMY(periode.from)} - {fmtDMY(periode.to)}</span>
           {chev("periode")}
         </button>
         {open === "periode" && (
@@ -3126,10 +3126,6 @@ export default function ShopeePartnerDashboard() {
                 <Bell size={16} color="#D8D2C8" />
               </button>
               {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} />}
-              <span className="mp-topbar-hide" style={{
-                fontSize: 12, color: "#D8D2C8", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", padding: "7px 13px",
-                borderRadius: 999, fontFamily: "'Roboto', sans-serif",
-              }}>{new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
             </div>
           </div>
 
