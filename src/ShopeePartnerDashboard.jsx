@@ -265,7 +265,7 @@ const OV_AKUN_OPTIONS = [
   { key: "semua", label: "Semua Akun", sub: null, disabled: false, toko: "mall" },
   { key: "generos-shopee", label: "Generos Official Store", sub: "Shopee · Mall", disabled: false, toko: "mall" },
   { key: "surgabotani", label: "Surga Botani", sub: "Shopee · Star", disabled: false, toko: "star" },
-  { key: "generos-lazada", label: "Generos Official Store", sub: "Lazada", disabled: true },
+  { key: "generos-lazada", label: "Generos Official Store", sub: "Lazada", disabled: false, toko: "lazada" },
 ];
 const STORE_THEMES = {
   "semua": { c1: "#FF6B1A", c2: "#FF9E45", ct: "#FFB37A", rgb: "255,110,26" },
@@ -3051,7 +3051,6 @@ const MENU = [
   { key: "penghasilan", label: "Penghasilan", icon: Wallet },
   { key: "ads", label: "Ads", icon: Megaphone },
   { key: "affiliate", label: "Affiliate", icon: Users2 },
-  { key: "lazada", label: "Lazada", icon: ShoppingBag },
   { key: "live", label: "Live", icon: Radio },
 ];
 
@@ -3191,10 +3190,10 @@ export default function ShopeePartnerDashboard() {
     setTab(key);
     try { localStorage.setItem("mp_tab", key); } catch { /* ignore */ }
   };
-  const [akun, setAkun] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "surgabotani" : "semua"; } catch { return "semua"; } });
+  const [akun, setAkun] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "surgabotani" : localStorage.getItem("mp_toko") === "lazada" ? "generos-lazada" : "semua"; } catch { return "semua"; } });
   const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
   // ── Toko aktif: "mall" = Generos Official Store, "star" = Surga Botani ──
-  const [toko, setToko] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; } catch { return "mall"; } });
+  const [toko, setToko] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : localStorage.getItem("mp_toko") === "lazada" ? "lazada" : "mall"; } catch { return "mall"; } });
   const gantiToko = (t) => {
     setToko(t);
     try { localStorage.setItem("mp_toko", t); } catch { /* ignore */ }
@@ -3277,7 +3276,7 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpDrift3 { 0% { transform: translate(0, 0) scale(1); } 35% { transform: translate(4vw, 12vh) scale(1.14); } 65% { transform: translate(1vw, 22vh) scale(0.92); } 100% { transform: translate(0, 0) scale(1); } }
         .mp-ask-pulse { animation: mpAskPulse 1.1s ease-in-out infinite; }
         .mp-content > * { animation: mpFade .35s ease both; }
-        .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; }
+        .mp-hov { position: relative; overflow: hidden; animation: mpRise .45s ease both; transition: transform .25s ease, border-color .25s ease; background: linear-gradient(165deg, rgba(255,255,255,0.085), rgba(255,255,255,0.02)) !important; backdrop-filter: blur(18px) saturate(155%); -webkit-backdrop-filter: blur(18px) saturate(155%); }
         .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > * { animation: mpRise .5s ease both; }
         .mp-grid2 > *:nth-child(2), .mp-grid3 > *:nth-child(2), .mp-grid4 > *:nth-child(2), .mp-grid6 > *:nth-child(2) { animation-delay: .05s; }
         .mp-grid2 > *:nth-child(3), .mp-grid3 > *:nth-child(3), .mp-grid4 > *:nth-child(3), .mp-grid6 > *:nth-child(3) { animation-delay: .10s; }
@@ -3392,13 +3391,15 @@ export default function ShopeePartnerDashboard() {
           )}
 
           <div key={toko} className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
+            {toko === "lazada" ? <TabLazada /> : (<>
             {tab === "overview" && <TabOverview periode={periode} />}
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}
             {tab === "ads" && <TabAds />}
             {tab === "affiliate" && <TabAffiliate />}
-            {tab === "lazada" && <TabLazada />}
+            {tab === "lazada" && <TabOverview periode={periode} />}
             {tab === "live" && <TabLive />}
+            </>)}
           </div>
         </div>
       </div>
