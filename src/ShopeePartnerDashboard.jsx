@@ -37,11 +37,37 @@ import {
   const jsonRes = (body, status = 200) =>
     new Response(body, { status, headers: { "Content-Type": "application/json" } });
 
+  // ── Pemilih toko (Official = mall, Surgabotani = star) ────────────────────
+  // Komponen dashboard menyimpan toko aktif di localStorage "mp_toko".
+  // Wrapper membaca nilainya tiap panggilan: bila "star", route data toko
+  // ditempeli shop=star. URL hasil tempelan sekaligus jadi kunci cache,
+  // jadi cache kedua toko otomatis terpisah dan tidak tertukar. Default
+  // "mall" → URL apa adanya (perilaku lama persis). Route /api/ask SENGAJA
+  // tidak ikut — konteks Asisten tetap toko Official.
+  const tokoAktif = () => {
+    try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; }
+    catch { return "mall"; }
+  };
+  const ruteDataToko = (u) => {
+    const p = u.slice("https://api.qukis.id".length);
+    return (
+      p.startsWith("/api/ads/") || p.startsWith("/api/affiliate/") ||
+      p.startsWith("/api/export/") || p.startsWith("/api/income/") ||
+      p.startsWith("/api/orders/") || p === "/api/shop" ||
+      p.startsWith("/api/shop?") || p.startsWith("/api/shop/")
+    );
+  };
+  const urlDenganToko = (u) => {
+    if (tokoAktif() !== "star" || !ruteDataToko(u)) return u;
+    return u + (u.includes("?") ? "&" : "?") + "shop=star";
+  };
+
   window.fetch = (input, init) => {
-    const url = typeof input === "string" ? input : input && input.url;
+    const mentah = typeof input === "string" ? input : input && input.url;
     const method = ((init && init.method) || "GET").toUpperCase();
-    if (!url || method !== "GET" || !url.startsWith("https://api.qukis.id/"))
+    if (!mentah || method !== "GET" || !mentah.startsWith("https://api.qukis.id/"))
       return orig(input, init);
+    const url = urlDenganToko(mentah);
 
     const now = Date.now();
     const ent = store.get(url);
@@ -301,6 +327,39 @@ function OvCalendar({ y, m, from, to, onPick, onNav }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Pemilih toko: segmented glass pill "Official | Surgabotani" ────────────
+// Selalu tampil di header (semua tab). Pilihan tersimpan di localStorage
+// "mp_toko" oleh komponen induk; fetch wrapper membaca kunci yang sama.
+function TokoSwitch({ toko, onGanti }) {
+  const opsi = [
+    { key: "mall", label: "Official" },
+    { key: "star", label: "Surgabotani" },
+  ];
+  return (
+    <div role="group" aria-label="Pilih toko" style={{
+      display: "flex", alignItems: "center", gap: 2, height: 32, padding: 2, borderRadius: 999, flexShrink: 0,
+      background: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
+      border: "1px solid rgba(255,255,255,0.14)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 20px rgba(0,0,0,0.28)",
+      backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)",
+    }}>
+      {opsi.map((o) => {
+        const aktif = toko === o.key;
+        return (
+          <button key={o.key} onClick={() => onGanti(o.key)} aria-pressed={aktif} title={o.key === "mall" ? "Generos Official Store" : "Surga Botani"} style={{
+            height: 26, padding: "0 12px", borderRadius: 999, border: "none", cursor: "pointer",
+            fontFamily: "'Roboto', sans-serif", fontSize: 12, fontWeight: aktif ? 700 : 500, whiteSpace: "nowrap",
+            color: aktif ? "#fff" : "#B8AEA0",
+            background: aktif ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
+            boxShadow: aktif ? "0 6px 16px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+            transition: "all .2s ease",
+          }}>{o.label}</button>
+        );
+      })}
     </div>
   );
 }
@@ -3031,6 +3090,22 @@ export default function ShopeePartnerDashboard() {
   };
   const [akun, setAkun] = useState("semua");
   const [periode, setPeriode] = useState(() => ({ key: "hari-ini", ...ovRangeForPreset("hari-ini") }));
+  // ── Toko aktif: "mall" = Generos Official Store, "star" = Surga Botani ──
+  const [toko, setToko] = useState(() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; } catch { return "mall"; } });
+  const gantiToko = (t) => {
+    setToko(t);
+    try { localStorage.setItem("mp_toko", t); } catch { /* ignore */ }
+  };
+  const [namaToko, setNamaToko] = useState("Generos Official Store");
+  useEffect(() => {
+    let hidup = true;
+    // Wrapper menempel shop=star sendiri bila toko aktif star.
+    fetch("https://api.qukis.id/api/shop")
+      .then((r) => r.json())
+      .then((j) => { if (hidup && j && j.shop_name) setNamaToko(String(j.shop_name).trim()); })
+      .catch(() => {});
+    return () => { hidup = false; };
+  }, [toko]);
 
   return (
     <div className="mp-root" style={{
@@ -3142,7 +3217,7 @@ export default function ShopeePartnerDashboard() {
             </div>
             {!collapsed && (<div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
               <div style={{ color: "#fff", fontFamily: "'Roboto', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.15 }}>MP — Marketplace</div>
-              <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>Generos Official Store</div>
+              <div style={{ color: "#B0A696", fontSize: 11, marginTop: 2, whiteSpace: "nowrap" }}>{namaToko}</div>
             </div>)}
           </div>
           <div className="mp-menu" style={{ display: "flex", flexDirection: "column", gap: collapsed ? 6 : 4, position: "relative", alignItems: collapsed ? "center" : "stretch", marginTop: collapsed ? 2 : 0 }}>
@@ -3166,7 +3241,7 @@ export default function ShopeePartnerDashboard() {
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
             <div style={{ lineHeight: 1.2, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", whiteSpace: "nowrap" }}>Febi Adithia</div>
-              <div style={{ fontSize: 11, color: "#B0A696", whiteSpace: "nowrap" }}>Generos Official Store</div>
+              <div style={{ fontSize: 11, color: "#B0A696", whiteSpace: "nowrap" }}>{namaToko}</div>
             </div>
           </div>)}
         </div>
@@ -3182,6 +3257,7 @@ export default function ShopeePartnerDashboard() {
               {collapsed ? <ChevronsRight size={16} color="#D8D2C8" /> : <ChevronsLeft size={16} color="#D8D2C8" />}
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <TokoSwitch toko={toko} onGanti={gantiToko} />
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                 <Bell size={16} color="#D8D2C8" />
               </button>
@@ -3205,7 +3281,7 @@ export default function ShopeePartnerDashboard() {
           </div>
           )}
 
-          <div className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
+          <div key={toko} className="mp-content" style={{ flex: 1, minHeight: 0, padding: "16px 26px 26px", overflowY: "auto", background: "transparent" }}>
             {tab === "overview" && <TabOverview periode={periode} />}
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}
