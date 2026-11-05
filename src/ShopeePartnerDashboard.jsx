@@ -9,6 +9,7 @@ import {
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
   Sparkles, Send, X, ChevronDown, ChevronLeft, Check,
+  CheckCircle2, Clock, ShoppingBag,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,7 +124,7 @@ const ordersByDay = [
 const orderStatus = [
   { label: "Perlu dikirim", value: 14, color: "#E5484D" },
   { label: "Diproses", value: 22, color: "#FFB020" },
-  { label: "Dikirim", value: 35, color: "#FFA940" },
+  { label: "Dikirim", value: 35, color: "var(--ac2)" },
   { label: "Selesai", value: 210, color: "#1E9E6F" },
   { label: "Dibatalkan / retur", value: 9, color: "#A89F92" },
 ];
@@ -137,7 +138,7 @@ const recentOrders = [
 ];
 
 const statusColor = {
-  "Perlu dikirim": "#E5484D", "Diproses": "#B8860B", "Dikirim": "#FFA940",
+  "Perlu dikirim": "#E5484D", "Diproses": "#B8860B", "Dikirim": "var(--ac2)",
   "Selesai": "#1E9E6F", "Dibatalkan": "#A89F92",
 };
 
@@ -176,7 +177,7 @@ const lightenHex = (hex, f = 0.32) => {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 };
 
-function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accent = "#FF6B1A", active = true, onClick = null }) {
+function StatCard({ icon: Icon, label, value, delta, deltaPositive = true, accent = "var(--ac1)", active = true, onClick = null }) {
   return (
     <div
       className="mp-hov"
@@ -266,6 +267,13 @@ const OV_AKUN_OPTIONS = [
   { key: "surgabotani", label: "Surga Botani", sub: "Shopee · Star", disabled: false, toko: "star" },
   { key: "generos-lazada", label: "Generos Official Store", sub: "Lazada", disabled: true },
 ];
+const STORE_THEMES = {
+  "semua": { c1: "#FF6B1A", c2: "#FF9E45", ct: "#FFB37A", rgb: "255,110,26" },
+  "generos-shopee": { c1: "#0B5CFF", c2: "#5EA9FF", ct: "#A9CCFF", rgb: "43,124,255" },
+  "surgabotani": { c1: "#0B7A40", c2: "#35B26B", ct: "#9ADFB8", rgb: "18,148,80" },
+  "generos-lazada": { c1: "#2B3BD8", c2: "#6E7BFF", ct: "#B3BAFF", rgb: "64,84,232" },
+};
+const ACCENT = { c1: "#FF6B1A", c2: "#FF9E45", ct: "#FFB37A", rgb: "255,110,26" };
 const OV_PERIODE_PRESETS = [
   { key: "hari-ini", label: "Hari Ini" },
   { key: "kemarin", label: "Kemarin" },
@@ -321,8 +329,8 @@ function OvCalendar({ y, m, from, to, onPick, onNav }) {
             <button key={i} onClick={() => onPick(iso)} style={{
               height: 25, borderRadius: 7, border: "none", cursor: "pointer", fontSize: 11.5,
               fontFamily: "'Roboto', sans-serif", fontWeight: isEnd ? 700 : isToday ? 700 : 400,
-              background: isEnd ? "linear-gradient(135deg,#FF6B1A,#FF9E45)" : inRange ? "rgba(255,110,26,0.16)" : "transparent",
-              color: isEnd ? "#fff" : isToday ? "#FF8A3D" : "#D8D2C8",
+              background: isEnd ? "linear-gradient(135deg,var(--ac1),var(--ac2))" : inRange ? "rgba(var(--acRGB), 0.16)" : "transparent",
+              color: isEnd ? "#fff" : isToday ? "var(--ac2)" : "#D8D2C8",
             }}>{d}</button>
           );
         })}
@@ -366,7 +374,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode, gantiToko }) {
   };
   const rowStyle = (sel, dis) => ({
     display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9,
-    background: sel ? "rgba(255,110,26,0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
+    background: sel ? "rgba(var(--acRGB), 0.14)" : "transparent", border: "none", cursor: dis ? "not-allowed" : "pointer", opacity: dis ? 0.45 : 1,
   });
   const chev = (which) => <ChevronDown size={13} color="#A89F92" style={{ transform: open === which ? "rotate(180deg)" : "none", transition: "transform .25s ease", flexShrink: 0 }} />;
   const calA = base;
@@ -388,8 +396,8 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode, gantiToko }) {
                   <span style={{ display: "block", fontSize: 13, color: "#F7F7FA", fontWeight: akun === o.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{o.label}</span>
                   {o.sub && <span style={{ display: "block", fontSize: 11, color: "#A89F92", marginTop: 1 }}>{o.sub}</span>}
                 </span>
-                {o.disabled && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "#FFB37A", background: "rgba(255,110,26,0.14)", border: "1px solid rgba(255,150,80,0.35)", padding: "2px 7px", borderRadius: 999, textTransform: "uppercase" }}>Segera</span>}
-                {!o.disabled && akun === o.key && <Check size={15} color="#FF8A3D" />}
+                {o.disabled && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".4px", color: "var(--acT)", background: "rgba(var(--acRGB), 0.14)", border: "1px solid rgba(var(--acRGB), 0.35)", padding: "2px 7px", borderRadius: 999, textTransform: "uppercase" }}>Segera</span>}
+                {!o.disabled && akun === o.key && <Check size={15} color={ACCENT.c2} />}
               </button>
             ))}
           </div>
@@ -407,7 +415,7 @@ function OvFilterBar({ akun, setAkun, periode, onPeriode, gantiToko }) {
               {OV_PERIODE_PRESETS.map((p) => (
                 <button key={p.key} onClick={() => { onPeriode({ key: p.key, ...ovRangeForPreset(p.key) }); setOpen(null); }} style={rowStyle(periode.key === p.key, false)}>
                   <span style={{ flex: 1, fontSize: 12.5, color: "#F7F7FA", fontWeight: periode.key === p.key ? 600 : 500, fontFamily: "'Roboto', sans-serif" }}>{p.label}</span>
-                  {periode.key === p.key && <Check size={14} color="#FF8A3D" />}
+                  {periode.key === p.key && <Check size={14} color={ACCENT.c2} />}
                 </button>
               ))}
               <div style={{ marginTop: "auto", fontSize: 10.5, color: "#8A7E6E", lineHeight: 1.5, padding: "6px 11px 2px", fontFamily: "Inter, sans-serif" }}>Atau pilih rentang sendiri di kalender: klik tanggal mulai, lalu tanggal selesai.</div>
@@ -491,8 +499,8 @@ function TabOverview({ periode }) {
 
   // Metrik iklan (kolom Budget | Klik | Closing + Rasio); Box diisi item terjual kalau ada
   const adsMetrics = [
-    { label: `Budget (${adsDays} hari)`, value: at.expense != null ? fmtRp(at.expense) : "—", accent: "#FF6B1A" },
-    { label: "Klik", value: at.clicks != null ? String(at.clicks) : "—", accent: "#FFA940" },
+    { label: `Budget (${adsDays} hari)`, value: at.expense != null ? fmtRp(at.expense) : "—", accent: "var(--ac1)" },
+    { label: "Klik", value: at.clicks != null ? String(at.clicks) : "—", accent: "var(--ac2)" },
     { label: "Closing (order)", value: at.broad_order != null ? String(at.broad_order) : "—", accent: "#1E9E6F" },
     { label: "ROAS", value: at.broad_roas != null ? at.broad_roas + "x" : "—", accent: "#B8860B" },
   ];
@@ -503,8 +511,8 @@ function TabOverview({ periode }) {
         {/* ===== Baris ringkasan utama ===== */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
           <StatCard icon={Package} label="Pesanan (D-1)" value={totalOrder ? String(totalOrder) : "—"} accent="#D04C8F" />
-          <StatCard icon={Megaphone} label={`Belanja iklan ${adsDays} hari`} value={at.expense != null ? fmtRpShort(at.expense) : "—"} accent="#FF8A3D" />
-          <StatCard icon={Wallet} label={incomeStatLabel} value={incomeTotal ? fmtRpShort(incomeTotal) : "—"} accent="#FFB25E" />
+          <StatCard icon={Megaphone} label={`Belanja iklan ${adsDays} hari`} value={at.expense != null ? fmtRpShort(at.expense) : "—"} accent={ACCENT.c2} />
+          <StatCard icon={Wallet} label={incomeStatLabel} value={incomeTotal ? fmtRpShort(incomeTotal) : "—"} accent={ACCENT.ct} />
           <StatCard icon={Users2} label="Customer (D-1)" value={custAll ? String(custAll) : "—"} accent="#F09040" />
         </div>
 
@@ -766,7 +774,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
       const isStart = selFrom === iso;
       const isEnd = selTo === iso;
       if (inRange) { bg = "#3A2113"; }
-      if (isStart || isEnd) { bg = "#FF6B1A"; color = "#fff"; radius = 8; }
+      if (isStart || isEnd) { bg = "var(--ac1)"; color = "#fff"; radius = 8; }
       const disabled = maxDate && iso > maxDate;
       cells.push(
         <div key={iso} onClick={() => !disabled && pickDay(y, m, d)}
@@ -821,7 +829,7 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
             return (
               <button key={f.key} onClick={() => quickApply(f.key)} style={{
                 textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer",
-                background: active ? "#FF6B1A" : "transparent",
+                background: active ? "var(--ac1)" : "transparent",
                 color: active ? "#fff" : "#D8D2C8", fontSize: 12, fontWeight: active ? 700 : 500,
                 fontFamily: "Inter, sans-serif",
               }}>{f.label}</button>
@@ -831,12 +839,12 @@ function RangeCalendar({ from, to, maxDate, onApply, onClose }) {
 
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <button onClick={() => shift(-1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#FF6B1A" }}>‹</button>
+            <button onClick={() => shift(-1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "var(--ac1)" }}>‹</button>
             <div style={{ display: "flex", gap: 24 }}>
               <div>{renderMonth(view.y, view.m)}</div>
               <div>{renderMonth(view2.y, view2.m)}</div>
             </div>
-            <button onClick={() => shift(1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "#FF6B1A" }}>›</button>
+            <button onClick={() => shift(1)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: "var(--ac1)" }}>›</button>
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
@@ -963,16 +971,16 @@ function TabPesanan() {
     <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
       {FILTERS.map((f) => (
         <button key={f.key} onClick={() => clickPreset(f.key)} style={{
-          padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #33200F",
-          background: !isCustom && range === f.key ? "#FF6B1A" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
+          padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid var(--ac1)" : "1px solid #33200F",
+          background: !isCustom && range === f.key ? "var(--ac1)" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
           fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
         }}>{f.label}</button>
       ))}
       <span style={{ fontSize: 12, color: "#A89F92", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
       <div style={{ position: "relative", display: "inline-block" }}>
         <button onClick={() => setCalOpen((v) => !v)} style={{
-          padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
-          background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
+          padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid var(--ac2)" : "1px solid #33200F",
+          background: isCustom ? "var(--ac2)" : "#1D130A", color: isCustom ? "#fff" : "var(--ac2)",
           fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Roboto', sans-serif",
         }}>
           {fmtDmy(fromVal)} – {fmtDmy(toVal)}
@@ -1033,7 +1041,7 @@ function TabPesanan() {
   const sts = (viewExp && viewExp.statuses) || (exp && exp.statuses) || [];
   const distOrder = [
     { label: "Perlu dikirim", value: so["Perlu dikirim"] || 0, color: "#E5484D" },
-    { label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), color: "#FFA940" },
+    { label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), color: "var(--ac2)" },
     { label: "Selesai", value: so["Selesai"] || 0, color: "#1E9E6F" },
     { label: "Batal", value: so["Batal"] || 0, color: "#A89F92" },
   ];
@@ -1097,7 +1105,7 @@ function TabPesanan() {
       )}
       {exp && exp._live_note && (
         <div style={{
-          fontSize: 12, color: "#FFB25E", background: "#171208", border: "1px solid #4A3A20",
+          fontSize: 12, color: "var(--acT)", background: "#171208", border: "1px solid #4A3A20",
           borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontFamily: "Inter, sans-serif", lineHeight: 1.5,
         }}>ℹ️ {exp._live_note} Angka di-refresh otomatis tiap 60 detik.</div>
       )}
@@ -1124,7 +1132,7 @@ function TabPesanan() {
       {(() => {
         const cards = [
           { key: "Perlu dikirim", label: "Perlu dikirim", value: so["Perlu dikirim"] || 0, accent: "#E5484D", icon: Package },
-          { key: "Sedang dikirim", label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), accent: "#FFA940", icon: Package },
+          { key: "Sedang dikirim", label: "Sedang dikirim", value: (so["Sedang dikirim"] || 0) + (so["Telah dikirim"] || 0), accent: "var(--ac2)", icon: Package },
           { key: "Selesai", label: "Selesai", value: so["Selesai"] || 0, accent: "#1E9E6F", icon: Package },
           { key: "Batal", label: "Batal", value: so["Batal"] || 0, accent: "#A89F92", icon: Package },
         ];
@@ -1158,7 +1166,7 @@ function TabPesanan() {
               {anyActive && (
                 <span
                   onClick={() => setActiveCards([])}
-                  style={{ marginLeft: 8, color: "#FF6B1A", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}
+                  style={{ marginLeft: 8, color: "var(--ac1)", cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}
                 >
                   Reset (0)
                 </span>
@@ -1383,14 +1391,14 @@ function TabPenghasilan() {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FF6B1A" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
+                  <stop offset="0%" stopColor={ACCENT.c1} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={ACCENT.c1} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#A89F92" }} axisLine={false} tickLine={false} interval={4} />
               <YAxis tick={{ fontSize: 10, fill: "#A89F92" }} axisLine={false} tickLine={false} width={46} tickFormatter={(v) => fmtRpShort(v)} />
               <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} />
-              <Area type="monotone" dataKey="v" name="Payout" stroke="#FF6B1A" strokeWidth={2} fill="url(#incomeGrad)" />
+              <Area type="monotone" dataKey="v" name="Payout" stroke={ACCENT.c1} strokeWidth={2} fill="url(#incomeGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -1412,8 +1420,8 @@ function TabPenghasilan() {
 
       <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 14 }}>
         <StatCard icon={Wallet} label="Total payout 30 hari" value={fmtRpShort(totalPayout)} accent="#1E9E6F" />
-        <StatCard icon={Wallet} label="Transaksi payout" value={String(payoutCount)} accent="#FF6B1A" />
-        <StatCard icon={Wallet} label="Rata-rata per hari" value={fmtRpShort(avgPerDay)} accent="#FFA940" />
+        <StatCard icon={Wallet} label="Transaksi payout" value={String(payoutCount)} accent={ACCENT.c1} />
+        <StatCard icon={Wallet} label="Rata-rata per hari" value={fmtRpShort(avgPerDay)} accent={ACCENT.c2} />
         <StatCard icon={Wallet} label="Hari dengan data" value={`${n} hari`} accent="#B8860B" />
       </div>
 
@@ -1451,22 +1459,22 @@ function TabPenghasilan() {
 const SHOP_UNAVAILABLE_METRICS = ["sov", "sold"];
 const PRODUCT_CARDS = [
   { id: "PRODUCT_IMPRESSIONS", label: "Iklan Dilihat", metric: "impressions", icon: Eye, accent: "#D04C8F" },
-  { id: "PRODUCT_CLICKS", label: "Jumlah Klik", metric: "clicks", icon: MousePointerClick, accent: "#FF8A3D" },
-  { id: "PRODUCT_CTR", label: "Persentase Klik", metric: "ctr", icon: Percent, accent: "#FFB25E" },
+  { id: "PRODUCT_CLICKS", label: "Jumlah Klik", metric: "clicks", icon: MousePointerClick, accent: "var(--ac2)" },
+  { id: "PRODUCT_CTR", label: "Persentase Klik", metric: "ctr", icon: Percent, accent: "var(--acT)" },
   { id: "PRODUCT_ORDERS", label: "Pesanan", metric: "orders", icon: ShoppingCart, accent: "#F09040" },
   { id: "PRODUCT_SOLD", label: "Produk Terjual", metric: "sold", icon: Boxes, accent: "#1E9E6F" },
-  { id: "PRODUCT_SALES", label: "Penjualan", metric: "sales", icon: Banknote, accent: "#FFA940" },
+  { id: "PRODUCT_SALES", label: "Penjualan", metric: "sales", icon: Banknote, accent: "var(--ac2)" },
   { id: "PRODUCT_AD_SPEND", label: "Biaya Iklan", metric: "ad_spend", icon: Wallet, accent: "#B8860B" },
   { id: "PRODUCT_ROAS", label: "ROAS", metric: "roas", icon: TrendingUp, accent: "#FF7A29" },
 ];
 const SHOP_CARDS = [
-  { id: "SHOP_SOV", label: "SOV", metric: "sov", icon: Percent, accent: "#FF6B1A" },
+  { id: "SHOP_SOV", label: "SOV", metric: "sov", icon: Percent, accent: "var(--ac1)" },
   { id: "SHOP_IMPRESSIONS", label: "Iklan Dilihat", metric: "impressions", icon: Eye, accent: "#D04C8F" },
-  { id: "SHOP_CLICKS", label: "Jumlah Klik", metric: "clicks", icon: MousePointerClick, accent: "#FF8A3D" },
-  { id: "SHOP_CTR", label: "Persentase Klik", metric: "ctr", icon: Percent, accent: "#FFB25E" },
+  { id: "SHOP_CLICKS", label: "Jumlah Klik", metric: "clicks", icon: MousePointerClick, accent: "var(--ac2)" },
+  { id: "SHOP_CTR", label: "Persentase Klik", metric: "ctr", icon: Percent, accent: "var(--acT)" },
   { id: "SHOP_ORDERS", label: "Pesanan", metric: "orders", icon: ShoppingCart, accent: "#F09040" },
   { id: "SHOP_SOLD", label: "Produk Terjual", metric: "sold", icon: Boxes, accent: "#1E9E6F" },
-  { id: "SHOP_SALES", label: "Penjualan", metric: "sales", icon: Banknote, accent: "#FFA940" },
+  { id: "SHOP_SALES", label: "Penjualan", metric: "sales", icon: Banknote, accent: "var(--ac2)" },
   { id: "SHOP_AD_SPEND", label: "Biaya Iklan", metric: "ad_spend", icon: Wallet, accent: "#B8860B" },
 ];
 
@@ -1551,7 +1559,7 @@ const AF_PRODUCT_GROUPS = [
   { key: "generos", label: "Generos Klasik", group: "Generos Klasik" },
 ];
 
-function AfTile({ label, value, accent = "#FF6B1A", sub }) {
+function AfTile({ label, value, accent = "var(--ac1)", sub }) {
   return (
     <div className="mp-hov" style={{ background: "linear-gradient(165deg, rgba(28,20,13,0.80), rgba(11,7,5,0.90))", border: "1px solid rgba(255,255,255,0.08)", borderLeft: `3px solid ${accent}`, borderRadius: 16, padding: "10px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, color: "#A89F92", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px", fontFamily: "Inter, sans-serif" }}>{label}</div>
@@ -1654,9 +1662,9 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
               <AfTile label="Saldo iklan" value={afMoney(rt.balance)} accent="#1E9E6F" sub={rt.data_timestamp ? `per ${afTs(rt.data_timestamp)}` : null} />
-              <AfTile label="Auto top-up" value={afOnOff(tog.auto_top_up)} accent="#FFA940" />
+              <AfTile label="Auto top-up" value={afOnOff(tog.auto_top_up)} accent={ACCENT.c2} />
               <AfTile label="Campaign surge" value={afOnOff(tog.campaign_surge)} accent="#F09040" />
-              <AfTile label="Jam data terakhir" value={rt.latest_hour != null ? String(rt.latest_hour).padStart(2, "0") + ":00" : "—"} accent="#FF6B1A" sub="WIB" />
+              <AfTile label="Jam data terakhir" value={rt.latest_hour != null ? String(rt.latest_hour).padStart(2, "0") + ":00" : "—"} accent={ACCENT.c1} sub="WIB" />
             </div>
             <AfSource text={rt.source} at={rt.generated_at} />
           </>
@@ -1730,8 +1738,8 @@ function AdsFullData({ rt, detail, ov, camps, dRange, displayLabel }) {
         {dTotal ? (
           <>
             <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 12 }}>
-              <AfTile label="Budget" value={afMoney(dTotal.budget)} accent="#FF6B1A" />
-              <AfTile label="Klik" value={afNum(dTotal.klik)} accent="#FFA940" />
+              <AfTile label="Budget" value={afMoney(dTotal.budget)} accent={ACCENT.c1} />
+              <AfTile label="Klik" value={afNum(dTotal.klik)} accent={ACCENT.c2} />
               <AfTile label="Closing" value={afNum(dTotal.closing)} accent="#F09040" />
               <AfTile label="Box (terjual)" value={afNum(dTotal.box)} accent="#1E9E6F" />
               <AfTile label="GMV" value={afMoney(dTotal.gmv)} accent="#D04C8F" />
@@ -1906,7 +1914,7 @@ function AdsPacingCard({ pace, group }) {
   return (
     <Card title={title} subtitle={`Iklan manual · data Shopee sampai jam ${pace.last_hour_with_data != null ? String(pace.last_hour_with_data).padStart(2, "0") + ":00" : "—"} · GMS tidak punya data per jam`}>
       <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
-        <AfTile label="Biaya iklan manual" value={afMoney(g.spent)} accent="#FF6B1A" sub={pace.is_today ? "sejauh ini hari ini" : "sepanjang hari"} />
+        <AfTile label="Biaya iklan manual" value={afMoney(g.spent)} accent={ACCENT.c1} sub={pace.is_today ? "sejauh ini hari ini" : "sepanjang hari"} />
         <AfTile label="Budget (setelan)" value={g.budget > 0 ? afMoney(g.budget) : "—"} accent="#A89F92"
           sub={g.unlimited ? `+${afNum(g.unlimited)} campaign tanpa batas` : "jumlah budget campaign"} />
         <AfTile label="Budget terpakai" value={pct != null ? afPct(pct) : "—"} accent={pct != null && pct >= 95 ? "#B3261E" : "#F09040"}
@@ -1917,8 +1925,8 @@ function AdsPacingCard({ pace, group }) {
         <AreaChart data={hours.map((x) => ({ ...x, lbl: String(x.hour).padStart(2, "0") }))}>
           <defs>
             <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FF6B1A" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
+              <stop offset="0%" stopColor={ACCENT.c1} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={ACCENT.c1} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} stroke="#2A1B0F" />
@@ -1930,7 +1938,7 @@ function AdsPacingCard({ pace, group }) {
             <ReferenceLine y={g.budget} stroke="#B3261E" strokeDasharray="4 4"
               label={{ value: "budget", position: "insideTopRight", fill: "#B3261E", fontSize: 11 }} />
           )}
-          <Area type="monotone" dataKey="cum_expense" name="Biaya kumulatif" stroke="#FF6B1A" strokeWidth={2} fill="url(#paceGrad)" />
+          <Area type="monotone" dataKey="cum_expense" name="Biaya kumulatif" stroke={ACCENT.c1} strokeWidth={2} fill="url(#paceGrad)" />
         </AreaChart>
       </ResponsiveContainer>
       <div style={{ overflowX: "auto", marginTop: 8 }}>
@@ -1994,11 +2002,11 @@ function AdsProductBreakdown({ camps, pace, productKey, dRange, displayLabel }) 
         ) : (
           <>
             <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-              <AfTile label="Biaya iklan" value={afMoney(t.expense)} accent="#FF6B1A" sub="manual + GMS" />
+              <AfTile label="Biaya iklan" value={afMoney(t.expense)} accent={ACCENT.c1} sub="manual + GMS" />
               <AfTile label="GMV langsung" value={afMoney(t.direct_gmv)} accent="#D04C8F" sub="penjualan produk ini" />
               <AfTile label="ROAS langsung" value={afRoas(t.direct_roas)} accent="#1E9E6F" sub="GMV langsung ÷ biaya" />
               <AfTile label="Pesanan langsung" value={afNum(t.direct_orders)} accent="#F09040" />
-              <AfTile label="Klik" value={afNum(t.clicks)} accent="#FF8A3D" sub={`CTR ${afPct(t.ctr)} · ${afNum(t.impressions)} impresi`} />
+              <AfTile label="Klik" value={afNum(t.clicks)} accent={ACCENT.c2} sub={`CTR ${afPct(t.ctr)} · ${afNum(t.impressions)} impresi`} />
               <AfTile label="ROAS broad" value={afRoas(t.broad_roas)} accent="#A89F92" sub={`GMV broad ${afMoney(t.broad_gmv)}`} />
             </div>
             <div style={{ overflowX: "auto", marginTop: 12 }}>
@@ -2131,8 +2139,8 @@ function TabAdsCpas({ detail, displayLabel }) {
   const unavailable = !cat || !!cat.note;
   const v = (fn, x) => (unavailable ? "—" : fn(x));
   const tiles = [
-    { label: "Budget", value: v(afMoney, cat && cat.budget), accent: "#FF6B1A" },
-    { label: "Klik", value: v(afNum, cat && cat.klik), accent: "#FFA940" },
+    { label: "Budget", value: v(afMoney, cat && cat.budget), accent: "var(--ac1)" },
+    { label: "Klik", value: v(afNum, cat && cat.klik), accent: "var(--ac2)" },
     { label: "Closing", value: v(afNum, cat && cat.closing), accent: "#F09040" },
     { label: "Box (terjual)", value: v(afNum, cat && cat.box), accent: "#1E9E6F" },
     { label: "GMV", value: v(afMoney, cat && cat.gmv), accent: "#D04C8F" },
@@ -2371,7 +2379,7 @@ function TabAds() {
           return (
             <button key={g.key} onClick={() => setProdTab(g.key)} style={{
               padding: "10px 22px", borderRadius: 12, cursor: "pointer",
-              background: on ? "#FF6B1A" : "#453014",
+              background: on ? "var(--ac1)" : "#453014",
               color: on ? "#fff" : "#B0A696", fontSize: 14, fontWeight: 700,
               fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 14px rgba(124,92,191,.4)" : "0 1px 2px rgba(0,0,0,.05)",
               border: on ? "none" : "1px solid #33200F",
@@ -2384,16 +2392,16 @@ function TabAds() {
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         {FILTERS.map((f) => (
           <button key={f.key} onClick={() => clickPreset(f.key)} style={{
-            padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid #FF6B1A" : "1px solid #33200F",
-            background: !isCustom && range === f.key ? "#FF6B1A" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
+            padding: "7px 16px", borderRadius: 9, border: !isCustom && range === f.key ? "1px solid var(--ac1)" : "1px solid #33200F",
+            background: !isCustom && range === f.key ? "var(--ac1)" : "#1D130A", color: !isCustom && range === f.key ? "#fff" : "#B8AEA0",
             fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
           }}>{f.label}</button>
         ))}
         <span style={{ fontSize: 12, color: "#A89F92", margin: "0 2px 0 8px", fontFamily: "Inter, sans-serif" }}>Custom:</span>
         <div style={{ position: "relative", display: "inline-block" }}>
           <button onClick={() => setCalOpen((v) => !v)} style={{
-            padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid #FFA940" : "1px solid #33200F",
-            background: isCustom ? "#FFA940" : "#1D130A", color: isCustom ? "#fff" : "#FFA940",
+            padding: "7px 14px", borderRadius: 9, border: isCustom ? "1px solid var(--ac2)" : "1px solid #33200F",
+            background: isCustom ? "var(--ac2)" : "#1D130A", color: isCustom ? "#fff" : "var(--ac2)",
             fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Roboto', sans-serif",
           }}>
             {fmtDmy(fromVal)} – {fmtDmy(toVal)}
@@ -2426,9 +2434,9 @@ function TabAds() {
           return (
             <button key={t.key} onClick={() => setAdTab(t.key)} style={{
               padding: "8px 18px", borderRadius: 10, cursor: "pointer",
-              background: on ? "#FF6B1A" : "#453014",
+              background: on ? "var(--ac1)" : "#453014",
               color: on ? "#fff" : "#B0A696", fontSize: 13, fontWeight: 600,
-              fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(255,107,26,.35)" : "0 1px 2px rgba(0,0,0,.05)",
+              fontFamily: "Inter, sans-serif", boxShadow: on ? "0 4px 12px rgba(var(--acRGB), .35)" : "0 1px 2px rgba(0,0,0,.05)",
               border: on ? "none" : "1px solid #33200F",
             }}>{t.label}</button>
           );
@@ -2544,8 +2552,8 @@ function TabAds() {
               <AreaChart data={series.map((p) => ({ ...p, lbl: p.date ? `${p.date.slice(8, 10)}/${p.date.slice(5, 7)}` : p.time }))}>
                 <defs>
                   <linearGradient id="adsSeriesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#FF6B1A" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#FF6B1A" stopOpacity={0} />
+                    <stop offset="0%" stopColor={ACCENT.c1} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={ACCENT.c1} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="lbl" tick={{ fontSize: 10.5, fill: "#A89F92" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
@@ -2554,7 +2562,7 @@ function TabAds() {
                   formatter={(v) => [fmtSeriesVal(seriesMetric, v), metricLabel(seriesMetric)]}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }}
                 />
-                <Area type="monotone" dataKey="value" stroke="#FF6B1A" strokeWidth={2.2} fill="url(#adsSeriesGrad)" />
+                <Area type="monotone" dataKey="value" stroke={ACCENT.c1} strokeWidth={2.2} fill="url(#adsSeriesGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -2661,8 +2669,8 @@ function TabAffiliate() {
           const on = range === f.key;
           return (
             <button key={f.key} onClick={() => setRange(f.key)} style={{
-              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid #FF6B1A" : "1px solid #33200F",
-              background: on ? "#FF6B1A" : "#1D130A", color: on ? "#fff" : "#B8AEA0",
+              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid var(--ac1)" : "1px solid #33200F",
+              background: on ? "var(--ac1)" : "#1D130A", color: on ? "#fff" : "#B8AEA0",
               fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
             }}>{f.label}</button>
           );
@@ -2694,8 +2702,8 @@ function TabAffiliate() {
             )}
             <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
               <AfTile label="Penjualan affiliate" value={afMoney(t.aff_gmv)} accent="#D04C8F" sub={`${afPct(t.share_gmv)} dari penjualan pesanan selesai`} />
-              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent="#FFA940" sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan selesai`} />
-              <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent="#FF6B1A" sub="dipotong dari escrow" />
+              <AfTile label="Pesanan affiliate" value={afNum(t.aff_orders)} accent={ACCENT.c2} sub={`${afPct(t.share_orders)} dari ${afNum(t.orders)} pesanan selesai`} />
+              <AfTile label="Komisi affiliate" value={afMoney(t.commission)} accent={ACCENT.c1} sub="dipotong dari escrow" />
               <AfTile label="Rate komisi" value={afPct(t.rate)} accent="#F09040" sub="komisi ÷ penjualan affiliate" />
               <AfTile label="Biaya lewat saldo" value={w.available ? afMoney(walletCost) : "—"} accent="#A89F92"
                 sub={w.available ? `${afNum(w.count)} transaksi di luar escrow` : "tidak tersedia"} />
@@ -2761,7 +2769,7 @@ function TabAffiliate() {
               <Tooltip content={<AffTip />} cursor={{ fill: "rgba(124,92,191,.06)" }} />
               <Bar dataKey="aff_gmv" radius={[5, 5, 0, 0]}>
                 {data.daily.map((x) => (
-                  <Cell key={x.date} fill={x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8 ? "#4A2E17" : "#FF6B1A"} />
+                  <Cell key={x.date} fill={x.orders + x.pending && x.orders / (x.orders + x.pending) < 0.8 ? "#4A2E17" : "var(--ac1)"} />
                 ))}
               </Bar>
             </BarChart>
@@ -2841,6 +2849,132 @@ function TabAffiliate() {
   );
 }
 
+// ========== LAZADA — laporan toko Lazada (Generos Official Store) ==========
+// Data dari backend: GET /api/lazada/status + /api/lazada/report (ext_lazada.py).
+// Selama API Lazada belum terhubung (kategori Seller In-house masih direview),
+// halaman ini menampilkan status persiapan + kerangka laporan yang sama persis
+// dengan yang akan terisi data asli begitu koneksi nyambung.
+function TabLazada() {
+  const [status, setStatus] = useState(null);
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetch("https://api.qukis.id/api/lazada/status").then((r) => r.json()).catch(() => null),
+      fetch("https://api.qukis.id/api/lazada/report?days=30").then((r) => r.json()).catch(() => null),
+    ]).then(([st, rp]) => {
+      if (!alive) return;
+      setStatus(st);
+      setReport(rp);
+      setLoading(false);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const connected = !!(status && status.connected);
+  const sum = (report && report.summary) || {};
+  const daily = (report && report.daily) || [];
+  const recent = (report && report.recent_orders) || [];
+  const top = (report && report.top_products) || [];
+  const stages = (status && status.stages) || [];
+  const currentStage = stages.find((s) => s.state === "current");
+  const val = (v, fmt) => (connected && v != null ? fmt(v) : "—");
+
+  const emptyBox = (text) => (
+    <div style={{ border: "1px dashed rgba(255,255,255,0.14)", borderRadius: 12, padding: "26px 16px", textAlign: "center", color: "#A89F92", fontSize: 12.5, fontFamily: "Inter, sans-serif", lineHeight: 1.6 }}>{text}</div>
+  );
+
+  return (
+    <>
+      {!connected && (
+        <InfoNote>
+          Laporan Lazada lagi disiapkan — API Lazada-nya belum tersambung, jadi angka di bawah masih kosong.
+          {currentStage ? <> Tahap yang lagi jalan sekarang: <b>{currentStage.label}</b>{currentStage.note ? <> — {currentStage.note}</> : null}.</> : " Status koneksi belum bisa dibaca dari server."}
+        </InfoNote>
+      )}
+
+      <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={Package} label="Total pesanan · 30 hari" value={val(sum.orders, (v) => v.toLocaleString("id-ID"))} accent={ACCENT.c1} />
+        <StatCard icon={Banknote} label="Penjualan · 30 hari" value={val(sum.gmv, fmtRpShort)} accent={ACCENT.c2} />
+        <StatCard icon={Boxes} label="Produk terjual · 30 hari" value={val(sum.items_sold, (v) => v.toLocaleString("id-ID"))} accent="#1E9E6F" />
+        <StatCard icon={Wallet} label="Penghasilan · 30 hari" value={val(sum.income, fmtRpShort)} accent="#B8860B" />
+      </div>
+
+      <div className="mp-grid2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 14, marginBottom: 18 }}>
+        <Card title="Penjualan harian — 30 hari terakhir" subtitle="Generos Official Store · Lazada Indonesia">
+          {daily.length ? (
+            <ResponsiveContainer width="100%" height={190}>
+              <AreaChart data={daily}>
+                <CartesianGrid vertical={false} stroke="#2A1B0F" />
+                <XAxis dataKey="date" tick={{ fontSize: 11.5, fill: "#A89F92" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "#A89F92" }} axisLine={false} tickLine={false} width={40} tickFormatter={(v) => (v / 1_000_000).toFixed(0) + "jt"} />
+                <Tooltip formatter={(v) => fmtRp(v)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} />
+                <Area type="monotone" dataKey="gmv" stroke={ACCENT.c1} fill={ACCENT.c1} fillOpacity={0.18} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : emptyBox("Belum ada data penjualan. Grafik ini terisi otomatis begitu API Lazada tersambung dan toko terotorisasi.")}
+        </Card>
+
+        <Card title="Status koneksi API" subtitle={status ? `${status.company} · ${status.developer_email}` : "Memuat status…"}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+            {loading && <div style={{ color: "#A89F92", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>Memuat…</div>}
+            {!loading && !stages.length && <div style={{ color: "#A89F92", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>Status tidak tersedia — backend belum menjawab.</div>}
+            {stages.map((s) => (
+              <div key={s.key} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                {s.state === "done" ? <CheckCircle2 size={17} color="#2FD574" style={{ flexShrink: 0, marginTop: 1 }} />
+                  : s.state === "current" ? <Clock size={17} color={ACCENT.c2} style={{ flexShrink: 0, marginTop: 1 }} />
+                  : <Circle size={17} color="#5C554B" style={{ flexShrink: 0, marginTop: 1 }} />}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: s.state === "todo" ? "#A89F92" : "#F7F7FA", fontFamily: "Inter, sans-serif", fontWeight: s.state === "current" ? 600 : 500 }}>{s.label}</div>
+                  {s.note && <div style={{ fontSize: 11.5, color: "#A89F92", fontFamily: "Inter, sans-serif", marginTop: 1 }}>{s.note}</div>}
+                </div>
+                {s.state === "current" && <span style={{ marginLeft: "auto" }}><Badge text="Berjalan" color={ACCENT.c2} /></span>}
+                {s.state === "done" && <span style={{ marginLeft: "auto" }}><Badge text="Selesai" color="#2FD574" /></span>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="mp-grid2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 14 }}>
+        <Card title="Pesanan terakhir" subtitle="Pesanan terbaru dari toko Lazada">
+          {recent.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {recent.map((o) => (
+                <div key={o.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+                  <div>
+                    <div style={{ color: "#F7F7FA", fontWeight: 500 }}>#{o.id}</div>
+                    <div style={{ color: "#A89F92", fontSize: 11.5, marginTop: 2 }}>{o.items} produk · {o.status}</div>
+                  </div>
+                  <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600, color: "#F7F7FA" }}>{fmtRpShort(o.total)}</div>
+                </div>
+              ))}
+            </div>
+          ) : emptyBox("Belum ada pesanan yang bisa ditampilkan — daftar ini terisi begitu API Lazada tersambung.")}
+        </Card>
+
+        <Card title="Produk terlaris" subtitle="Berdasarkan jumlah terjual · 30 hari">
+          {top.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {top.map((p) => (
+                <div key={p.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontFamily: "Inter, sans-serif" }}>
+                  <div>
+                    <div style={{ color: "#F7F7FA", fontWeight: 500 }}>{p.name}</div>
+                    <div style={{ color: "#A89F92", fontSize: 11.5, marginTop: 2 }}>{p.qty} terjual</div>
+                  </div>
+                  <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600, color: "#F7F7FA" }}>{fmtRpShort(p.gmv)}</div>
+                </div>
+              ))}
+            </div>
+          ) : emptyBox("Belum ada data produk — peringkat produk terlaris muncul di sini begitu data Lazada masuk.")}
+        </Card>
+      </div>
+    </>
+  );
+}
+
 function TabLive() {
   return (
     <>
@@ -2869,8 +3003,8 @@ function TabLive() {
       </div>
 
       <div className="mp-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard icon={Radio} label="Sesi live bulan ini" value="14" accent="#FF6B1A" />
-        <StatCard icon={Users2} label="Total penonton" value="48.2rb" delta="+31% MoM" accent="#FFA940" />
+        <StatCard icon={Radio} label="Sesi live bulan ini" value="14" accent={ACCENT.c1} />
+        <StatCard icon={Users2} label="Total penonton" value="48.2rb" delta="+31% MoM" accent={ACCENT.c2} />
         <StatCard icon={Wallet} label="GMV dari live" value={fmtRpShort(39_100_000)} delta="+18% MoM" accent="#1E9E6F" />
         <StatCard icon={Package} label="Produk terjual saat live" value="530" accent="#B8860B" />
       </div>
@@ -2884,7 +3018,7 @@ function TabLive() {
               <YAxis tick={{ fontSize: 12, fill: "#A89F92" }} axisLine={false} tickLine={false} width={28} />
               <Tooltip formatter={(v) => fmtRp(v * 1_000_000)} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #2A1B0F", backgroundColor: "#171009", color: "#F7F7FA" }} />
               <Bar dataKey="gmv" radius={[5, 5, 0, 0]}>
-                {liveSessions.map((_, i) => <Cell key={i} fill="#FF6B1A" />)}
+                {liveSessions.map((_, i) => <Cell key={i} fill={ACCENT.c1} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -2917,6 +3051,7 @@ const MENU = [
   { key: "penghasilan", label: "Penghasilan", icon: Wallet },
   { key: "ads", label: "Ads", icon: Megaphone },
   { key: "affiliate", label: "Affiliate", icon: Users2 },
+  { key: "lazada", label: "Lazada", icon: ShoppingBag },
   { key: "live", label: "Live", icon: Radio },
 ];
 
@@ -2926,6 +3061,7 @@ const TITLES = {
   penghasilan: ["Penghasilan", "Rincian pendapatan dan saldo yang bisa ditarik"],
   ads: ["Ads", "Performa kampanye iklan tokomu"],
   affiliate: ["Affiliate", "Penjualan & komisi affiliate per produk"],
+  lazada: ["Lazada", "Laporan penjualan toko Lazada Generos Official Store"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
 };
 
@@ -2979,16 +3115,16 @@ function AskPanel({ open, onClose }) {
     setBusy(false);
   };
   const bubble = (m, i) => {
-    if (m.role === "user") return <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", color: "#fff", fontSize: 13, lineHeight: 1.5, padding: "9px 13px", borderRadius: "16px 16px 4px 16px", whiteSpace: "pre-wrap" }}>{m.text}</div>;
-    if (m.role === "sys") return <div key={i} style={{ alignSelf: "stretch", background: "rgba(255,176,102,0.10)", border: "1px solid rgba(255,176,102,0.30)", color: "#FFD9A8", fontSize: 12.5, lineHeight: 1.55, padding: "10px 13px", borderRadius: 12 }}>{m.text}</div>;
+    if (m.role === "user") return <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "linear-gradient(135deg,var(--ac1),var(--ac2))", color: "#fff", fontSize: 13, lineHeight: 1.5, padding: "9px 13px", borderRadius: "16px 16px 4px 16px", whiteSpace: "pre-wrap" }}>{m.text}</div>;
+    if (m.role === "sys") return <div key={i} style={{ alignSelf: "stretch", background: "rgba(var(--acRGB), 0.10)", border: "1px solid rgba(var(--acRGB), 0.30)", color: "var(--acT)", fontSize: 12.5, lineHeight: 1.55, padding: "10px 13px", borderRadius: 12 }}>{m.text}</div>;
     return <div key={i} style={{ alignSelf: "flex-start", maxWidth: "88%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "#EDE7DC", fontSize: 13, lineHeight: 1.55, padding: "10px 13px", borderRadius: "16px 16px 16px 4px", whiteSpace: "pre-wrap" }}>{m.text}</div>;
   };
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 80, pointerEvents: open ? "auto" : "none" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", opacity: open ? 1 : 0, transition: "opacity .3s ease" }} />
-      <div style={{ position: "absolute", top: 0, right: 0, height: "100dvh", width: "min(400px, 94vw)", transform: open ? "translateX(0)" : "translateX(106%)", transition: "transform .38s cubic-bezier(.32,.72,.24,1)", background: "linear-gradient(180deg, rgba(26,16,9,0.94), rgba(13,9,6,0.97))", backdropFilter: "blur(18px)", borderLeft: "1px solid rgba(255,138,61,0.28)", boxShadow: "-24px 0 60px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "absolute", top: 0, right: 0, height: "100dvh", width: "min(400px, 94vw)", transform: open ? "translateX(0)" : "translateX(106%)", transition: "transform .38s cubic-bezier(.32,.72,.24,1)", background: "linear-gradient(180deg, rgba(26,16,9,0.94), rgba(13,9,6,0.97))", backdropFilter: "blur(18px)", borderLeft: "1px solid rgba(var(--acRGB), 0.28)", boxShadow: "-24px 0 60px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "16px 18px 13px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 11, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(255,110,26,0.40)", flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: "linear-gradient(135deg,var(--ac1),var(--ac2))", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(var(--acRGB), 0.40)", flexShrink: 0 }}>
             <Sparkles size={18} color="#fff" />
           </div>
           <div style={{ flex: 1, lineHeight: 1.2 }}>
@@ -3002,10 +3138,10 @@ function AskPanel({ open, onClose }) {
         <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
           {msgs.length === 0 && (
             <div>
-              <div style={{ fontSize: 13.5, color: "#EDE7DC", lineHeight: 1.6 }}>Welcome, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi</span>. Tanya apa aja soal toko — pesanan, iklan, penghasilan, affiliate. Aku jawab dari data dashboard ini.</div>
+              <div style={{ fontSize: 13.5, color: "#EDE7DC", lineHeight: 1.6 }}>Welcome, <span style={{ color: "var(--ac2)", fontWeight: 600 }}>Febi</span>. Tanya apa aja soal toko — pesanan, iklan, penghasilan, affiliate. Aku jawab dari data dashboard ini.</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 13 }}>
                 {suggestions.map((sug) => (
-                  <button key={sug} onClick={() => send(sug)} style={{ fontSize: 12, color: "#FFD9A8", background: "rgba(255,110,26,0.08)", border: "1px solid rgba(255,138,61,0.30)", padding: "6px 11px", borderRadius: 999, cursor: "pointer" }}>{sug}</button>
+                  <button key={sug} onClick={() => send(sug)} style={{ fontSize: 12, color: "var(--acT)", background: "rgba(var(--acRGB), 0.08)", border: "1px solid rgba(var(--acRGB), 0.30)", padding: "6px 11px", borderRadius: 999, cursor: "pointer" }}>{sug}</button>
                 ))}
               </div>
             </div>
@@ -3015,7 +3151,7 @@ function AskPanel({ open, onClose }) {
         </div>
         <form onSubmit={(e) => { e.preventDefault(); send(input); }} style={{ display: "flex", gap: 9, padding: "12px 14px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tanya apa saja…" style={{ flex: 1, height: 42, borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", color: "#F7F7FA", fontSize: 13.5, padding: "0 16px", outline: "none", fontFamily: "'Roboto', sans-serif" }} />
-          <button type="submit" disabled={busy || !input.trim()} aria-label="Kirim" style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: busy || !input.trim() ? "rgba(255,110,26,0.35)" : "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", cursor: busy || !input.trim() ? "default" : "pointer", flexShrink: 0, boxShadow: "0 6px 16px rgba(255,110,26,0.35)" }}>
+          <button type="submit" disabled={busy || !input.trim()} aria-label="Kirim" style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: busy || !input.trim() ? "rgba(var(--acRGB), 0.35)" : "linear-gradient(135deg,var(--ac1),var(--ac2))", display: "flex", alignItems: "center", justifyContent: "center", cursor: busy || !input.trim() ? "default" : "pointer", flexShrink: 0, boxShadow: "0 6px 16px rgba(var(--acRGB), 0.35)" }}>
             <Send size={16} color="#fff" />
           </button>
         </form>
@@ -3074,10 +3210,14 @@ export default function ShopeePartnerDashboard() {
     return () => { hidup = false; };
   }, [toko]);
 
+  const tema = STORE_THEMES[akun] || STORE_THEMES.semua;
+  ACCENT.c1 = tema.c1; ACCENT.c2 = tema.c2; ACCENT.ct = tema.ct; ACCENT.rgb = tema.rgb;
+
   return (
     <div className="mp-root" style={{
+      "--ac1": tema.c1, "--ac2": tema.c2, "--acT": tema.ct, "--acRGB": tema.rgb,
       fontFamily: "Roboto, sans-serif", fontWeight: 100, background: "#050303",
-      backgroundImage: "radial-gradient(760px 520px at -14% 110%, rgba(255,130,40,0.12), rgba(255,130,40,0) 60%)",
+      backgroundImage: "radial-gradient(760px 520px at -14% 110%, rgba(var(--acRGB), 0.12), rgba(var(--acRGB), 0) 60%)",
       color: "#F7F7FA", minHeight: "100vh", padding: 12, boxSizing: "border-box",
       display: "flex", flexDirection: "row", position: "relative", overflow: "hidden",
     }}>
@@ -3121,14 +3261,14 @@ export default function ShopeePartnerDashboard() {
         @keyframes mpRollIn { from { opacity: 0; transform: translateY(105%); } to { opacity: 1; transform: translateY(0); } }
         @keyframes mpRollOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-105%); } }
         .mp-navitem { transition: transform .25s ease, background .25s ease, box-shadow .25s ease, filter .25s ease; }
-        .mp-navitem:not(.mp-pill):hover { background: rgba(255,138,61,0.10) !important; border-color: rgba(255,150,80,0.35) !important; transform: translateX(4px); box-shadow: inset 0 1px 0 rgba(255,170,100,0.18), 0 6px 16px rgba(0,0,0,0.25); }
+        .mp-navitem:not(.mp-pill):hover { background: rgba(var(--acRGB), 0.10) !important; border-color: rgba(var(--acRGB), 0.35) !important; transform: translateX(4px); box-shadow: inset 0 1px 0 rgba(var(--acRGB), 0.18), 0 6px 16px rgba(0,0,0,0.25); }
         .mp-navitem > svg { transition: transform .28s cubic-bezier(.34,1.56,.64,1), filter .25s ease; }
-        .mp-navitem:hover > svg { transform: scale(1.18) rotate(-4deg); filter: drop-shadow(0 0 6px rgba(255,150,60,0.65)); }
+        .mp-navitem:hover > svg { transform: scale(1.18) rotate(-4deg); filter: drop-shadow(0 0 6px rgba(var(--acRGB), 0.65)); }
         .mp-navitem > span { transition: color .25s ease; }
-        .mp-navitem:not(.mp-pill):hover > span { color: #FFD9A8 !important; }
+        .mp-navitem:not(.mp-pill):hover > span { color: var(--acT) !important; }
         .mp-pill:hover { transform: scale(1.02); filter: brightness(1.08); }
         @media (prefers-reduced-motion: reduce) { .mp-navitem, .mp-navitem > svg, .mp-navitem > span { transition: none !important; } .mp-navitem:hover, .mp-pill:hover { transform: none; } }
-        @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(255,110,26,0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
+        @keyframes mpGlow { 0%, 100% { box-shadow: 0 10px 26px rgba(var(--acRGB), 0.45), inset 0 1px 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 10px 34px rgba(var(--acRGB), 0.70), inset 0 1px 0 rgba(255,255,255,0.25); } }
         @keyframes mpWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes mpAskPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
         @keyframes mpDrift1 { 0% { transform: translate(0, 0) scale(1); } 20% { transform: translate(-22vw, 12vh) scale(1.3); } 45% { transform: translate(-8vw, 30vh) scale(0.82); } 70% { transform: translate(-30vw, 8vh) scale(1.18); } 100% { transform: translate(0, 0) scale(1); } }
@@ -3143,19 +3283,19 @@ export default function ShopeePartnerDashboard() {
         .mp-grid4 > *:nth-child(4), .mp-grid6 > *:nth-child(4) { animation-delay: .15s; }
         .mp-grid6 > *:nth-child(5) { animation-delay: .20s; }
         .mp-grid6 > *:nth-child(6) { animation-delay: .25s; }
-        .mp-hov:hover { transform: translateY(-2px); border-color: rgba(255,170,110,0.38) !important; }
-        .mp-hov::before { content: ""; position: absolute; top: 0; left: -70%; width: 45%; height: 100%; transform: rotate(14deg) scaleY(1.3); background: linear-gradient(90deg, rgba(255,140,50,0) 0%, rgba(255,170,90,0.13) 42%, rgba(255,225,190,0.30) 50%, rgba(255,170,90,0.13) 58%, rgba(255,140,50,0) 100%); filter: blur(6px); opacity: 0; pointer-events: none; transition: left .8s ease, opacity .3s ease; z-index: 3; }
+        .mp-hov:hover { transform: translateY(-2px); border-color: rgba(var(--acRGB), 0.38) !important; }
+        .mp-hov::before { content: ""; position: absolute; top: 0; left: -70%; width: 45%; height: 100%; transform: rotate(14deg) scaleY(1.3); background: linear-gradient(90deg, rgba(var(--acRGB), 0) 0%, rgba(var(--acRGB), 0.13) 42%, rgba(var(--acRGB), 0.30) 50%, rgba(var(--acRGB), 0.13) 58%, rgba(var(--acRGB), 0) 100%); filter: blur(6px); opacity: 0; pointer-events: none; transition: left .8s ease, opacity .3s ease; z-index: 3; }
         .mp-hov:hover::before { left: 125%; opacity: 1; }
-        .mp-hov::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,110,26,0), #FF7A1A, #FFD9AE, #FF7A1A, rgba(255,110,26,0)); box-shadow: 0 0 8px 1px rgba(255,120,30,0.45); opacity: .5; pointer-events: none; transition: opacity .25s ease; z-index: 3; }
+        .mp-hov::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(var(--acRGB), 0), var(--ac1), #FFD9AE, var(--ac1), rgba(var(--acRGB), 0)); box-shadow: 0 0 8px 1px rgba(var(--acRGB), 0.45); opacity: .5; pointer-events: none; transition: opacity .25s ease; z-index: 3; }
         .mp-hov:hover::after { opacity: 1; }
         .mp-menu button { transition: all .2s ease; }
         .mp-menu button:hover { background: rgba(255,255,255,0.05); }
         .mp-pill { animation: mpGlow 2.6s ease-in-out infinite; }
         .mp-wave { animation: mpWave 6s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) { .mp-hov, .mp-content > *, .mp-grid2 > *, .mp-grid3 > *, .mp-grid4 > *, .mp-grid6 > *, .mp-pill, .mp-wave, .mp-glowblob { animation: none !important; transition: none !important; } }
-        .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(255,150,80,0.45)); }
-        .recharts-area-area { filter: drop-shadow(0 0 12px rgba(255,120,40,0.18)); }
-        .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(255,150,80,0.30)); }
+        .recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 6px rgba(var(--acRGB), 0.45)); }
+        .recharts-area-area { filter: drop-shadow(0 0 12px rgba(var(--acRGB), 0.18)); }
+        .recharts-bar-rectangle path { filter: drop-shadow(0 0 5px rgba(var(--acRGB), 0.30)); }
         @media (max-width: 420px) {
           .mp-grid4 { gap: 8px !important; }
           .mp-grid6 { gap: 8px !important; }
@@ -3164,22 +3304,22 @@ export default function ShopeePartnerDashboard() {
       `}</style>
 
       {/* glow ambient melayang ala Gemini — blob orange yang drift & membesar-mengecil perlahan */}
-      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 760, height: 760, top: -280, right: -200, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,118,26,0.42), rgba(255,84,12,0.16) 45%, rgba(255,84,12,0) 70%)", filter: "blur(24px)", animation: "mpDrift1 16s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
-      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 520, height: 520, top: -140, right: -40, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,176,66,0.30), rgba(255,140,40,0.10) 50%, rgba(255,140,40,0) 72%)", filter: "blur(30px)", animation: "mpDrift2 21s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
-      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 580, height: 580, top: "16%", left: -190, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(255,120,30,0.38), rgba(255,90,20,0.14) 48%, rgba(255,90,20,0) 70%)", filter: "blur(26px)", animation: "mpDrift3 24s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 760, height: 760, top: -280, right: -200, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(var(--acRGB), 0.42), rgba(255,84,12,0.16) 45%, rgba(255,84,12,0) 70%)", filter: "blur(24px)", animation: "mpDrift1 16s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 520, height: 520, top: -140, right: -40, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(var(--acRGB), 0.30), rgba(var(--acRGB), 0.10) 50%, rgba(var(--acRGB), 0) 72%)", filter: "blur(30px)", animation: "mpDrift2 21s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
+      <div className="mp-glowblob" aria-hidden="true" style={{ position: "absolute", width: 580, height: 580, top: "16%", left: -190, borderRadius: "50%", background: "radial-gradient(circle at 50% 50%, rgba(var(--acRGB), 0.38), rgba(255,90,20,0.14) 48%, rgba(255,90,20,0) 70%)", filter: "blur(26px)", animation: "mpDrift3 24s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
 
       {/* body: sidebar full-height (kiri) + main (topbar + konten) */}
       <div className="mp-body" style={{ display: "flex", flex: 1, minHeight: 0, width: "100%", gap: 14, position: "relative", zIndex: 1 }}>
         {/* sidebar — panel kaca berlabel, pill aktif orange menyala, gelombang cahaya di dasar */}
-        <div className={"mp-sidebar" + (collapsed ? " mp-sb-hidden" : "")} style={{ width: collapsed ? 64 : 224, background: "linear-gradient(180deg, rgba(30,20,12,0.42), rgba(12,7,4,0.56))", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)", padding: collapsed ? "18px 0" : "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 32px rgba(255,140,50,0.05)", position: "relative", overflow: "hidden", transition: "width .45s cubic-bezier(.4,0,.2,1), padding .45s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .3s ease" }}>
+        <div className={"mp-sidebar" + (collapsed ? " mp-sb-hidden" : "")} style={{ width: collapsed ? 64 : 224, background: "linear-gradient(180deg, rgba(30,20,12,0.42), rgba(12,7,4,0.56))", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)", padding: collapsed ? "18px 0" : "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 24, boxShadow: "0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 32px rgba(var(--acRGB), 0.05)", position: "relative", overflow: "hidden", transition: "width .45s cubic-bezier(.4,0,.2,1), padding .45s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .3s ease" }}>
           {!collapsed && (<svg className="mp-wave" width="100%" height="150" viewBox="0 0 224 150" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, opacity: 0.5, pointerEvents: "none" }}>
-            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(255,110,26,0.10)" />
-            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke="#FF7A1A" strokeWidth="1.6" />
-            <path d="M0,110 C44,82 78,134 116,108 C152,84 186,120 224,98" fill="none" stroke="#FF9E45" strokeWidth="1" opacity="0.6" />
-            <path d="M0,124 C48,100 84,142 120,120 C156,100 188,130 224,112" fill="none" stroke="#FF6B1A" strokeWidth="0.8" opacity="0.4" />
+            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84 L224,150 L0,150 Z" fill="rgba(var(--acRGB), 0.10)" />
+            <path d="M0,96 C40,64 74,124 112,96 C150,68 182,110 224,84" fill="none" stroke={ACCENT.c1} strokeWidth="1.6" />
+            <path d="M0,110 C44,82 78,134 116,108 C152,84 186,120 224,98" fill="none" stroke={ACCENT.c2} strokeWidth="1" opacity="0.6" />
+            <path d="M0,124 C48,100 84,142 120,120 C156,100 188,130 224,112" fill="none" stroke={ACCENT.c1} strokeWidth="0.8" opacity="0.4" />
           </svg>)}
           <div className="mp-sb-brand" onClick={collapsed ? toggleSidebar : undefined} title={collapsed ? "Tampilkan sidebar" : undefined} style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 11, padding: collapsed ? "2px 0 16px" : "2px 4px 16px", position: "relative", cursor: collapsed ? "pointer" : "default" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(255,122,26,0.5)" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,var(--ac1),var(--ac2))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(var(--acRGB), 0.5)" }}>
               <Store size={19} color="#fff" strokeWidth={2.3} />
             </div>
             {!collapsed && (<div className="mp-sb-brand-text" style={{ minWidth: 0 }}>
@@ -3194,9 +3334,9 @@ export default function ShopeePartnerDashboard() {
               return (
                 <button key={m.key} className={active ? "mp-pill mp-navitem" : "mp-navitem"} onClick={() => changeTab(m.key)} title={m.label} style={{
                   display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? 0 : "11px 14px", width: collapsed ? 40 : "100%", height: collapsed ? 40 : undefined, flexShrink: 0,
-                  borderRadius: 12, border: active ? "1px solid rgba(255,190,130,0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
-                  background: active ? "linear-gradient(90deg,#FF6B1A,#FF9E45)" : "transparent",
-                  boxShadow: active ? "0 10px 26px rgba(255,110,26,0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
+                  borderRadius: 12, border: active ? "1px solid rgba(var(--acRGB), 0.5)" : "1px solid transparent", cursor: "pointer", textAlign: "left",
+                  background: active ? "linear-gradient(90deg,var(--ac1),var(--ac2))" : "transparent",
+                  boxShadow: active ? "0 10px 26px rgba(var(--acRGB), 0.45), inset 0 1px 0 rgba(255,255,255,0.25)" : "none",
                 }}>
                   <Icon size={18} color={active ? "#fff" : "#8A94A6"} strokeWidth={2.2} />
                   {!collapsed && (<span style={{ fontSize: 13.5, color: active ? "#fff" : "#B8AEA0", fontWeight: active ? 600 : 500, fontFamily: "Inter, sans-serif" }}>{m.label}</span>)}
@@ -3205,7 +3345,7 @@ export default function ShopeePartnerDashboard() {
             })}
           </div>
           {!collapsed && (<div className="mp-usercard" style={{ position: "relative", marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03))", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 24px rgba(0,0,0,0.30)", backdropFilter: "blur(16px) saturate(155%)", WebkitBackdropFilter: "blur(16px) saturate(155%)" }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,#FF6B1A,#FF8A3D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(255,110,26,0.40)" }}>F</div>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,var(--ac1),var(--ac2))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 6px 14px rgba(var(--acRGB), 0.40)" }}>F</div>
             <div style={{ lineHeight: 1.2, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", whiteSpace: "nowrap" }}>Febi Adithia</div>
               <div style={{ fontSize: 11, color: "#B0A696", whiteSpace: "nowrap" }}>{namaToko}</div>
@@ -3227,16 +3367,16 @@ export default function ShopeePartnerDashboard() {
               <button aria-label="Notifikasi" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                 <Bell size={16} color="#D8D2C8" />
               </button>
-              {tab === "overview" && <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} gantiToko={gantiToko} />}
+              <OvFilterBar akun={akun} setAkun={setAkun} periode={periode} onPeriode={setPeriode} gantiToko={gantiToko} />
             </div>
           </div>
 
           {/* section sapaan — hanya tampil di menu Overview */}
           {tab === "overview" && (
           <div className="mp-greet" style={{ padding: "30px 28px 16px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "#FF8A3D", fontWeight: 600 }}>Febi Adithia</span></div>
-            <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(255,110,26,0.10)", border: "1px solid rgba(255,138,61,0.38)", color: "#FFD9A8", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
-              <Sparkles size={15} color="#FF8A3D" />
+            <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 100, fontSize: 36, color: "#F7F7FA", letterSpacing: "0.01em" }}>{sapaanWaktu()}, <span style={{ color: "var(--ac2)", fontWeight: 600 }}>Febi Adithia</span></div>
+            <button onClick={() => setAskOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px", borderRadius: 999, background: "rgba(var(--acRGB), 0.10)", border: "1px solid rgba(var(--acRGB), 0.38)", color: "var(--acT)", fontSize: 13, cursor: "pointer", fontFamily: "'Roboto', sans-serif", flexShrink: 0, whiteSpace: "nowrap" }}>
+              <Sparkles size={15} color={ACCENT.c2} />
               <span style={{ position: "relative", display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
                 {askLeaving !== null && (
                   <span key={"out-" + askLeaving + "-" + askIdx} style={{ position: "absolute", left: 0, top: 0, whiteSpace: "nowrap", pointerEvents: "none", animation: "mpRollOut .55s cubic-bezier(.4,0,.2,1) both" }}>{ASK_HINTS[askLeaving]}</span>
@@ -3253,6 +3393,7 @@ export default function ShopeePartnerDashboard() {
             {tab === "penghasilan" && <TabPenghasilan />}
             {tab === "ads" && <TabAds />}
             {tab === "affiliate" && <TabAffiliate />}
+            {tab === "lazada" && <TabLazada />}
             {tab === "live" && <TabLive />}
           </div>
         </div>
