@@ -3325,6 +3325,7 @@ function ConfirmBar({ text, busy, onYes, onNo }) {
 
 const MODAL_OVERLAY = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 80, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "6vh 12px", overflowY: "auto" };
 const MODAL_PANEL = { width: "100%", maxWidth: 660, background: "#120B06", border: "1px solid #3A2A18", borderRadius: 14, padding: 16 };
+const AF_TDLW = { ...AF_TDL, whiteSpace: "normal", minWidth: 240 };
 const BTN_D = { fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#F7F7FA", background: "transparent", border: "1px solid #2A1B0F", borderRadius: 8, padding: "6px 12px" };
 const INPUT_D = { background: "#0B0603", color: "#F7F7FA", border: "1px solid #3A2A18", borderRadius: 8, padding: "7px 9px", fontSize: 12.5, fontFamily: "'Roboto', sans-serif" };
 
@@ -3604,7 +3605,7 @@ function CampaignDetail({ campaign, onClose, onChanged }) {
               <tbody>
                 {items.map((it) => (
                   <tr key={it.item_id}>
-                    <td style={AF_TDL}>{it.item_name}</td>
+                    <td style={AF_TDLW}>{it.item_name}</td>
                     <td style={AF_TD}>
                       <input type="number" min="0.01" max="80" step="0.5" value={rateEdits[it.item_id] != null ? rateEdits[it.item_id] : it.rate}
                         onChange={(e) => setRateEdits((prev) => ({ ...prev, [it.item_id]: Number(e.target.value) }))} style={{ ...INPUT_D, width: 70, padding: "4px 6px" }} />%
@@ -3817,7 +3818,7 @@ function OpenCampaignPanel({ prefill, onPrefillDone }) {
             <tbody>
               {added.map((p) => (
                 <tr key={p.campaign_id}>
-                  <td style={AF_TDL}>{p.item_name}</td>
+                  <td style={AF_TDLW}>{p.item_name}</td>
                   <td style={AF_TD}>{p.commission_rate}%</td>
                   <td style={AF_TD}>{rates[p.item_id] ? `${rates[p.item_id].min_rate}–${rates[p.item_id].max_rate}%` : "—"}</td>
                   <td style={AF_TD}>{p.campaign_status}</td>
@@ -3837,6 +3838,7 @@ function OpenCampaignPanel({ prefill, onPrefillDone }) {
       {edit && (
         <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid #3A2A18", borderRadius: 10 }}>
           <div style={{ fontSize: 12.5, color: "#F7F7FA" }}>Ubah rate: {edit.item_name}</div>
+          <div style={{ fontSize: 11.5, color: "#D9A45B", marginTop: 4 }}>Rate yang diturunkan baru berlaku penuh setelah 7 hari untuk affiliator yang sedang mempromosikan; rate yang dinaikkan berlaku langsung.</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "#A8A29A" }}>Dari {edit.commission_rate}% ke</span>
             <input type="number" min="0.01" max="80" step="0.5" value={editRate} onChange={(e) => setEditRate(Number(e.target.value))} style={{ ...INPUT_D, width: 70, padding: "4px 6px" }} />
@@ -3859,7 +3861,7 @@ function OpenCampaignPanel({ prefill, onPrefillDone }) {
             <tbody>
               {notAdded.map((p) => (
                 <tr key={p.item_id}>
-                  <td style={AF_TDL}>{p.item_name}</td>
+                  <td style={AF_TDLW}>{p.item_name}</td>
                   <td style={AF_TD}>{afMoney(p.display_price)}</td>
                   <td style={AF_TD}>{afNum(p.stock)}</td>
                   <td style={AF_TD}>
@@ -3952,7 +3954,7 @@ function SuggestPanel({ onApply }) {
                     <tbody>
                       {items.map((it) => (
                         <tr key={it.item_id}>
-                          <td style={AF_TDL}>{it.item_name}</td>
+                          <td style={AF_TDLW}>{it.item_name}</td>
                           <td style={AF_TD}>{it.commission_rate != null ? `${it.commission_rate}%` : "—"}</td>
                           <td style={AF_TD}>{it.suggest_min_rate != null ? `${it.suggest_min_rate}–${it.suggest_max_rate}%` : "—"}</td>
                           <td style={AF_TD}>{it.prefill_rate != null ? `${it.prefill_rate}%` : "—"}</td>
@@ -4242,7 +4244,7 @@ function TabProject({ periode }) {
                       ))}
                     </tbody>
                   </table>
-                  <AfMuted>Menampilkan 10 dari {afNum(searchRes.response.total_count)} hasil — persempit dengan nama yang lebih spesifik.</AfMuted>
+                  {searchRes.response.total_count > 10 && (<AfMuted>Menampilkan 10 dari {afNum(searchRes.response.total_count)} hasil — persempit dengan nama yang lebih spesifik.</AfMuted>)}
                 </div>
               )
             )}
