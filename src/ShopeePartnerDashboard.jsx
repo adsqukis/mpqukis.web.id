@@ -2580,9 +2580,10 @@ function TabAds() {
   );
 }
 
-// ---------- Tab Affiliate: penjualan & komisi affiliate dari rincian escrow ----------
-// Backend: /api/affiliate/summary (ops/ext_affiliate.py). Tanpa akses API AMS, nama kreator,
-// klik, dan ROI per kreator belum tersedia; yang ada: komisi per pesanan & per produk.
+// ---------- Tab Affiliate: penjualan & komisi affiliate dari rincian escrow + AMS ----------
+// Backend: /api/affiliate/summary (ops/ext_affiliate.py) untuk angka escrow, dan /api/ams/*
+// (ext_ams.py) untuk performa per kreator dari API AMS Shopee — nama kreator, klik, dan ROI
+// per kreator. AMS terhubung 17 Nov 2026 (app "Affiliate Management System", partner 2046356).
 const AFF_FILTERS = RANGE_FILTERS.filter((f) => f.key !== "year"); // backend dibatasi 31 hari
 const AFF_WALLET_LABEL = {
   AFFILIATE_FEE_DEDUCT: "Biaya layanan affiliate", 460: "Biaya layanan affiliate",
@@ -2590,6 +2591,11 @@ const AFF_WALLET_LABEL = {
   AFFILIATE_ADS_SELLER_FEE_REFUND: "Pengembalian biaya iklan affiliate", 456: "Pengembalian biaya iklan affiliate",
 };
 const affDay = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
+const fmtYmdRange = (r) => {
+  const parts = (r || "").split("-");
+  const f = (x) => (x && x.length === 8 ? `${x.slice(6, 8)}/${x.slice(4, 6)}/${x.slice(0, 4)}` : x);
+  return parts.length === 2 ? `${f(parts[0])} – ${f(parts[1])}` : r;
+};
 const affSigned = (v) => (Number(v) < 0 ? `−${fmtRp(-Number(v))}` : `+${fmtRp(Number(v) || 0)}`);
 const affTime = (ts) => {
   if (!ts) return "—";
@@ -2642,6 +2648,74 @@ function TabAffiliate() {
     return () => { active = false; clearInterval(iv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range]);
+
+  // ── AMS: performa per kreator (nama, klik, ROI) — data diperbarui harian oleh Shopee. ──
+  const [ams, setAms] = useState(null);
+  const [amsPage, setAmsPage] = useState(1);
+  const [amsMore, setAmsMore] = useState(false);
+  const amsPeriod = range === "today" || range === "yesterday" ? "Day" : range === "7d" ? "Last7d" : "Last30d";
+
+  useEffect(() => {
+    let active = true;
+    setAms(null);
+    setAmsPage(1);
+    const toYmd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const load = async () => {
+      try {
+        const ut = await fetch("https://api.qukis.id/api/ams/update-time").then((r) => r.json());
+        const lastReport = (ut && ut.response && ut.response.last_report_date) || null;
+        let end = new Date(`${dRange.to}T00:00:00`);
+        if (lastReport) {
+          const lr = new Date(`${lastReport}T00:00:00`);
+          if (end > lr) end = lr;
+        }
+        const span = amsPeriod === "Day" ? 0 : amsPeriod === "Last7d" ? 6 : 29;
+        const start = new Date(end);
+        start.setDate(start.getDate() - span);
+        const params = `period_type=${amsPeriod}&start_date=${toYmd(start)}&end_date=${toYmd(end)}&order_type=ConfirmedOrder&channel=AllChannel`;
+        const [shop, aff] = await Promise.all([
+          fetch(`https://api.qukis.id/api/ams/shop-performance?${params}`).then((r) => r.json()),
+          fetch(`https://api.qukis.id/api/ams/affiliates?${params}&page_no=1&page_size=20`).then((r) => r.json()),
+        ]);
+        if (!active) return;
+        if ((shop && shop.connected === false) || (aff && aff.connected === false)) {
+          setAms({ unavailable: true });
+          return;
+        }
+        if ((shop && shop.error) || (aff && aff.error)) {
+          setAms({ error: (shop && shop.message) || (aff && aff.message) || "AMS error", lastReport });
+          return;
+        }
+        setAms({
+          shop: shop.response || {}, list: ((aff.response || {}).list) || [],
+          hasMore: !!(aff.response && aff.response.has_more),
+          lastReport, fetched: (shop.response && shop.response.fetched_date_range) || null,
+          params,
+        });
+      } catch {
+        if (active) setAms({ unavailable: true });
+      }
+    };
+    load();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
+  const loadMoreCreators = () => {
+    if (!ams || !ams.params || amsMore || !ams.hasMore) return;
+    setAmsMore(true);
+    const next = amsPage + 1;
+    fetch(`https://api.qukis.id/api/ams/affiliates?${ams.params}&page_no=${next}&page_size=20`)
+      .then((r) => r.json())
+      .then((d) => {
+        setAmsMore(false);
+        if (d && d.response && d.response.list) {
+          setAms((prev) => (prev ? { ...prev, list: [...prev.list, ...d.response.list], hasMore: !!d.response.has_more } : prev));
+          setAmsPage(next);
+        }
+      })
+      .catch(() => setAmsMore(false));
+  };
 
   const t = data && data.total;
   const c = (data && data.coverage) || {};
@@ -2716,6 +2790,62 @@ function TabAffiliate() {
                 {c.escrow_missing ? ` · ${afNum(c.escrow_missing)} escrow belum terbaca, dicoba lagi otomatis` : ""}
               </AfMuted>
             </div>
+          </>
+        )}
+      </Card>
+
+      <Card title="Performa kreator (AMS)" subtitle={ams && ams.lastReport ? `Dari API AMS Shopee · data diperbarui harian, terakhir ${fmtDmy(ams.lastReport)}${ams.fetched ? ` · rentang ${fmtYmdRange(ams.fetched)}` : ""}` : "Dari API AMS Shopee · nama kreator, klik & ROI per kreator"}>
+        {ams === null ? (
+          <AfMuted>Memuat data kreator dari AMS…</AfMuted>
+        ) : ams.unavailable ? (
+          <AfMuted>Data kreator AMS belum tersedia saat ini (backend AMS belum terhubung atau sedang down).</AfMuted>
+        ) : ams.error ? (
+          <AfMuted>AMS mengembalikan error: {ams.error}. Coba rentang lain, atau cek lagi nanti.</AfMuted>
+        ) : (
+          <>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 14 }}>
+              <AfTile label="Penjualan" value={afMoney(ams.shop.sales)} accent="#D04C8F" sub={`${afNum(ams.shop.orders)} pesanan`} />
+              <AfTile label="Klik" value={afNum(ams.shop.clicks)} accent={ACCENT.c2} sub={`${afNum(ams.shop.gross_item_sold)} item terjual`} />
+              <AfTile label="Komisi" value={afMoney(ams.shop.est_commission)} accent={ACCENT.c1} sub="estimasi Shopee" />
+              <AfTile label="ROI" value={afRoas(ams.shop.roi)} accent="#1E9E6F" sub="penjualan ÷ komisi" />
+              <AfTile label="Pembeli" value={afNum(ams.shop.total_buyers)} accent="#F09040" sub={`${afNum(ams.shop.new_buyers)} pembeli baru`} />
+              <AfTile label="Data s.d." value={ams.lastReport ? fmtDmy(ams.lastReport) : "—"} accent="#A89F92" sub="diperbarui harian" />
+            </div>
+            {ams.list.length === 0 ? (
+              <AfMuted>Tidak ada kreator affiliate dengan penjualan di rentang ini.</AfMuted>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Kreator</th><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Pesanan</th>
+                    <th style={AF_THW}>Qty</th><th style={AF_THW}>Klik</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>ROI</th><th style={AF_THW}>Pembeli baru</th>
+                  </tr></thead>
+                  <tbody>
+                    {ams.list.map((a) => (
+                      <tr key={a.affiliate_id}>
+                        <td style={AF_TDL}>
+                          <div style={{ fontWeight: 600, color: "#F7F7FA" }}>{a.affiliate_name || "—"}</div>
+                          {a.affiliate_username && <div style={{ fontSize: 11, color: "#A89F92" }}>@{a.affiliate_username}</div>}
+                        </td>
+                        <td style={AF_TD}>{afMoney(a.sales)}</td>
+                        <td style={AF_TD}>{afNum(a.orders)}</td>
+                        <td style={AF_TD}>{afNum(a.items_sold)}</td>
+                        <td style={AF_TD}>{afNum(a.clicks)}</td>
+                        <td style={AF_TD}>{afMoney(a.est_commission)}</td>
+                        <td style={AF_TD}>{afRoas(a.roi)}</td>
+                        <td style={AF_TD}>{afNum(a.new_buyers)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {ams.hasMore && (
+              <button onClick={loadMoreCreators} disabled={amsMore} style={{
+                marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid #33200F", background: "#171009",
+                color: "#B0A696", fontSize: 12, fontWeight: 600, cursor: amsMore ? "wait" : "pointer", fontFamily: "Inter, sans-serif",
+              }}>{amsMore ? "Memuat…" : "Tampilkan kreator lainnya"}</button>
+            )}
           </>
         )}
       </Card>
@@ -2842,8 +2972,8 @@ function TabAffiliate() {
         Penjualan affiliate = harga item setelah diskon produk (sebelum voucher) untuk item yang kena komisi affiliate.
         Produk ditentukan dari SKU (master SKU). Semua angka dari pesanan yang sudah selesai, karena Shopee baru
         mencatat komisi affiliate di escrow setelah pesanan selesai; pesanan batal & belum bayar tidak dihitung.
-        Nama kreator, jumlah klik, dan ROI per kreator belum tersedia: datanya cuma ada di API AMS Shopee (butuh app
-        kategori "Affiliate Marketing Solution Management").
+        Nama kreator, jumlah klik, dan ROI per kreator diambil dari API AMS Shopee (app "Affiliate Management System"),
+        diperbarui harian oleh Shopee dan biasanya tertinggal ~2 hari dari tanggal berjalan.
       </div>
     </>
   );
@@ -3059,7 +3189,7 @@ const TITLES = {
   pesanan: ["Pesanan", "Pantau status dan riwayat pesanan tokomu"],
   penghasilan: ["Penghasilan", "Rincian pendapatan dan saldo yang bisa ditarik"],
   ads: ["Ads", "Performa kampanye iklan tokomu"],
-  affiliate: ["Affiliate", "Penjualan & komisi affiliate per produk"],
+  affiliate: ["Affiliate", "Penjualan, komisi & kreator affiliate"],
   lazada: ["Lazada", "Laporan penjualan toko Lazada Generos Official Store"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
 };
