@@ -66,8 +66,12 @@ import {
   window.fetch = (input, init) => {
     const mentah = typeof input === "string" ? input : input && input.url;
     const method = ((init && init.method) || "GET").toUpperCase();
-    if (!mentah || method !== "GET" || !mentah.startsWith("https://api.qukis.id/"))
-      return orig(input, init);
+    if (!mentah || !mentah.startsWith("https://api.qukis.id/")) return orig(input, init);
+    if (method !== "GET") {
+      // POST ke API: tanpa cache, tapi key tetap ditempel (dipakai /api/ams/tags).
+      const withKey = { ...(init || {}), headers: { ...((init && init.headers) || {}), "X-MP-Key": MP_API_KEY } };
+      return orig(mentah, withKey);
+    }
     const url = urlDenganToko(mentah);
 
     const now = Date.now();
@@ -3164,23 +3168,345 @@ function TabLive() {
 // ---------- shell ----------
 
 // ---------- Tab Project: ruang kerja proyek; pertama diisi fitur Affiliate Management System ----------
-function TabProject() {
-  const planned = [
-    ["Open Campaign", "Masuk/keluarin produk & atur komisi toko"],
-    ["Targeted Campaign", "Bikin campaign buat kreator pilihan, atur budget & undangan"],
-    ["Kreator", "Cari kreator, lihat yang di-manage & rekomendasi Shopee"],
-    ["Saran & Validasi", "Suggested rate, saran optimasi produk, laporan validasi komisi"],
+// ── Tab Project: Affiliate Management System (fase 1) ──
+// Tiga kelompok kreator dari API AMS: existing (punya penjualan), perlu
+// di-reach (rekomendasi tanpa penjualan), dan kandidat Affiliate Meta
+// (akun FB terhubung + penjualan channel SocialMedia; status aktif final
+// dikonfirmasi manual). Klasifikasi arena Live/Video: existing dari split
+// channel penjualan, prospek dari platform terhubung di profil.
+const ARENA_META = {
+  video: { label: "Shopee Video", color: "#5EA9FF" },
+  live: { label: "Live", color: "#FF6B1A" },
+  both: { label: "Live + Video", color: "#1E9E6F" },
+  social: { label: "Sosmed", color: "#D04C8F" },
+  unknown: { label: "Belum ketahuan", color: "#A89F92" },
+};
+const REACH_META = {
+  belum: { label: "Belum dihubungi", color: "#A89F92" },
+  dihubungi: { label: "Sudah dihubungi", color: "#F09040" },
+  gabung: { label: "Sudah gabung", color: "#1E9E6F" },
+};
+const SOCIAL_URL = {
+  facebook: (u) => `https://www.facebook.com/${u}`,
+  instagram: (u) => `https://www.instagram.com/${u}`,
+  tiktok: (u) => `https://www.tiktok.com/@${u}`,
+  shopee_video: (u) => `https://shopee.co.id/${u}`,
+  shopee_livestreaming: (u) => `https://shopee.co.id/${u}`,
+};
+const SOCIAL_LABEL = { facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok", shopee_video: "Shopee Video", shopee_livestreaming: "Live Shopee" };
+
+function ArenaBadge({ arena, basis }) {
+  const m = ARENA_META[arena] || ARENA_META.unknown;
+  return (
+    <span>
+      <Badge text={m.label} color={m.color} />
+      <div style={{ fontSize: 10.5, color: "#A89F92", marginTop: 3 }}>
+        {basis === "sales" ? "dari penjualan" : basis === "profile" ? "dari profil" : ""}
+      </div>
+    </span>
+  );
+}
+
+function SocialLinks({ socials }) {
+  if (!socials || !socials.length) return <span style={{ color: "#A89F92", fontSize: 12 }}>—</span>;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {socials.map((s, i) => {
+        const url = SOCIAL_URL[s.platform] && s.username ? SOCIAL_URL[s.platform](s.username) : null;
+        const label = `${SOCIAL_LABEL[s.platform] || s.platform}${s.followers ? ` · ${afNum(s.followers)}` : ""}`;
+        return url ? (
+          <a key={i} href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: "#5EA9FF", textDecoration: "none", border: "1px solid #2A1B0F", borderRadius: 6, padding: "2px 7px" }}>{label}</a>
+        ) : (
+          <span key={i} style={{ fontSize: 11.5, color: "#A89F92", border: "1px solid #2A1B0F", borderRadius: 6, padding: "2px 7px" }}>{label}</span>
+        );
+      })}
+    </div>
+  );
+}
+
+function PjBtn({ active, disabled, onClick, children }) {
+  return (
+    <button disabled={disabled} onClick={onClick} style={{
+      fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer",
+      color: active ? "#0B0603" : "#F7F7FA", background: active ? "#FF9E45" : "transparent",
+      border: "1px solid #2A1B0F", borderRadius: 8, padding: "6px 12px", opacity: disabled ? 0.45 : 1,
+    }}>{children}</button>
+  );
+}
+
+function ContactPanel({ creator, onSave, saving }) {
+  const tags = creator.tags || {};
+  const [note, setNote] = useState(tags.reach_note || "");
+  const [savedTick, setSavedTick] = useState(false);
+  const reach = tags.reach_status || "belum";
+  const saveNote = async () => {
+    await onSave(creator.username, { reach_note: note });
+    setSavedTick(true);
+    setTimeout(() => setSavedTick(false), 2000);
+  };
+  return (
+    <div style={{ background: "#171009", border: "1px solid #2A1B0F", borderRadius: 12, padding: "14px 16px", fontFamily: "Inter, sans-serif" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#F7F7FA", marginBottom: 8 }}>Hubungi {creator.name}</div>
+      <div style={{ marginBottom: 12 }}><SocialLinks socials={creator.socials} /></div>
+      <AfMuted>Shopee tidak membuka nomor HP/email kreator — hubungi lewat profil sosmednya, atau undang lewat targeted campaign (fase 2).</AfMuted>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: "#A89F92" }}>Status reach:</span>
+        {Object.keys(REACH_META).map((k) => (
+          <PjBtn key={k} active={reach === k} disabled={saving} onClick={() => onSave(creator.username, { reach_status: k })}>{REACH_META[k].label}</PjBtn>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Catatan reach (mis. sudah DM 17 Nov, menunggu balasan)…"
+          style={{ flex: 1, background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif" }} />
+        <PjBtn disabled={saving} onClick={saveNote}>Simpan catatan</PjBtn>
+        {savedTick && <span style={{ fontSize: 12, color: "#1E9E6F", alignSelf: "center" }}>Tersimpan ✓</span>}
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <PjBtn disabled>Undang ke targeted campaign (segera — fase 2)</PjBtn>
+      </div>
+    </div>
+  );
+}
+
+function TabProject({ periode }) {
+  const { dRange, rangeClamped } = (() => {
+    const today = isoDaysAgo(0);
+    const to = periode.to && periode.to <= today ? periode.to : today;
+    let from = periode.from && periode.from <= to ? periode.from : to;
+    const span = ovSpanDays(from, to);
+    if (span > 31) {
+      const f = new Date(`${to}T00:00:00`);
+      f.setDate(f.getDate() - 30);
+      from = toISODate(f);
+    }
+    return { dRange: { from, to }, rangeClamped: span > 31 };
+  })();
+  const [data, setData] = useState(null);
+  const [section, setSection] = useState("existing");
+  const [query, setQuery] = useState("");
+  const [openContact, setOpenContact] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const affSpan = ovSpanDays(dRange.from, dRange.to);
+  const amsPeriod = affSpan <= 1 ? "Day" : affSpan <= 7 ? "Last7d" : "Last30d";
+
+  useEffect(() => {
+    let active = true;
+    setData(null);
+    setOpenContact(null);
+    const toYmd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const load = async () => {
+      try {
+        const ut = await fetch("https://api.qukis.id/api/ams/update-time").then((r) => r.json());
+        const lastReport = (ut && ut.response && ut.response.last_report_date) || null;
+        let end = new Date(`${dRange.to}T00:00:00`);
+        if (lastReport) {
+          const lr = new Date(`${lastReport}T00:00:00`);
+          if (end > lr) end = lr;
+        }
+        const span = amsPeriod === "Day" ? 0 : amsPeriod === "Last7d" ? 6 : 29;
+        const start = new Date(end);
+        start.setDate(start.getDate() - span);
+        const d = await fetch(`https://api.qukis.id/api/ams/creators?period_type=${amsPeriod}&start_date=${toYmd(start)}&end_date=${toYmd(end)}&order_type=ConfirmedOrder`).then((r) => r.json());
+        if (!active) return;
+        if (d && d.connected === false) { setData({ unavailable: true }); return; }
+        if (d && d.error) { setData({ error: d.message || d.error }); return; }
+        setData({ ...d, lastReport });
+      } catch {
+        if (active) setData({ unavailable: true });
+      }
+    };
+    load();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periode.from, periode.to]);
+
+  const saveTag = async (username, patch) => {
+    setSaving(true);
+    try {
+      const r = await fetch("https://api.qukis.id/api/ams/tags", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, patch }),
+      });
+      const d = await r.json();
+      if (d && d.ok) {
+        const key = (username || "").toLowerCase();
+        setData((prev) => {
+          if (!prev) return prev;
+          const merge = (arr) => (arr || []).map((c) => ((c.username || "").toLowerCase() === key ? { ...c, tags: d.tags } : c));
+          return { ...prev, existing: merge(prev.existing), to_reach: merge(prev.to_reach), meta_candidates: merge(prev.meta_candidates) };
+        });
+      }
+    } catch { /* gagal simpan: status tetap seperti semula */ } finally {
+      setSaving(false);
+    }
+  };
+
+  const counts = (data && data.counts) || {};
+  const sections = [
+    ["existing", `Existing (${counts.existing ?? "…"})`],
+    ["toreach", `Perlu di-reach (${counts.to_reach ?? "…"})`],
+    ["meta", `Affiliate Meta (${counts.meta_candidates ?? "…"})`],
+    ["campaigns", `Targeted Campaign (${counts.campaigns ?? "…"})`],
   ];
+  const q = query.trim().toLowerCase();
+  const matchQ = (c) => !q || (c.name || "").toLowerCase().includes(q) || (c.username || "").toLowerCase().includes(q);
+  const rows = section === "existing" ? (data?.existing || []).filter(matchQ)
+    : section === "toreach" ? (data?.to_reach || []).filter(matchQ)
+    : section === "meta" ? (data?.meta_candidates || []).filter(matchQ) : [];
+  const ongoing = (data?.campaigns || []).filter((c) => c.status === "Ongoing").length;
+
+  const creatorCell = (c) => (
+    <td style={AF_TDL}>
+      <div style={{ fontWeight: 600, color: "#F7F7FA" }}>{c.name || "—"}</div>
+      {c.username && <div style={{ fontSize: 11, color: "#A89F92" }}>@{c.username}</div>}
+      {c.managed && <div style={{ marginTop: 3 }}><Badge text="Managed" color="#FF9E45" /></div>}
+    </td>
+  );
+  const reachCell = (c) => {
+    const st = (c.tags && c.tags.reach_status) || "belum";
+    return (
+      <td style={AF_TD}>
+        <Badge text={REACH_META[st].label} color={REACH_META[st].color} />
+        {c.tags && c.tags.reach_note && <div style={{ fontSize: 11, color: "#A89F92", marginTop: 3, maxWidth: 180 }}>{c.tags.reach_note}</div>}
+      </td>
+    );
+  };
+  const actionCell = (c) => (
+    <td style={AF_TD}>
+      <PjBtn active={openContact === c.username} onClick={() => setOpenContact(openContact === c.username ? null : c.username)}>
+        {openContact === c.username ? "Tutup" : "Hubungi"}
+      </PjBtn>
+    </td>
+  );
+
   return (
     <>
-      <Card title="Affiliate Management System" subtitle="Fitur manajemen affiliate dari API AMS Shopee — segera hadir di tab ini">
-        <AfMuted>
-          Data performa affiliate tetap di tab Affiliate. Tab Project disiapkan sebagai ruang kerja
-          fitur manajemennya. Semua aksi tulis (ubah komisi, bikin/matikan campaign) harus disetujui
-          dulu sebelum jalan.
-        </AfMuted>
-        <div style={{ marginTop: 12 }}>
-          {planned.map(([t, d]) => (
+      <Card title="Affiliate Management System" subtitle={`Mengikuti filter Periode di header · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}${rangeClamped ? " · menampilkan 31 hari terakhir dari rentang yang dipilih" : ""}${data && data.lastReport ? ` · data AMS s.d. ${fmtDmy(data.lastReport)}` : ""}`}>
+        {data === null ? (
+          <AfMuted>Memuat data kreator dari AMS… (tarikan pertama bisa beberapa detik: performa + daftar affiliator dibaca bersamaan)</AfMuted>
+        ) : data.unavailable ? (
+          <AfMuted>Data kreator AMS belum tersedia saat ini (backend AMS belum terhubung atau sedang down).</AfMuted>
+        ) : data.error ? (
+          <AfMuted>AMS mengembalikan error: {data.error}. Coba rentang lain, atau cek lagi nanti.</AfMuted>
+        ) : (
+          <>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 14 }}>
+              <AfTile label="Kreator existing" value={afNum(counts.existing)} accent="#D04C8F" sub="punya penjualan di rentang ini" />
+              <AfTile label="Perlu di-reach" value={afNum(counts.to_reach)} accent={ACCENT.c2} sub="rekomendasi tanpa penjualan" />
+              <AfTile label="Kandidat Affiliate Meta" value={afNum(counts.meta_candidates)} accent="#1E9E6F" sub="akun FB + penjualan sosmed" />
+              <AfTile label="Targeted campaign" value={afNum(counts.campaigns)} accent="#5EA9FF" sub={`${afNum(ongoing)} sedang jalan`} />
+              <AfTile label="Managed terambil" value={`${afNum(counts.managed_fetched)} / ${afNum(counts.managed_reported)}`} accent="#A89F92" sub="pagination API tidak stabil" />
+            </div>
+            {data.errors && data.errors.length > 0 && (
+              <AfMuted>Sebagian data gagal dibaca ({data.errors[0].api}: {data.errors[0].error || "error"}). Angka di bawah mungkin belum lengkap.</AfMuted>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, marginBottom: 12 }}>
+              {sections.map(([k, label]) => (
+                <PjBtn key={k} active={section === k} onClick={() => { setSection(k); setOpenContact(null); }}>{label}</PjBtn>
+              ))}
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama / @username…"
+                style={{ marginLeft: "auto", background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 200 }} />
+            </div>
+
+            {section === "meta" && (
+              <InfoNote>
+                Kandidat = affiliator dengan akun Facebook terhubung DAN penjualan lewat channel SocialMedia di rentang ini.
+                Shopee tidak bisa membuktikan dia aktif posting video di Facebook — status aktifnya dikonfirmasi manual di bawah.
+              </InfoNote>
+            )}
+            {section === "toreach" && (
+              <InfoNote>
+                Kolam rekomendasi Shopee dikurangi yang sudah punya penjualan. Klasifikasi arenanya dari platform yang terhubung
+                di profil — akun terhubung belum tentu berarti dia aktif di arena itu.
+              </InfoNote>
+            )}
+
+            {section === "campaigns" ? (
+              (data.campaigns || []).length === 0 ? (
+                <AfMuted>Belum ada targeted campaign.</AfMuted>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr>
+                      <th style={AF_THL}>Campaign</th><th style={AF_THW}>Status</th><th style={AF_THW}>Affiliator</th>
+                      <th style={AF_THW}>Produk</th><th style={AF_THW}>Rate</th><th style={AF_THW}>Periode</th>
+                    </tr></thead>
+                    <tbody>
+                      {(data.campaigns || []).map((c) => (
+                        <tr key={c.campaign_id}>
+                          <td style={AF_TDL}><div style={{ fontWeight: 600, color: "#F7F7FA" }}>{c.name}</div></td>
+                          <td style={AF_TD}><Badge text={c.status} color={c.status === "Ongoing" ? "#1E9E6F" : "#A89F92"} /></td>
+                          <td style={AF_TD}>{afNum(c.affiliate_count)}</td>
+                          <td style={AF_TD}>{afNum(c.item_count)}</td>
+                          <td style={AF_TD}>{c.min_rate === c.max_rate ? `${c.min_rate}%` : `${c.min_rate}% – ${c.max_rate}%`}</td>
+                          <td style={AF_TD}>{c.period_end_time >= 32503651199 ? "Tanpa batas" : affTime(c.period_end_time)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : rows.length === 0 ? (
+              <AfMuted>{q ? "Tidak ada kreator yang cocok dengan pencarian." : "Tidak ada kreator di kelompok ini untuk rentang ini."}</AfMuted>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Kreator</th><th style={AF_THW}>Arena</th>
+                    {section === "existing" && <><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Pesanan</th><th style={AF_THW}>Klik</th></>}
+                    {section === "meta" && <><th style={AF_THW}>Penjualan sosmed</th><th style={AF_THW}>Pesanan</th><th style={AF_THW}>Klik</th><th style={AF_THW}>Status Meta</th></>}
+                    {section === "toreach" && <th style={AF_THW}>Populer di</th>}
+                    <th style={AF_THL}>Sosmed</th><th style={AF_THW}>Status reach</th><th style={AF_THW}>Aksi</th>
+                  </tr></thead>
+                  <tbody>
+                    {rows.map((c) => (
+                      <React.Fragment key={c.username}>
+                        <tr>
+                          {creatorCell(c)}
+                          <td style={AF_TD}><ArenaBadge arena={c.arena} basis={c.arena_basis} /></td>
+                          {section === "existing" && <><td style={AF_TD}>{afMoney(c.sales)}</td><td style={AF_TD}>{afNum(c.orders)}</td><td style={AF_TD}>{afNum(c.clicks)}</td></>}
+                          {section === "meta" && (
+                            <>
+                              <td style={AF_TD}>{afMoney(c.channels?.social)}</td><td style={AF_TD}>{afNum(c.orders)}</td><td style={AF_TD}>{afNum(c.clicks)}</td>
+                              <td style={AF_TD}>
+                                {c.tags?.meta_status === "confirmed" ? <Badge text="Aktif di FB ✓" color="#1E9E6F" />
+                                  : c.tags?.meta_status === "rejected" ? <Badge text="Bukan pemain FB" color="#A89F92" />
+                                  : (
+                                    <span style={{ display: "inline-flex", gap: 6 }}>
+                                      <PjBtn disabled={saving} onClick={() => saveTag(c.username, { meta_status: "confirmed" })}>Ya, aktif</PjBtn>
+                                      <PjBtn disabled={saving} onClick={() => saveTag(c.username, { meta_status: "rejected" })}>Bukan</PjBtn>
+                                    </span>
+                                  )}
+                              </td>
+                            </>
+                          )}
+                          {section === "toreach" && <td style={AF_TD}>{c.popular ? (SOCIAL_LABEL[c.popular] || c.popular) : "—"}</td>}
+                          <td style={AF_TDL}><SocialLinks socials={c.socials} /></td>
+                          {reachCell(c)}
+                          {actionCell(c)}
+                        </tr>
+                        {openContact === c.username && (
+                          <tr key={`${c.username}-panel`}>
+                            <td colSpan={section === "meta" ? 9 : section === "existing" ? 8 : 7} style={{ padding: "0 0 12px", border: "none" }}>
+                              <ContactPanel key={c.username} creator={c} onSave={saveTag} saving={saving} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      <Card title="Segera (fase 2)" subtitle="Aksi tulis ke Shopee — tiap aksi harus disetujui dulu sebelum jalan">
+        <div>
+          {[["Undang ke targeted campaign", "Pilih campaign yang jalan atau bikin baru, tulis pesan undangan, kirim ke kreator"],
+            ["Ubah komisi & produk open campaign", "Masuk/keluarin produk, atur rate — efeknya 7 hari untuk affiliator yang sedang aktif"],
+            ["Saran & validasi", "Suggested rate, saran optimasi produk, laporan validasi komisi"]].map(([t, d]) => (
             <div key={t} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 8px", borderTop: "1px solid #2A1B0F", fontFamily: "Inter, sans-serif" }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA" }}>{t}</div>
@@ -3554,7 +3880,7 @@ export default function ShopeePartnerDashboard() {
             {tab === "affiliate" && <TabAffiliate periode={periode} />}
             {tab === "lazada" && <TabOverview periode={periode} />}
             {tab === "live" && <TabLive />}
-            {tab === "project" && <TabProject />}
+            {tab === "project" && <TabProject periode={periode} />}
             </>)}
           </div>
         </div>
