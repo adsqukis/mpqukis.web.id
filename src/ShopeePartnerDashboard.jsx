@@ -2584,7 +2584,7 @@ function TabAds() {
 // Backend: /api/affiliate/summary (ops/ext_affiliate.py) untuk angka escrow, dan /api/ams/*
 // (ext_ams.py) untuk performa per kreator dari API AMS Shopee — nama kreator, klik, dan ROI
 // per kreator. AMS terhubung 17 Nov 2026 (app "Affiliate Management System", partner 2046356).
-const AFF_FILTERS = RANGE_FILTERS.filter((f) => f.key !== "year"); // backend dibatasi 31 hari
+// Tab Affiliate ikut filter Periode di header (prop periode); tidak punya filter sendiri lagi.
 const AFF_WALLET_LABEL = {
   AFFILIATE_FEE_DEDUCT: "Biaya layanan affiliate", 460: "Biaya layanan affiliate",
   AFFILIATE_ADS_SELLER_FEE: "Biaya iklan affiliate", 455: "Biaya iklan affiliate",
@@ -2620,20 +2620,23 @@ function AffTip({ active, payload }) {
   );
 }
 
-function TabAffiliate() {
-  const [range, setRangeState] = useState(() => {
-    try {
-      const k = localStorage.getItem("mp_affrange");
-      return AFF_FILTERS.some((f) => f.key === k) ? k : "month";
-    } catch { return "month"; }
-  });
-  const setRange = (k) => {
-    setRangeState(k);
-    try { localStorage.setItem("mp_affrange", k); } catch { /* ignore */ }
-  };
+function TabAffiliate({ periode }) {
   const [data, setData] = useState(null);
   const [showAll, setShowAll] = useState(false);
-  const dRange = RANGE_PRESETS[range]();
+  // Ikut filter Periode di header; backend escrow mentok 31 hari, jadi rentang di-clamp
+  // dengan aturan yang sama seperti _aff_range di server supaya label selalu cocok datanya.
+  const { dRange, rangeClamped } = (() => {
+    const today = isoDaysAgo(0);
+    const to = periode.to && periode.to <= today ? periode.to : today;
+    let from = periode.from && periode.from <= to ? periode.from : to;
+    const span = ovSpanDays(from, to);
+    if (span > 31) {
+      const f = new Date(`${to}T00:00:00`);
+      f.setDate(f.getDate() - 30);
+      from = toISODate(f);
+    }
+    return { dRange: { from, to }, rangeClamped: span > 31 };
+  })();
 
   // Escrow berubah pelan (backend cache 15 menit), jadi refresh cukup tiap 5 menit.
   useEffect(() => {
@@ -2647,13 +2650,14 @@ function TabAffiliate() {
     const iv = setInterval(load, 5 * 60 * 1000);
     return () => { active = false; clearInterval(iv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, [periode.from, periode.to]);
 
   // ── AMS: performa per kreator (nama, klik, ROI) — data diperbarui harian oleh Shopee. ──
   const [ams, setAms] = useState(null);
   const [amsPage, setAmsPage] = useState(1);
   const [amsMore, setAmsMore] = useState(false);
-  const amsPeriod = range === "today" || range === "yesterday" ? "Day" : range === "7d" ? "Last7d" : "Last30d";
+  const affSpan = ovSpanDays(dRange.from, dRange.to);
+  const amsPeriod = affSpan <= 1 ? "Day" : affSpan <= 7 ? "Last7d" : "Last30d";
 
   useEffect(() => {
     let active = true;
@@ -2699,7 +2703,7 @@ function TabAffiliate() {
     load();
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, [periode.from, periode.to]);
 
   const loadMoreCreators = () => {
     if (!ams || !ams.params || amsMore || !ams.hasMore) return;
@@ -2738,23 +2742,7 @@ function TabAffiliate() {
 
   return (
     <>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {AFF_FILTERS.map((f) => {
-          const on = range === f.key;
-          return (
-            <button key={f.key} onClick={() => setRange(f.key)} style={{
-              padding: "7px 16px", borderRadius: 9, border: on ? "1px solid var(--ac1)" : "1px solid #33200F",
-              background: on ? "var(--ac1)" : "#1D130A", color: on ? "#fff" : "#B8AEA0",
-              fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
-            }}>{f.label}</button>
-          );
-        })}
-        <span style={{ fontSize: 12, color: "#A89F92", marginLeft: 6, fontFamily: "Inter, sans-serif" }}>
-          {fmtDmy(dRange.from)} – {fmtDmy(dRange.to)} · dari escrow pesanan yang sudah selesai
-        </span>
-      </div>
-
-      <Card title="Ringkasan" subtitle={`Dari pesanan yang sudah selesai · pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}`}>
+      <Card title="Ringkasan" subtitle={`Dari pesanan yang sudah selesai · pesanan affiliate = pesanan dengan komisi affiliate di escrow · ${fmtDmy(dRange.from)} – ${fmtDmy(dRange.to)}${rangeClamped ? " · menampilkan 31 hari terakhir dari rentang yang dipilih" : ""}`}>
         {data === null ? (
           <AfMuted>Memuat… (tarikan pertama untuk rentang baru bisa agak lama: escrow tiap pesanan dibaca)</AfMuted>
         ) : data.unavailable ? (
@@ -3529,7 +3517,7 @@ export default function ShopeePartnerDashboard() {
             {tab === "pesanan" && <TabPesanan />}
             {tab === "penghasilan" && <TabPenghasilan />}
             {tab === "ads" && <TabAds />}
-            {tab === "affiliate" && <TabAffiliate />}
+            {tab === "affiliate" && <TabAffiliate periode={periode} />}
             {tab === "lazada" && <TabOverview periode={periode} />}
             {tab === "live" && <TabLive />}
             </>)}
