@@ -7,7 +7,7 @@ import {
   Package, Wallet, Megaphone, Users2, Radio, ChevronRight,
   ArrowUpRight, ArrowDownRight, Circle, Search, Bell, Store,
   ChevronsLeft, ChevronsRight, LayoutDashboard,
-  Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp,
+  Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp, Briefcase,
   Sparkles, Send, X, ChevronDown, ChevronLeft, Check,
   CheckCircle2, Clock, ShoppingBag,
 } from "lucide-react";
@@ -3163,6 +3163,38 @@ function TabLive() {
 
 // ---------- shell ----------
 
+// ---------- Tab Project: ruang kerja proyek; pertama diisi fitur Affiliate Management System ----------
+function TabProject() {
+  const planned = [
+    ["Open Campaign", "Masuk/keluarin produk & atur komisi toko"],
+    ["Targeted Campaign", "Bikin campaign buat kreator pilihan, atur budget & undangan"],
+    ["Kreator", "Cari kreator, lihat yang di-manage & rekomendasi Shopee"],
+    ["Saran & Validasi", "Suggested rate, saran optimasi produk, laporan validasi komisi"],
+  ];
+  return (
+    <>
+      <Card title="Affiliate Management System" subtitle="Fitur manajemen affiliate dari API AMS Shopee — segera hadir di tab ini">
+        <AfMuted>
+          Data performa affiliate tetap di tab Affiliate. Tab Project disiapkan sebagai ruang kerja
+          fitur manajemennya. Semua aksi tulis (ubah komisi, bikin/matikan campaign) harus disetujui
+          dulu sebelum jalan.
+        </AfMuted>
+        <div style={{ marginTop: 12 }}>
+          {planned.map(([t, d]) => (
+            <div key={t} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 8px", borderTop: "1px solid #2A1B0F", fontFamily: "Inter, sans-serif" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA" }}>{t}</div>
+                <div style={{ fontSize: 12, color: "#A89F92", marginTop: 1 }}>{d}</div>
+              </div>
+              <Badge text="Segera" color="#A89F92" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    </>
+  );
+}
+
 const MENU = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "pesanan", label: "Pesanan", icon: Package },
@@ -3170,6 +3202,7 @@ const MENU = [
   { key: "ads", label: "Ads", icon: Megaphone },
   { key: "affiliate", label: "Affiliate", icon: Users2 },
   { key: "live", label: "Live", icon: Radio },
+  { key: "project", label: "Project", icon: Briefcase },
 ];
 
 const TITLES = {
@@ -3180,6 +3213,7 @@ const TITLES = {
   affiliate: ["Affiliate", "Penjualan, komisi & kreator affiliate"],
   lazada: ["Lazada", "Laporan penjualan toko Lazada Generos Official Store"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
+  project: ["Project", "Ruang kerja proyek — Affiliate Management System"],
 };
 
 
@@ -3520,6 +3554,7 @@ export default function ShopeePartnerDashboard() {
             {tab === "affiliate" && <TabAffiliate periode={periode} />}
             {tab === "lazada" && <TabOverview periode={periode} />}
             {tab === "live" && <TabLive />}
+            {tab === "project" && <TabProject />}
             </>)}
           </div>
         </div>
