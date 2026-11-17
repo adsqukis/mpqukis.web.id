@@ -3234,7 +3234,7 @@ function PjBtn({ active, disabled, onClick, children }) {
   );
 }
 
-function ContactPanel({ creator, onSave, saving }) {
+function ContactPanel({ creator, onSave, saving, onInvite }) {
   const tags = creator.tags || {};
   const [note, setNote] = useState(tags.reach_note || "");
   const [savedTick, setSavedTick] = useState(false);
@@ -3248,7 +3248,7 @@ function ContactPanel({ creator, onSave, saving }) {
     <div style={{ background: "#171009", border: "1px solid #2A1B0F", borderRadius: 12, padding: "14px 16px", fontFamily: "Inter, sans-serif" }}>
       <div style={{ fontSize: 12.5, fontWeight: 700, color: "#F7F7FA", marginBottom: 8 }}>Hubungi {creator.name}</div>
       <div style={{ marginBottom: 12 }}><SocialLinks socials={creator.socials} /></div>
-      <AfMuted>Shopee tidak membuka nomor HP/email kreator — hubungi lewat profil sosmednya, atau undang lewat targeted campaign (fase 2).</AfMuted>
+      <AfMuted>Shopee tidak membuka nomor HP/email kreator — hubungi lewat profil sosmednya, atau undang lewat targeted campaign (tombol di bawah).</AfMuted>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "#A89F92" }}>Status reach:</span>
         {Object.keys(REACH_META).map((k) => (
@@ -3262,9 +3262,782 @@ function ContactPanel({ creator, onSave, saving }) {
         {savedTick && <span style={{ fontSize: 12, color: "#1E9E6F", alignSelf: "center" }}>Tersimpan ✓</span>}
       </div>
       <div style={{ marginTop: 10 }}>
-        <PjBtn disabled>Undang ke targeted campaign (segera — fase 2)</PjBtn>
+        {creator.affiliate_id ? <PjBtn onClick={() => onInvite(creator)}>Undang ke targeted campaign</PjBtn> : null}
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 2 — aksi tulis AMS (targeted campaign, open campaign, saran & validasi)
+// Setiap aksi tulis di sini selalu melewati langkah konfirmasi di UI sebelum
+// request dikirim. Backend memvalidasi ulang dan mencatatnya ke audit log.
+// ─────────────────────────────────────────────────────────────────────────────
+const NO_LIMIT_TS = 32503651199;
+const fmtTs = (ts) => {
+  if (!ts || ts >= NO_LIMIT_TS) return "Tanpa batas";
+  return fmtDmy(toISODate(new Date(ts * 1000)));
+};
+const postAms = async (path, body) => {
+  const r = await fetch(`https://api.qukis.id${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+};
+const AMS_ERR_ID = {
+  bad_body: "Data yang dikirim tidak valid.",
+  bad_campaign_name: "Nama campaign tidak valid (1–100 karakter).",
+  bad_seller_message: "Pesan untuk affiliator wajib diisi (maks 500 karakter).",
+  bad_item_list: "Daftar produk tidak valid (1–50 produk).",
+  bad_item_entry: "Ada produk/rate yang tidak valid (rate 0,01–80%).",
+  bad_affiliate_list: "Daftar affiliator tidak valid.",
+  bad_affiliate_entry: "Ada affiliator yang tidak valid.",
+  bad_period: "Periode tidak valid.",
+  bad_budget: "Budget tidak valid.",
+  bad_params: "Parameter tidak valid.",
+  bad_campaign_id: "ID campaign tidak valid.",
+  bad_campaign_ids: "Daftar ID campaign tidak valid.",
+  bad_rate: "Rate tidak valid (0,01–80%).",
+  bad_item_id: "ID produk tidak valid.",
+  bad_open: "Status auto-add tidak valid.",
+  bad_task_id: "ID tugas tidak valid.",
+  nothing_to_update: "Tidak ada perubahan yang dikirim.",
+  missing_param: "Parameter wajib belum diisi.",
+};
+const amsErr = (d) => (d && d.message) || AMS_ERR_ID[d && d.error] || (d && d.error) || "Gagal memanggil API Shopee.";
+
+// Bilah konfirmasi dua langkah untuk aksi tulis.
+function ConfirmBar({ text, busy, onYes, onNo }) {
+  return (
+    <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid #B45309", borderRadius: 10, background: "#231303" }}>
+      <div style={{ fontSize: 12.5, color: "#FDE68A", lineHeight: 1.5 }}>{text}</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button type="button" disabled={busy} onClick={onYes} style={{ ...BTN_D, borderColor: "#B45309", color: "#FDE68A", opacity: busy ? 0.6 : 1 }}>
+          {busy ? "Mengirim…" : "Ya, jalankan"}
+        </button>
+        <button type="button" disabled={busy} onClick={onNo} style={BTN_D}>Batal</button>
+      </div>
+    </div>
+  );
+}
+
+const MODAL_OVERLAY = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 80, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "6vh 12px", overflowY: "auto" };
+const MODAL_PANEL = { width: "100%", maxWidth: 660, background: "#120B06", border: "1px solid #3A2A18", borderRadius: 14, padding: 16 };
+const BTN_D = { fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#F7F7FA", background: "transparent", border: "1px solid #2A1B0F", borderRadius: 8, padding: "6px 12px" };
+const INPUT_D = { background: "#0B0603", color: "#F7F7FA", border: "1px solid #3A2A18", borderRadius: 8, padding: "7px 9px", fontSize: 12.5, fontFamily: "'Roboto', sans-serif" };
+
+// ── Modal undang affiliator: ke campaign yang jalan, atau bikin campaign baru ──
+function InviteModal({ c, campaigns, onClose, onInvited }) {
+  const ongoing = (campaigns || []).filter((x) => x.status === "Ongoing");
+  const [mode, setMode] = useState(ongoing.length ? "existing" : "new");
+  const [cid, setCid] = useState(ongoing.length ? String(ongoing[0].campaign_id) : "");
+  const [name, setName] = useState(`Generos x ${c.name || c.username || ""}`.slice(0, 100));
+  const [msg, setMsg] = useState("Halo! Kami dari Generos Official Store mengundang kamu untuk mempromosikan produk Generos lewat campaign ini. Komisi mengikuti rate produk yang dipilih. Ditunggu ya, terima kasih!");
+  const [products, setProducts] = useState(null);
+  const [picked, setPicked] = useState({});
+  const [shopRate, setShopRate] = useState(null);
+  const [noLimit, setNoLimit] = useState(true);
+  const [endDate, setEndDate] = useState("");
+  const [step, setStep] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (mode !== "new" || products) return;
+    (async () => {
+      try {
+        const [p, s] = await Promise.all([
+          fetch("https://api.qukis.id/api/ams/campaigns/addable-products?page_size=50&sort_by=-sales").then((r) => r.json()),
+          fetch("https://api.qukis.id/api/ams/suggested-rates").then((r) => r.json()),
+        ]);
+        setProducts((p.response && p.response.item_list) || []);
+        setShopRate(s.shop || null);
+      } catch (e) {
+        setProducts([]);
+      }
+    })();
+  }, [mode, products]);
+
+  if (!c.affiliate_id) {
+    return (
+      <div style={MODAL_OVERLAY} onClick={onClose}>
+        <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#F7F7FA" }}>Undang {c.name || c.username}</div>
+          <InfoNote>Kreator ini tidak punya affiliate ID dari Shopee, jadi tidak bisa diundang lewat API.</InfoNote>
+          <button type="button" onClick={onClose} style={{ ...BTN_D, marginTop: 10 }}>Tutup</button>
+        </div>
+      </div>
+    );
+  }
+
+  const pickedIds = Object.keys(picked).filter((id) => picked[id] != null);
+  const defRate = (shopRate && shopRate.max_rate) || 10;
+  const chosen = ongoing.find((x) => String(x.campaign_id) === cid);
+
+  const submit = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      let d;
+      if (mode === "existing") {
+        d = await postAms("/api/ams/campaigns/edit-affiliates", {
+          campaign_id: Number(cid), edit_type: "add",
+          affiliate_list: [{ affiliate_id: c.affiliate_id }],
+        });
+      } else {
+        const end = noLimit ? NO_LIMIT_TS : Math.floor(new Date(endDate + "T23:59:59").getTime() / 1000);
+        d = await postAms("/api/ams/campaigns/create", {
+          campaign_name: name, seller_message: msg,
+          period_start_time: Math.floor(Date.now() / 1000), period_end_time: end,
+          item_list: pickedIds.map((id) => ({ item_id: Number(id), rate: picked[id] })),
+          affiliate_list: [{ affiliate_id: c.affiliate_id }],
+        });
+      }
+      setResult(d);
+      if (d.ok) onInvited(c);
+    } catch (e) {
+      setResult({ ok: false, error: "exception", message: String(e && e.message || e) });
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div style={MODAL_OVERLAY} onClick={onClose}>
+      <div style={MODAL_PANEL} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#F7F7FA" }}>Undang {c.name || c.username}</div>
+          <button type="button" onClick={onClose} style={BTN_D}>Tutup</button>
+        </div>
+        <div style={{ fontSize: 12, color: "#A8A29A", marginTop: 2 }}>
+          @{c.username || "—"}{c.arena ? <> · Arena: {ARENA_META[c.arena] ? ARENA_META[c.arena].label : c.arena}</> : null} · Undangan ini adalah aksi nyata di Shopee — affiliator akan melihat campaign-nya.
+        </div>
+
+        {result && result.ok ? (
+          <div style={{ marginTop: 12 }}>
+            <InfoNote>{mode === "existing"
+              ? `Berhasil: ${c.name || c.username} ditambahkan ke campaign "${chosen ? chosen.name : ""}". Status reach-nya ikut ditandai "Sudah dihubungi".`
+              : `Berhasil: campaign "${name}" dibuat dengan ID ${result.response && result.response.campaign_id ? result.response.campaign_id : "—"}. Status reach-nya ikut ditandai "Sudah dihubungi".`}</InfoNote>
+            <button type="button" onClick={onClose} style={{ ...BTN_D, marginTop: 10 }}>Selesai</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button type="button" onClick={() => setMode("existing")} disabled={!ongoing.length} style={{ ...BTN_D, ...(mode === "existing" ? { borderColor: "#FF9E45", color: "#F7F7FA" } : {}) }}>Ke campaign yang jalan</button>
+              <button type="button" onClick={() => setMode("new")} style={{ ...BTN_D, ...(mode === "new" ? { borderColor: "#FF9E45", color: "#F7F7FA" } : {}) }}>Bikin campaign baru</button>
+            </div>
+
+            {step === 1 && mode === "existing" && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: 12, color: "#A8A29A" }}>Pilih campaign</label>
+                <select value={cid} onChange={(e) => setCid(e.target.value)} style={{ ...INPUT_D, width: "100%", marginTop: 4 }}>
+                  {ongoing.map((x) => (
+                    <option key={x.campaign_id} value={x.campaign_id}>{x.name} — {x.affiliate_count} affiliator, rate {x.min_rate}–{x.max_rate}%</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 12, color: "#A8A29A", marginTop: 8, lineHeight: 1.5 }}>
+                  {c.name || c.username} akan ditambahkan ke campaign ini dengan produk &amp; rate yang sudah ada di campaign tersebut. Pesan penjual tidak bisa diubah dari sini (hanya bisa diisi saat campaign dibuat).
+                </div>
+                <button type="button" disabled={!cid || busy} onClick={() => setStep(2)} style={{ ...BTN_D, marginTop: 10 }}>Lanjut ke konfirmasi</button>
+              </div>
+            )}
+
+            {step === 1 && mode === "new" && (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A8A29A" }}>Nama campaign</label>
+                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 100))} style={{ ...INPUT_D, width: "100%", marginTop: 4 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A8A29A" }}>Pesan untuk affiliator (ini satu-satunya pesan yang bisa dikirim API Shopee)</label>
+                  <textarea value={msg} onChange={(e) => setMsg(e.target.value.slice(0, 500))} rows={3} style={{ ...INPUT_D, width: "100%", marginTop: 4, resize: "vertical" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A8A29A" }}>
+                    Produk &amp; rate {shopRate ? `(saran toko: ${shopRate.min_rate}–${shopRate.max_rate}%)` : ""}
+                  </label>
+                  {!products ? <div style={{ fontSize: 12, color: "#A8A29A", marginTop: 6 }}>Memuat produk…</div> : products.length === 0 ? (
+                    <div style={{ fontSize: 12, color: "#A8A29A", marginTop: 6 }}>Tidak ada produk yang bisa ditambahkan.</div>
+                  ) : (
+                    <div style={{ maxHeight: 220, overflowY: "auto", marginTop: 6, border: "1px solid #2A1B0F", borderRadius: 8 }}>
+                      {products.map((p) => (
+                        <label key={p.item_id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "7px 9px", borderTop: "1px solid #2A1B0F", fontSize: 12, color: "#D8D2C8" }}>
+                          <input type="checkbox" checked={picked[p.item_id] != null} onChange={(e) => {
+                            setPicked((prev) => {
+                              const nx = { ...prev };
+                              if (e.target.checked) nx[p.item_id] = defRate; else delete nx[p.item_id];
+                              return nx;
+                            });
+                          }} />
+                          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.item_name}</span>
+                          {picked[p.item_id] != null && (
+                            <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                              <input type="number" min="0.01" max="80" step="0.5" value={picked[p.item_id]} onChange={(e) => setPicked((prev) => ({ ...prev, [p.item_id]: Number(e.target.value) }))} style={{ ...INPUT_D, width: 64, padding: "4px 6px" }} />%
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 12, color: "#D8D2C8" }}>
+                  <span>Berakhir:</span>
+                  <label style={{ display: "flex", gap: 5, alignItems: "center" }}><input type="radio" checked={noLimit} onChange={() => setNoLimit(true)} /> Tanpa batas</label>
+                  <label style={{ display: "flex", gap: 5, alignItems: "center" }}><input type="radio" checked={!noLimit} onChange={() => setNoLimit(false)} /> Tanggal</label>
+                  {!noLimit && <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={INPUT_D} />}
+                </div>
+                <div>
+                  <button type="button" disabled={pickedIds.length === 0 || !name.trim() || !msg.trim() || (!noLimit && !endDate)} onClick={() => setStep(2)} style={BTN_D}>Lanjut ke konfirmasi</button>
+                </div>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12.5, color: "#F7F7FA", lineHeight: 1.6 }}>
+                  {mode === "existing" ? (
+                    <>Affiliator <b>{c.name || c.username}</b> (@{c.username || "—"}) akan <b>ditambahkan</b> ke campaign <b>"{chosen ? chosen.name : ""}"</b> (ID {cid}).</>
+                  ) : (
+                    <>Campaign baru <b>"{name}"</b> akan dibuat untuk <b>{c.name || c.username}</b> dengan {pickedIds.length} produk (rate {pickedIds.map((id) => `${picked[id]}%`).join(", ")}){noLimit ? ", tanpa batas waktu" : `, berakhir ${fmtDmy(endDate)}`}, dan pesan di atas akan ditampilkan ke affiliator.</>
+                  )}
+                </div>
+                {result && !result.ok && <InfoNote>Gagal: {amsErr(result)}</InfoNote>}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button type="button" disabled={busy} onClick={submit} style={{ ...BTN_D, borderColor: "#FF9E45", color: "#F7F7FA" }}>{busy ? "Mengirim…" : "Ya, kirim undangan"}</button>
+                  <button type="button" disabled={busy} onClick={() => setStep(1)} style={BTN_D}>Kembali</button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Detail + kelola satu targeted campaign ──
+function CampaignDetail({ campaign, onClose, onChanged }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(null);
+  const [addable, setAddable] = useState(null);
+  const [addItem, setAddItem] = useState("");
+  const [addRate, setAddRate] = useState(10);
+  const [rateEdits, setRateEdits] = useState({});
+  const [editName, setEditName] = useState(campaign.name);
+  const [editNoLimit, setEditNoLimit] = useState(true);
+  const [editEnd, setEditEnd] = useState("");
+  const managed = campaign.source === "ShopeeManaged";
+
+  const load = async () => {
+    if (managed) return;
+    setErr("");
+    try {
+      const d = await fetch(`https://api.qukis.id/api/ams/campaigns/settings?campaign_id=${campaign.campaign_id}&_t=${Date.now()}`).then((r) => r.json());
+      if (d.error) setErr(amsErr(d));
+      else setData(d.response);
+    } catch (e) {
+      setErr(String(e && e.message || e));
+    }
+  };
+  useEffect(() => { load(); }, [campaign.campaign_id]);
+
+  const loadAddable = async () => {
+    if (addable) return;
+    try {
+      const d = await fetch("https://api.qukis.id/api/ams/campaigns/addable-products?page_size=50&sort_by=-sales").then((r) => r.json());
+      setAddable((d.response && d.response.item_list) || []);
+    } catch (e) {
+      setAddable([]);
+    }
+  };
+
+  const runWrite = async (path, body, okText) => {
+    setBusy(true);
+    setNote("");
+    try {
+      const d = await postAms(path, body);
+      if (d.ok) {
+        setNote(okText);
+        setPending(null);
+        onChanged();
+        load();
+      } else {
+        setNote(`Gagal: ${amsErr(d)}`);
+        setPending(null);
+      }
+    } catch (e) {
+      setNote(`Gagal: ${String(e && e.message || e)}`);
+      setPending(null);
+    }
+    setBusy(false);
+  };
+
+  const items = (data && data.item_list) || [];
+  const affs = (data && data.affiliate_list) || [];
+
+  return (
+    <Card title={`Detail campaign — ${campaign.name}`} right={<button type="button" onClick={onClose} style={BTN_D}>Tutup</button>}>
+      {managed ? (
+        <InfoNote>Campaign ini dibuat/dikelola Shopee (ShopeeManaged) — detailnya tidak bisa dibaca lewat API. Kelola dari Seller Centre.</InfoNote>
+      ) : err ? (
+        <InfoNote>Detail tidak bisa dimuat: {err}</InfoNote>
+      ) : !data ? (
+        <div style={{ fontSize: 12.5, color: "#A8A29A" }}>Memuat detail campaign…</div>
+      ) : (
+        <>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12.5, color: "#D8D2C8" }}>
+            <span>Status: <b style={{ color: "#F7F7FA" }}>{data.campaign_status}</b></span>
+            <span>Periode: {fmtTs(data.period_start_time)} – {fmtTs(data.period_end_time)}</span>
+            <span>Budget: {data.is_set_budget ? afMoney(data.budget) + ` (terpakai ${afMoney(data.budget_cost)})` : "tidak dibatasi"}</span>
+          </div>
+          {data.seller_message ? <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 6 }}>Pesan: “{data.seller_message}”</div> : null}
+          {note && <div style={{ fontSize: 12.5, color: note.startsWith("Gagal") ? "#FCA5A5" : "#86EFAC", marginTop: 8 }}>{note}</div>}
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA", marginTop: 14 }}>Produk ({items.length})</div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+              <thead><tr><th style={AF_THL}>Produk</th><th style={AF_TH}>Rate</th><th style={AF_TH}>Aksi</th></tr></thead>
+              <tbody>
+                {items.map((it) => (
+                  <tr key={it.item_id}>
+                    <td style={AF_TDL}>{it.item_name}</td>
+                    <td style={AF_TD}>
+                      <input type="number" min="0.01" max="80" step="0.5" value={rateEdits[it.item_id] != null ? rateEdits[it.item_id] : it.rate}
+                        onChange={(e) => setRateEdits((prev) => ({ ...prev, [it.item_id]: Number(e.target.value) }))} style={{ ...INPUT_D, width: 70, padding: "4px 6px" }} />%
+                    </td>
+                    <td style={AF_TD}>
+                      <button type="button" disabled={busy || rateEdits[it.item_id] == null || rateEdits[it.item_id] === it.rate}
+                        onClick={() => setPending({ text: `Ubah rate produk ini dari ${it.rate}% menjadi ${rateEdits[it.item_id]}%? Rate yang diturunkan baru berlaku penuh setelah 7 hari untuk affiliator yang sedang mempromosikan; rate yang dinaikkan berlaku langsung.`, run: () => runWrite("/api/ams/campaigns/edit-products", { campaign_id: campaign.campaign_id, edit_type: "update", item_list: [{ item_id: it.item_id, rate: rateEdits[it.item_id] }] }, "Rate produk diperbarui.") })}
+                        style={BTN_D}>Simpan rate</button>{" "}
+                      <button type="button" disabled={busy}
+                        onClick={() => setPending({ text: `Hapus produk ini dari campaign "${campaign.name}"?`, run: () => runWrite("/api/ams/campaigns/edit-products", { campaign_id: campaign.campaign_id, edit_type: "delete", item_list: [{ item_id: it.item_id }] }, "Produk dihapus dari campaign.") })}
+                        style={BTN_D}>Hapus</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={loadAddable} style={BTN_D}>{addable ? "Pilih produk" : "Muat daftar produk"}</button>
+            {addable && (
+              <>
+                <select value={addItem} onChange={(e) => setAddItem(e.target.value)} style={{ ...INPUT_D, maxWidth: 340 }}>
+                  <option value="">— pilih produk —</option>
+                  {addable.filter((p) => !items.some((it) => it.item_id === p.item_id)).map((p) => (
+                    <option key={p.item_id} value={p.item_id}>{p.item_name}</option>
+                  ))}
+                </select>
+                <span style={{ display: "flex", gap: 4, alignItems: "center", fontSize: 12, color: "#D8D2C8" }}>
+                  <input type="number" min="0.01" max="80" step="0.5" value={addRate} onChange={(e) => setAddRate(Number(e.target.value))} style={{ ...INPUT_D, width: 64, padding: "4px 6px" }} />%
+                </span>
+                <button type="button" disabled={busy || !addItem}
+                  onClick={() => setPending({ text: `Tambah produk terpilih ke campaign "${campaign.name}" dengan rate ${addRate}%?`, run: () => runWrite("/api/ams/campaigns/edit-products", { campaign_id: campaign.campaign_id, edit_type: "add", item_list: [{ item_id: Number(addItem), rate: addRate }] }, "Produk ditambahkan ke campaign.") })}
+                  style={BTN_D}>Tambah produk</button>
+              </>
+            )}
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA", marginTop: 16 }}>Affiliator ({affs.length})</div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+              <thead><tr><th style={AF_THL}>Affiliator</th><th style={AF_THL}>Username</th><th style={AF_TH}>Aksi</th></tr></thead>
+              <tbody>
+                {affs.map((a) => (
+                  <tr key={a.affiliate_id}>
+                    <td style={AF_TDL}>{a.affiliate_name || "—"}</td>
+                    <td style={AF_TDL}>@{a.user_name || a.affiliate_id}</td>
+                    <td style={AF_TD}>
+                      <button type="button" disabled={busy}
+                        onClick={() => setPending({ text: `Keluarkan ${a.affiliate_name || a.user_name || a.affiliate_id} dari campaign "${campaign.name}"?`, run: () => runWrite("/api/ams/campaigns/edit-affiliates", { campaign_id: campaign.campaign_id, edit_type: "delete", affiliate_list: [{ affiliate_id: a.affiliate_id }] }, "Affiliator dikeluarkan dari campaign.") })}
+                        style={BTN_D}>Keluarkan</button>
+                    </td>
+                  </tr>
+                ))}
+                {affs.length === 0 && <tr><td style={AF_TDL} colSpan={3}>Belum ada affiliator.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA", marginTop: 16 }}>Ubah info dasar</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
+            <input value={editName} onChange={(e) => setEditName(e.target.value.slice(0, 100))} style={{ ...INPUT_D, width: 280 }} />
+            <label style={{ display: "flex", gap: 5, alignItems: "center", fontSize: 12, color: "#D8D2C8" }}><input type="radio" checked={editNoLimit} onChange={() => setEditNoLimit(true)} /> Tanpa batas</label>
+            <label style={{ display: "flex", gap: 5, alignItems: "center", fontSize: 12, color: "#D8D2C8" }}><input type="radio" checked={!editNoLimit} onChange={() => setEditNoLimit(false)} /> Berakhir</label>
+            {!editNoLimit && <input type="date" value={editEnd} onChange={(e) => setEditEnd(e.target.value)} style={INPUT_D} />}
+            <button type="button" disabled={busy || (!editName.trim()) || (!editNoLimit && !editEnd)}
+              onClick={() => setPending({ text: `Simpan perubahan info campaign ini? Nama: "${editName}", berakhir: ${editNoLimit ? "tanpa batas" : fmtDmy(editEnd)}. Periode tidak bisa dipersingkat setelah campaign aktif.`, run: () => runWrite("/api/ams/campaigns/update-info", { campaign_id: campaign.campaign_id, campaign_name: editName.trim(), period_end_time: editNoLimit ? NO_LIMIT_TS : Math.floor(new Date(editEnd + "T23:59:59").getTime() / 1000) }, "Info campaign diperbarui.") })}
+              style={BTN_D}>Simpan info</button>
+          </div>
+
+          {campaign.status === "Ongoing" && (
+            <div style={{ marginTop: 16 }}>
+              <button type="button" disabled={busy}
+                onClick={() => setPending({ text: `Akhiri campaign "${campaign.name}" sekarang? Campaign yang diakhiri tidak bisa diaktifkan lagi.`, run: () => runWrite("/api/ams/campaigns/terminate", { campaign_id: campaign.campaign_id }, "Campaign diakhiri.") })}
+                style={{ ...BTN_D, borderColor: "#7F1D1D", color: "#FCA5A5" }}>Akhiri campaign</button>
+            </div>
+          )}
+          {pending && <ConfirmBar text={pending.text} busy={busy} onYes={pending.run} onNo={() => setPending(null)} />}
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ── Open Campaign: produk, rate, auto-add ──
+function OpenCampaignPanel({ prefill, onPrefillDone }) {
+  const [status, setStatus] = useState(null);
+  const [added, setAdded] = useState(null);
+  const [notAdded, setNotAdded] = useState(null);
+  const [rates, setRates] = useState({});
+  const [edit, setEdit] = useState(null);
+  const [editRate, setEditRate] = useState(10);
+  const [pending, setPending] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [autoOpen, setAutoOpen] = useState(true);
+  const [autoRate, setAutoRate] = useState(4);
+
+  const load = async () => {
+    try {
+      const st = await fetch("https://api.qukis.id/api/ams/open-campaign/auto-add-status").then((r) => r.json());
+      if (st.response) {
+        setStatus(st.response);
+        setAutoOpen(!!st.response.is_open);
+        setAutoRate(st.response.commission_rate || 4);
+      }
+    } catch (e) {}
+    try {
+      let all = [];
+      let cursor = "";
+      for (let i = 0; i < 3; i++) {
+        const d = await fetch(`https://api.qukis.id/api/ams/open-campaign/products?which=added&page_size=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`).then((r) => r.json());
+        const list = (d.response && d.response.item_list) || [];
+        all = all.concat(list);
+        cursor = (d.response && d.response.cursor) || "";
+        if (!cursor || !list.length) break;
+      }
+      setAdded(all);
+      if (all.length) {
+        const ids = all.map((p) => p.item_id).join(",");
+        const s = await fetch(`https://api.qukis.id/api/ams/suggested-rates?item_id_list=${encodeURIComponent(ids)}`).then((r) => r.json());
+        const map = {};
+        ((s.products && s.products.rates) || []).forEach((x) => { map[x.item_id] = x; });
+        setRates(map);
+      }
+    } catch (e) {
+      setAdded([]);
+    }
+    try {
+      const d = await fetch("https://api.qukis.id/api/ams/open-campaign/products?which=not_added&page_size=50").then((r) => r.json());
+      setNotAdded((d.response && d.response.item_list) || []);
+    } catch (e) {
+      setNotAdded([]);
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (prefill && added) {
+      const p = added.find((x) => x.campaign_id === prefill.campaign_id);
+      if (p) {
+        setEdit(p);
+        setEditRate(prefill.rate);
+      }
+      onPrefillDone();
+    }
+  }, [prefill, added]);
+
+  const pollTask = async (taskId) => {
+    for (let i = 0; i < 4; i++) {
+      await new Promise((r) => setTimeout(r, 2500));
+      try {
+        const d = await fetch(`https://api.qukis.id/api/ams/open-campaign/task?task_id=${encodeURIComponent(taskId)}`).then((r) => r.json());
+        const resp = d.response || {};
+        if (resp.task_status === "finished" || resp.progress === 100) {
+          setNote(`Tugas batch selesai. ${resp.failed_count ? `Gagal: ${resp.failed_count}.` : ""}`);
+          load();
+          return;
+        }
+      } catch (e) {}
+    }
+    setNote(`Tugas batch masih berjalan (task ${taskId}). Muat ulang tab ini sesaat lagi untuk melihat hasilnya.`);
+    load();
+  };
+
+  const runWrite = async (path, body, okText) => {
+    setBusy(true);
+    setNote("");
+    try {
+      const d = await postAms(path, body);
+      setPending(null);
+      if (d.ok) {
+        const taskId = d.response && d.response.task_id;
+        setNote(taskId ? `${okText} Menunggu hasil batch…` : okText);
+        if (taskId) pollTask(taskId); else load();
+      } else {
+        setNote(`Gagal: ${amsErr(d)}`);
+      }
+    } catch (e) {
+      setPending(null);
+      setNote(`Gagal: ${String(e && e.message || e)}`);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Card title="Open Campaign">
+      <InfoNote>Produk di sini bisa dipromosikan affiliator mana pun. Rate yang diturunkan baru berlaku penuh setelah 7 hari untuk affiliator yang sedang mempromosikan (rate naik berlaku langsung). Produk yang dihapus tetap bisa menghasilkan komisi 7 hari ke depan.</InfoNote>
+      {note && <div style={{ fontSize: 12.5, color: note.startsWith("Gagal") ? "#FCA5A5" : "#86EFAC", marginTop: 8 }}>{note}</div>}
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap", fontSize: 12.5, color: "#D8D2C8" }}>
+        <span>Auto-add produk baru:</span>
+        <button type="button" onClick={() => setAutoOpen(true)} style={{ ...BTN_D, ...(autoOpen ? { borderColor: "#FF9E45", color: "#F7F7FA" } : {}) }}>Aktif</button>
+        <button type="button" onClick={() => setAutoOpen(false)} style={{ ...BTN_D, ...(!autoOpen ? { borderColor: "#FF9E45", color: "#F7F7FA" } : {}) }}>Nonaktif</button>
+        <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          Rate default <input type="number" min="0.01" max="80" step="0.5" value={autoRate} onChange={(e) => setAutoRate(Number(e.target.value))} style={{ ...INPUT_D, width: 64, padding: "4px 6px" }} />%
+        </span>
+        <button type="button" disabled={busy}
+          onClick={() => setPending({ text: `Simpan pengaturan auto-add: ${autoOpen ? "aktif" : "nonaktif"} dengan rate default ${autoRate}% untuk produk baru?`, run: () => runWrite("/api/ams/open-campaign/auto-add", { open: autoOpen, commission_rate: autoRate }, "Pengaturan auto-add disimpan.") })}
+          style={BTN_D}>Simpan auto-add</button>
+        {status && <span style={{ color: "#A8A29A" }}>(saat ini: {status.is_open ? "aktif" : "nonaktif"}, {status.commission_rate}%)</span>}
+      </div>
+
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA", marginTop: 16 }}>Produk di Open Campaign ({added ? added.length : "…"})</div>
+      {!added ? <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 6 }}>Memuat produk…</div> : added.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 6 }}>Belum ada produk di Open Campaign.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+            <thead><tr><th style={AF_THL}>Produk</th><th style={AF_TH}>Rate</th><th style={AF_TH}>Saran Shopee</th><th style={AF_TH}>Status</th><th style={AF_TH}>Berakhir</th><th style={AF_TH}>Aksi</th></tr></thead>
+            <tbody>
+              {added.map((p) => (
+                <tr key={p.campaign_id}>
+                  <td style={AF_TDL}>{p.item_name}</td>
+                  <td style={AF_TD}>{p.commission_rate}%</td>
+                  <td style={AF_TD}>{rates[p.item_id] ? `${rates[p.item_id].min_rate}–${rates[p.item_id].max_rate}%` : "—"}</td>
+                  <td style={AF_TD}>{p.campaign_status}</td>
+                  <td style={AF_TD}>{fmtTs(p.period_end_time)}</td>
+                  <td style={AF_TD}>
+                    <button type="button" onClick={() => { setEdit(p); setEditRate(p.commission_rate); }} style={BTN_D}>Ubah rate</button>{" "}
+                    <button type="button" disabled={busy}
+                      onClick={() => setPending({ text: `Hapus "${p.item_name}" dari Open Campaign? Produk tetap bisa menghasilkan komisi 7 hari ke depan untuk promosi yang sedang berjalan.`, run: () => runWrite("/api/ams/open-campaign/batch-remove", { campaign_ids: [p.campaign_id] }, "Produk dihapus dari Open Campaign.") })}
+                      style={BTN_D}>Hapus</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {edit && (
+        <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid #3A2A18", borderRadius: 10 }}>
+          <div style={{ fontSize: 12.5, color: "#F7F7FA" }}>Ubah rate: {edit.item_name}</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: "#A8A29A" }}>Dari {edit.commission_rate}% ke</span>
+            <input type="number" min="0.01" max="80" step="0.5" value={editRate} onChange={(e) => setEditRate(Number(e.target.value))} style={{ ...INPUT_D, width: 70, padding: "4px 6px" }} />
+            <span style={{ fontSize: 12, color: "#D8D2C8" }}>%{rates[edit.item_id] ? ` (saran Shopee ${rates[edit.item_id].min_rate}–${rates[edit.item_id].max_rate}%)` : ""}</span>
+            <button type="button" disabled={busy || editRate === edit.commission_rate}
+              onClick={() => setPending({ text: `Ubah rate produk ini dari ${edit.commission_rate}% menjadi ${editRate}%? ${editRate < edit.commission_rate ? "Rate yang diturunkan baru berlaku penuh setelah 7 hari untuk affiliator yang sedang mempromosikan." : "Rate yang dinaikkan berlaku langsung."}`, run: () => runWrite("/api/ams/open-campaign/batch-edit", { campaign_ids: [edit.campaign_id], commission_rate: editRate }, "Rate produk diperbarui.") })}
+              style={BTN_D}>Simpan rate</button>
+            <button type="button" onClick={() => setEdit(null)} style={BTN_D}>Batal</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA", marginTop: 16 }}>Produk yang belum masuk ({notAdded ? notAdded.length : "…"})</div>
+      {!notAdded ? <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 6 }}>Memuat…</div> : notAdded.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 6 }}>Semua produk yang eligible sudah masuk Open Campaign.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+            <thead><tr><th style={AF_THL}>Produk</th><th style={AF_TH}>Harga</th><th style={AF_TH}>Stok</th><th style={AF_TH}>Aksi</th></tr></thead>
+            <tbody>
+              {notAdded.map((p) => (
+                <tr key={p.item_id}>
+                  <td style={AF_TDL}>{p.item_name}</td>
+                  <td style={AF_TD}>{afMoney(p.display_price)}</td>
+                  <td style={AF_TD}>{afNum(p.stock)}</td>
+                  <td style={AF_TD}>
+                    <button type="button" disabled={busy}
+                      onClick={() => setPending({ text: `Tambah "${p.item_name}" ke Open Campaign dengan rate ${autoRate}% (rate default auto-add) dan tanpa batas waktu?`, run: () => runWrite("/api/ams/open-campaign/batch-add", { item_id_list: [p.item_id], commission_rate: autoRate }, "Produk ditambahkan ke Open Campaign.") })}
+                      style={BTN_D}>Tambah ({autoRate}%)</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {pending && <ConfirmBar text={pending.text} busy={busy} onYes={pending.run} onNo={() => setPending(null)} />}
+    </Card>
+  );
+}
+
+// ── Saran optimasi + tagihan validasi ──
+const BILL_STATUS = { 1: "Pending", 2: "Selesai", 3: "Diproses", 4: "Bayar via link", 5: "Selesai manual", 6: "Settle offline" };
+const SUGG_LABEL = {
+  product_opportunities: "Produk berpotensi tinggi (belum masuk campaign)",
+  optimize_increase_commission_rate: "Naikkan rate komisi (daya saing di bawah rata-rata kategori)",
+  optimize_extend_promotion_period: "Perpanjang periode (sisa kurang dari 30 hari)",
+};
+function SuggestPanel({ onApply }) {
+  const [sugg, setSugg] = useState(null);
+  const [bills, setBills] = useState(null);
+  const [repBill, setRepBill] = useState(null);
+  const [repStart, setRepStart] = useState("");
+  const [repEnd, setRepEnd] = useState("");
+  const [report, setReport] = useState(null);
+  const [repBusy, setRepBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await fetch("https://api.qukis.id/api/ams/suggestions").then((r) => r.json());
+        setSugg(s);
+      } catch (e) { setSugg({}); }
+      try {
+        const v = await fetch("https://api.qukis.id/api/ams/validation").then((r) => r.json());
+        setBills((v.response && v.response.validation_list) || []);
+      } catch (e) { setBills([]); }
+    })();
+  }, []);
+
+  const openReport = (b) => {
+    const m = String(b.validation_month);
+    const y = Number(m.slice(0, 4));
+    const mo = Number(m.slice(4, 6));
+    const first = `${y}-${String(mo).padStart(2, "0")}-01`;
+    const last = toISODate(new Date(Date.UTC(y, mo, 0)));
+    setRepBill(b);
+    setRepStart(first);
+    setRepEnd(last);
+    setReport(null);
+  };
+
+  const loadReport = async () => {
+    if (!repBill) return;
+    setRepBusy(true);
+    setReport(null);
+    const s = Math.floor(new Date(repStart + "T00:00:00Z").getTime() / 1000);
+    const e = Math.floor(new Date(repEnd + "T23:59:59Z").getTime() / 1000);
+    try {
+      const d = await fetch(`https://api.qukis.id/api/ams/validation/report?page_no=1&page_size=20&validation_id=${repBill.validation_id}&validation_month=${repBill.validation_month}&campaign_source=${repBill.campaign_source}&place_order_time_start=${s}&place_order_time_end=${e}`).then((r) => r.json());
+      setReport(d);
+    } catch (err) {
+      setReport({ error: "exception", message: String(err && err.message || err) });
+    }
+    setRepBusy(false);
+  };
+
+  return (
+    <>
+      <Card title="Saran optimasi dari Shopee">
+        {!sugg ? <div style={{ fontSize: 12.5, color: "#A8A29A" }}>Memuat saran…</div> : Object.keys(SUGG_LABEL).map((reason) => {
+          const g = sugg[reason] || {};
+          const items = g.item_list || [];
+          return (
+            <div key={reason} style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#F7F7FA" }}>{SUGG_LABEL[reason]} ({g.total != null ? g.total : items.length})</div>
+              {g.error ? <InfoNote>Tidak bisa dimuat: {amsErr(g)}</InfoNote> : items.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: "#A8A29A", marginTop: 4 }}>Tidak ada saran untuk kategori ini.</div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+                    <thead><tr><th style={AF_THL}>Produk</th><th style={AF_TH}>Rate saat ini</th><th style={AF_TH}>Saran</th><th style={AF_TH}>Rate isi otomatis</th><th style={AF_TH}>Aksi</th></tr></thead>
+                    <tbody>
+                      {items.map((it) => (
+                        <tr key={it.item_id}>
+                          <td style={AF_TDL}>{it.item_name}</td>
+                          <td style={AF_TD}>{it.commission_rate != null ? `${it.commission_rate}%` : "—"}</td>
+                          <td style={AF_TD}>{it.suggest_min_rate != null ? `${it.suggest_min_rate}–${it.suggest_max_rate}%` : "—"}</td>
+                          <td style={AF_TD}>{it.prefill_rate != null ? `${it.prefill_rate}%` : "—"}</td>
+                          <td style={AF_TD}>
+                            {it.campaign_id && it.prefill_rate != null ? (
+                              <button type="button" onClick={() => onApply({ campaign_id: it.campaign_id, rate: it.prefill_rate })} style={BTN_D}>Terapkan</button>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </Card>
+
+      <Card title="Tagihan validasi (komisi AMS)">
+        {!bills ? <div style={{ fontSize: 12.5, color: "#A8A29A" }}>Memuat tagihan…</div> : bills.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: "#A8A29A" }}>Belum ada tagihan validasi.</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+              <thead><tr><th style={AF_THL}>Bulan</th><th style={AF_THL}>Sumber</th><th style={AF_TH}>Status</th><th style={AF_TH}>Total komisi</th><th style={AF_TH}>Sudah dipotong</th><th style={AF_TH}>Menunggu</th><th style={AF_TH}>Aksi</th></tr></thead>
+              <tbody>
+                {bills.map((b) => {
+                  const ob = b.online_bill || {};
+                  return (
+                    <tr key={b.validation_id}>
+                      <td style={AF_TDL}>{String(b.validation_month).slice(0, 4)}-{String(b.validation_month).slice(4, 6)}</td>
+                      <td style={AF_TDL}>{b.campaign_source === "Seller" ? "Campaign toko" : "Campaign Shopee"}</td>
+                      <td style={AF_TD}>{BILL_STATUS[ob.bill_status] || (b.online_bill ? "—" : "Offline")}</td>
+                      <td style={AF_TD}>{afMoney(ob.total_amount)}</td>
+                      <td style={AF_TD}>{afMoney(ob.deducted_amount)}</td>
+                      <td style={AF_TD}>{afMoney(ob.pending_amount)}</td>
+                      <td style={AF_TD}><button type="button" onClick={() => openReport(b)} style={BTN_D}>Rincian order</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {repBill && (
+          <div style={{ marginTop: 12, borderTop: "1px solid #2A1B0F", paddingTop: 10 }}>
+            <div style={{ fontSize: 12.5, color: "#F7F7FA" }}>Rincian order — tagihan {String(repBill.validation_month).slice(0, 4)}-{String(repBill.validation_month).slice(4, 6)} ({repBill.campaign_source})</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap", fontSize: 12, color: "#A8A29A" }}>
+              <span>Order ditempatkan:</span>
+              <input type="date" value={repStart} onChange={(e) => setRepStart(e.target.value)} style={INPUT_D} />
+              <span>s.d.</span>
+              <input type="date" value={repEnd} onChange={(e) => setRepEnd(e.target.value)} style={INPUT_D} />
+              <button type="button" disabled={repBusy || !repStart || !repEnd} onClick={loadReport} style={BTN_D}>{repBusy ? "Memuat…" : "Tampilkan"}</button>
+              <button type="button" onClick={() => { setRepBill(null); setReport(null); }} style={BTN_D}>Tutup</button>
+            </div>
+            {report && report.error && <InfoNote>Rincian tidak bisa dimuat: {amsErr(report)} (API Shopee membatasi jendela waktu laporan ini.)</InfoNote>}
+            {report && report.response && (
+              <div style={{ fontSize: 12, color: "#A8A29A", marginTop: 8 }}>
+                {(report.response.order_list || report.response.validation_list || []).length === 0
+                  ? "Tidak ada order pada jendela ini."
+                  : `Menampilkan ${(report.response.order_list || report.response.validation_list || []).length} order. Total: ${report.response.total_count || "—"}.`}
+              </div>
+            )}
+            {report && report.response && (report.response.order_list || report.response.validation_list || []).length > 0 && (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+                  <thead><tr><th style={AF_THL}>Order</th><th style={AF_THL}>Produk</th><th style={AF_TH}>Komisi</th><th style={AF_TH}>Status</th></tr></thead>
+                  <tbody>
+                    {(report.response.order_list || report.response.validation_list).slice(0, 20).map((o, i) => (
+                      <tr key={o.order_sn || i}>
+                        <td style={AF_TDL}>{o.order_sn || "—"}</td>
+                        <td style={AF_TDL}>{o.item_name || "—"}</td>
+                        <td style={AF_TD}>{afMoney(o.commission_amount)}</td>
+                        <td style={AF_TD}>{o.verified_status || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </>
   );
 }
 
@@ -3286,6 +4059,13 @@ function TabProject({ periode }) {
   const [query, setQuery] = useState("");
   const [openContact, setOpenContact] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [invite, setInvite] = useState(null);
+  const [detailCid, setDetailCid] = useState(null);
+  const [ocPrefill, setOcPrefill] = useState(null);
+  const [nonce, setNonce] = useState(0);
+  const [searchQ, setSearchQ] = useState("");
+  const [searchRes, setSearchRes] = useState(null);
+  const [searchBusy, setSearchBusy] = useState(false);
   const affSpan = ovSpanDays(dRange.from, dRange.to);
   const amsPeriod = affSpan <= 1 ? "Day" : affSpan <= 7 ? "Last7d" : "Last30d";
 
@@ -3306,7 +4086,7 @@ function TabProject({ periode }) {
         const span = amsPeriod === "Day" ? 0 : amsPeriod === "Last7d" ? 6 : 29;
         const start = new Date(end);
         start.setDate(start.getDate() - span);
-        const d = await fetch(`https://api.qukis.id/api/ams/creators?period_type=${amsPeriod}&start_date=${toYmd(start)}&end_date=${toYmd(end)}&order_type=ConfirmedOrder`).then((r) => r.json());
+        const d = await fetch(`https://api.qukis.id/api/ams/creators?period_type=${amsPeriod}&start_date=${toYmd(start)}&end_date=${toYmd(end)}&order_type=ConfirmedOrder&nonce=${nonce}`).then((r) => r.json());
         if (!active) return;
         if (d && d.connected === false) { setData({ unavailable: true }); return; }
         if (d && d.error) { setData({ error: d.message || d.error }); return; }
@@ -3318,7 +4098,7 @@ function TabProject({ periode }) {
     load();
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periode.from, periode.to]);
+  }, [periode.from, periode.to, nonce]);
 
   const saveTag = async (username, patch) => {
     setSaving(true);
@@ -3347,6 +4127,8 @@ function TabProject({ periode }) {
     ["toreach", `Perlu di-reach (${counts.to_reach ?? "…"})`],
     ["meta", `Affiliate Meta (${counts.meta_candidates ?? "…"})`],
     ["campaigns", `Targeted Campaign (${counts.campaigns ?? "…"})`],
+    ["open", "Open Campaign"],
+    ["saran", "Saran & Validasi"],
   ];
   const q = query.trim().toLowerCase();
   const matchQ = (c) => !q || (c.name || "").toLowerCase().includes(q) || (c.username || "").toLowerCase().includes(q);
@@ -3354,6 +4136,20 @@ function TabProject({ periode }) {
     : section === "toreach" ? (data?.to_reach || []).filter(matchQ)
     : section === "meta" ? (data?.meta_candidates || []).filter(matchQ) : [];
   const ongoing = (data?.campaigns || []).filter((c) => c.status === "Ongoing").length;
+  const detailCampaign = (data?.campaigns || []).find((x) => x.campaign_id === detailCid) || null;
+  const runSearch = async () => {
+    const q = searchQ.trim();
+    if (!q || searchBusy) return;
+    setSearchBusy(true);
+    setSearchRes(null);
+    try {
+      const d = await fetch(`https://api.qukis.id/api/ams/affiliate-search?name=${encodeURIComponent(q)}`).then((r) => r.json());
+      setSearchRes(d);
+    } catch (e) {
+      setSearchRes({ error: "exception", message: String(e && e.message || e) });
+    }
+    setSearchBusy(false);
+  };
 
   const creatorCell = (c) => (
     <td style={AF_TDL}>
@@ -3421,7 +4217,37 @@ function TabProject({ periode }) {
               </InfoNote>
             )}
 
-            {section === "campaigns" ? (
+            {section === "toreach" && (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+                <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }} placeholder="Cari kreator lain di Shopee (nama/username)…"
+                  style={{ background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 260 }} />
+                <PjBtn disabled={searchBusy || !searchQ.trim()} onClick={runSearch}>{searchBusy ? "Mencari…" : "Cari di Shopee"}</PjBtn>
+                <span style={{ fontSize: 12, color: "#A89F92" }}>Hasil pencarian hanya nama + ID (tanpa data arena/sosmed).</span>
+              </div>
+            )}
+            {section === "toreach" && searchRes && (
+              searchRes.error ? <AfMuted>Pencarian gagal: {searchRes.message || searchRes.error}.</AfMuted>
+              : ((searchRes.response && searchRes.response.affiliate_list) || []).length === 0 ? <AfMuted>Tidak ada kreator yang cocok dengan "{searchQ}".</AfMuted>
+              : (
+                <div style={{ overflowX: "auto", marginBottom: 12 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr><th style={AF_THL}>Nama</th><th style={AF_THL}>Username</th><th style={AF_THW}>Aksi</th></tr></thead>
+                    <tbody>
+                      {(searchRes.response.affiliate_list || []).slice(0, 10).map((a) => (
+                        <tr key={a.affiliate_id}>
+                          <td style={AF_TDL}>{a.affiliate_name || "—"}</td>
+                          <td style={AF_TDL}>@{a.user_name || "—"}</td>
+                          <td style={AF_TD}><PjBtn onClick={() => setInvite({ name: a.affiliate_name, username: a.user_name, affiliate_id: a.affiliate_id, socials: [], arena: "unknown", arena_basis: "" })}>Undang</PjBtn></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <AfMuted>Menampilkan 10 dari {afNum(searchRes.response.total_count)} hasil — persempit dengan nama yang lebih spesifik.</AfMuted>
+                </div>
+              )
+            )}
+
+            {section === "open" || section === "saran" ? null : section === "campaigns" ? (
               (data.campaigns || []).length === 0 ? (
                 <AfMuted>Belum ada targeted campaign.</AfMuted>
               ) : (
@@ -3429,7 +4255,7 @@ function TabProject({ periode }) {
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead><tr>
                       <th style={AF_THL}>Campaign</th><th style={AF_THW}>Status</th><th style={AF_THW}>Affiliator</th>
-                      <th style={AF_THW}>Produk</th><th style={AF_THW}>Rate</th><th style={AF_THW}>Periode</th>
+                      <th style={AF_THW}>Produk</th><th style={AF_THW}>Rate</th><th style={AF_THW}>Periode</th><th style={AF_THW}>Aksi</th>
                     </tr></thead>
                     <tbody>
                       {(data.campaigns || []).map((c) => (
@@ -3440,6 +4266,7 @@ function TabProject({ periode }) {
                           <td style={AF_TD}>{afNum(c.item_count)}</td>
                           <td style={AF_TD}>{c.min_rate === c.max_rate ? `${c.min_rate}%` : `${c.min_rate}% – ${c.max_rate}%`}</td>
                           <td style={AF_TD}>{c.period_end_time >= 32503651199 ? "Tanpa batas" : affTime(c.period_end_time)}</td>
+                          <td style={AF_TD}><PjBtn onClick={() => setDetailCid(c.campaign_id)}>Detail &amp; kelola</PjBtn></td>
                         </tr>
                       ))}
                     </tbody>
@@ -3488,7 +4315,7 @@ function TabProject({ periode }) {
                         {openContact === c.username && (
                           <tr key={`${c.username}-panel`}>
                             <td colSpan={section === "meta" ? 9 : section === "existing" ? 8 : 7} style={{ padding: "0 0 12px", border: "none" }}>
-                              <ContactPanel key={c.username} creator={c} onSave={saveTag} saving={saving} />
+                              <ContactPanel key={c.username} creator={c} onSave={saveTag} saving={saving} onInvite={(cr) => setInvite(cr)} />
                             </td>
                           </tr>
                         )}
@@ -3502,21 +4329,22 @@ function TabProject({ periode }) {
         )}
       </Card>
 
-      <Card title="Segera (fase 2)" subtitle="Aksi tulis ke Shopee — tiap aksi harus disetujui dulu sebelum jalan">
-        <div>
-          {[["Undang ke targeted campaign", "Pilih campaign yang jalan atau bikin baru, tulis pesan undangan, kirim ke kreator"],
-            ["Ubah komisi & produk open campaign", "Masuk/keluarin produk, atur rate — efeknya 7 hari untuk affiliator yang sedang aktif"],
-            ["Saran & validasi", "Suggested rate, saran optimasi produk, laporan validasi komisi"]].map(([t, d]) => (
-            <div key={t} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 8px", borderTop: "1px solid #2A1B0F", fontFamily: "Inter, sans-serif" }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA" }}>{t}</div>
-                <div style={{ fontSize: 12, color: "#A89F92", marginTop: 1 }}>{d}</div>
-              </div>
-              <Badge text="Segera" color="#A89F92" />
-            </div>
-          ))}
-        </div>
+      {detailCampaign && (
+        <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCid(null)} onChanged={() => setNonce((n) => n + 1)} />
+      )}
+      {section === "open" && (
+        <OpenCampaignPanel prefill={ocPrefill} onPrefillDone={() => setOcPrefill(null)} />
+      )}
+      {section === "saran" && (
+        <SuggestPanel onApply={(p) => { setOcPrefill(p); setSection("open"); }} />
+      )}
+      <Card title="Di luar jangkauan API AMS">
+        <AfMuted>Boost konten Facebook lewat Meta Affiliate Ads (butuh akses Meta Ads + persetujuan kreator) tidak tersedia di API Shopee — bagian itu tetap dikerjakan dari Meta Ads Manager.</AfMuted>
       </Card>
+      {invite && (
+        <InviteModal c={invite} campaigns={data?.campaigns || []} onClose={() => setInvite(null)}
+          onInvited={(cr) => { saveTag(cr.username, { reach_status: "dihubungi" }); setNonce((n) => n + 1); }} />
+      )}
     </>
   );
 }
