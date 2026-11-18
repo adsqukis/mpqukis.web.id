@@ -4043,13 +4043,16 @@ function SuggestPanel({ onApply }) {
   );
 }
 
-// ── Daftar Hubungi: kreator dari laporan AMS Oktober 2026 (file XLSX) ──
-// Daftar ini TERPISAH dari to-reach: semua kreator di sini sudah punya
-// penjualan selama Oktober 2026, jadi ini daftar reaktivasi/outreach,
-// bukan prospek baru. Status hubungi disimpan di backend milik dashboard
-// (bukan ke Shopee). "Undang Campaign" menyelesaikan affiliate_id lewat
-// affiliate-search (cocok persis username) lalu membuka InviteModal yang
-// sama seperti daftar lain — undangan tetap lewat konfirmasi 2 langkah.
+// ── Perlu di Reach: kreator dari laporan AMS Oktober 2026 (file XLSX) ──
+// Daftar ini adalah daftar "Perlu di Reach" di tab Project: semua kreator
+// di sini sudah punya penjualan selama Oktober 2026, jadi ini daftar
+// reaktivasi/outreach, bukan prospek baru. Status hubungi disimpan di
+// backend milik dashboard (bukan ke Shopee). "Undang Campaign" menyelesaikan
+// affiliate_id lewat affiliate-search (cocok persis username) lalu membuka
+// InviteModal yang sama seperti daftar lain — undangan tetap lewat
+// konfirmasi 2 langkah. Kolom "Status Meta" memindahkan konfirmasi manual
+// Affiliate Meta (dulu daftar terpisah) ke baris yang punya channel
+// Facebook; statusnya tag dashboard yang sama (ams_tags.json).
 const OUTREACH_STATUS_META = {
   belum: { label: "Belum dihubungi", color: "#A89F92" },
   sudah: { label: "Sudah dihubungi", color: "#1E9E6F" },
@@ -4060,7 +4063,7 @@ const OUTREACH_CHANNEL_META = {
   Instagram: { label: "Instagram", color: "#D04C8F" },
 };
 
-function OutreachPanel({ nonce, onInvite }) {
+function OutreachPanel({ nonce, onInvite, onTotals, tagsByUsername, managedSet }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -4072,6 +4075,8 @@ function OutreachPanel({ nonce, onInvite }) {
   const [busy, setBusy] = useState(false);
   const [resolving, setResolving] = useState(null);
   const [notice, setNotice] = useState("");
+  const [metaLocal, setMetaLocal] = useState({});
+  const [metaBusy, setMetaBusy] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -4079,7 +4084,7 @@ function OutreachPanel({ nonce, onInvite }) {
       try {
         const d = await fetch(`https://api.qukis.id/api/ams/outreach?nonce=${nonce}`).then((r) => r.json());
         if (!active) return;
-        if (d && d.ok) { setData(d); setError(""); }
+        if (d && d.ok) { setData(d); setError(""); if (onTotals) onTotals(d); }
         else setError("Data daftar hubungi tidak bisa dimuat.");
       } catch {
         if (active) setError("Data daftar hubungi tidak bisa dimuat (backend tidak terjangkau).");
@@ -4111,6 +4116,21 @@ function OutreachPanel({ nonce, onInvite }) {
     setBusy(false);
   };
 
+  const saveMeta = async (username, metaStatus) => {
+    setMetaBusy(username);
+    try {
+      const d = await postAms("/api/ams/tags", { username, patch: { meta_status: metaStatus } });
+      if (d && d.ok && d.tags) {
+        setMetaLocal((prev) => ({ ...prev, [(username || "").toLowerCase()]: d.tags.meta_status }));
+      } else {
+        setNotice(`Gagal menyimpan status Meta: ${amsErr(d)}`);
+      }
+    } catch {
+      setNotice("Gagal menyimpan status Meta: tidak bisa terhubung ke backend.");
+    }
+    setMetaBusy(null);
+  };
+
   const inviteCreator = async (c) => {
     setResolving(c.username);
     setNotice("");
@@ -4121,7 +4141,7 @@ function OutreachPanel({ nonce, onInvite }) {
       if (exact) {
         onInvite({ name: c.nickname || c.username, username: c.username, affiliate_id: exact.affiliate_id, socials: [], arena: "unknown", arena_basis: "", fromOutreach: true });
       } else {
-        setNotice(`@${c.username} tidak ketemu persis di pencarian affiliator Shopee — tidak bisa diundang lewat API. Coba cari manual di bagian "Perlu di-reach".`);
+        setNotice(`@${c.username} tidak ketemu persis di pencarian affiliator Shopee — tidak bisa diundang lewat API. Coba cari manual lewat kotak pencarian di atas.`);
       }
     } catch {
       setNotice("Pencarian affiliator gagal: tidak bisa terhubung ke backend.");
@@ -4141,7 +4161,11 @@ function OutreachPanel({ nonce, onInvite }) {
   const gabungCount = (data?.creators || []).filter((c) => c.outreach_status === "bergabung").length;
 
   return (
-    <Card title="Daftar Hubungi — Laporan AMS Oktober 2026" subtitle={data ? `${afNum(data.total_creators)} kreator · ${afNum(data.total_orders)} pesanan · ${afMoney(data.total_sales)} · periode 1–31 Okt 2026 (Confirmed Orders) · ${afNum(sudahCount)} sudah dihubungi · ${afNum(gabungCount)} bergabung` : "Laporan AMS Oktober 2026 (Confirmed Orders)"}>
+    <>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 600, fontSize: 14.5, color: "#F7F7FA" }}>Perlu di Reach</div>
+        <div style={{ fontSize: 12, color: "#A89F92", marginTop: 2, fontFamily: "Inter, sans-serif" }}>{data ? `${afNum(data.total_creators)} kreator · ${afNum(data.total_orders)} pesanan · ${afMoney(data.total_sales)} · periode 1–31 Okt 2026 (Confirmed Orders) · ${afNum(sudahCount)} sudah dihubungi · ${afNum(gabungCount)} bergabung` : "Laporan AMS Oktober 2026 (Confirmed Orders)"}</div>
+      </div>
       <InfoNote>
         Kreator di daftar ini sudah menghasilkan penjualan selama Oktober 2026 — daftar reaktivasi, bukan prospek baru.
         Shopee tidak membuka nomor HP/email kreator: hubungi lewat profil sosmednya, atau undang lewat targeted campaign.
@@ -4171,17 +4195,21 @@ function OutreachPanel({ nonce, onInvite }) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
                     <th style={AF_THL}>Kreator</th><th style={AF_THL}>Channel</th><th style={AF_THW}>Pesanan</th>
-                    <th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>Status</th><th style={AF_THW}>Aksi</th>
+                    <th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>Status</th><th style={AF_THW}>Status Meta</th><th style={AF_THW}>Aksi</th>
                   </tr></thead>
                   <tbody>
                     {shown.map((c) => {
                       const st = c.outreach_status || "belum";
+                      const hasFb = (((c.channels || {}).Facebook || {}).orders || 0) > 0;
+                      const metaKey = (c.username || "").toLowerCase();
+                      const metaStatus = metaLocal[metaKey] ?? (tagsByUsername && tagsByUsername[metaKey] && tagsByUsername[metaKey].meta_status);
                       return (
                         <React.Fragment key={c.username}>
                           <tr>
                             <td style={AF_TDL}>
                               <div style={{ fontWeight: 600, color: "#F7F7FA" }}>{c.nickname || "—"}</div>
                               <div style={{ fontSize: 11, color: "#A89F92" }}>@{c.username}</div>
+                              {managedSet && managedSet.has(metaKey) && <div style={{ marginTop: 3 }}><Badge text="Managed" color="#FF9E45" /></div>}
                               {c.phone && <div style={{ fontSize: 11, color: "#A855F7", marginTop: 2 }}>WA: {c.phone}</div>}
                             </td>
                             <td style={AF_TDL}>
@@ -4200,6 +4228,20 @@ function OutreachPanel({ nonce, onInvite }) {
                               {c.note && <div style={{ fontSize: 11, color: "#A89F92", marginTop: 3, maxWidth: 180, whiteSpace: "normal" }}>{c.note}</div>}
                             </td>
                             <td style={AF_TD}>
+                              {!hasFb ? (
+                                <span style={{ color: "#A89F92", fontSize: 12 }}>—</span>
+                              ) : metaStatus === "confirmed" ? (
+                                <Badge text="Aktif di FB ✓" color="#1E9E6F" />
+                              ) : metaStatus === "rejected" ? (
+                                <Badge text="Bukan pemain FB" color="#A89F92" />
+                              ) : (
+                                <span style={{ display: "inline-flex", gap: 6 }}>
+                                  <PjBtn disabled={metaBusy === c.username} onClick={() => saveMeta(c.username, "confirmed")}>Ya, aktif</PjBtn>
+                                  <PjBtn disabled={metaBusy === c.username} onClick={() => saveMeta(c.username, "rejected")}>Bukan</PjBtn>
+                                </span>
+                              )}
+                            </td>
+                            <td style={AF_TD}>
                               <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                                 <PjBtn disabled={resolving === c.username} onClick={() => inviteCreator(c)}>{resolving === c.username ? "Mencari ID…" : "Undang Campaign"}</PjBtn>
                                 {st === "belum" ? (
@@ -4212,7 +4254,7 @@ function OutreachPanel({ nonce, onInvite }) {
                           </tr>
                           {marking === c.username && (
                             <tr key={`${c.username}-mark`}>
-                              <td colSpan={7} style={{ padding: "0 0 12px", border: "none" }}>
+                              <td colSpan={8} style={{ padding: "0 0 12px", border: "none" }}>
                                 <div style={{ display: "flex", gap: 8 }}>
                                   <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} placeholder="Catatan (opsional, mis. sudah DM 18 Nov, menunggu balasan)…"
                                     style={{ flex: 1, background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif" }} />
@@ -4236,7 +4278,7 @@ function OutreachPanel({ nonce, onInvite }) {
           )}
         </>
       )}
-    </Card>
+    </>
   );
 }
 
@@ -4265,6 +4307,7 @@ function TabProject({ periode }) {
   const [searchQ, setSearchQ] = useState("");
   const [searchRes, setSearchRes] = useState(null);
   const [searchBusy, setSearchBusy] = useState(false);
+  const [outreachTotal, setOutreachTotal] = useState(null);
   const affSpan = ovSpanDays(dRange.from, dRange.to);
   const amsPeriod = affSpan <= 1 ? "Day" : affSpan <= 7 ? "Last7d" : "Last30d";
 
@@ -4323,17 +4366,27 @@ function TabProject({ periode }) {
   const counts = (data && data.counts) || {};
   const sections = [
     ["existing", `Existing (${counts.existing ?? "…"})`],
-    ["toreach", `Perlu di-reach (${counts.to_reach ?? "…"})`],
-    ["meta", `Affiliate Meta (${counts.meta_candidates ?? "…"})`],
+    ["reach", `Perlu di Reach (${outreachTotal ?? "…"})`],
     ["campaigns", `Targeted Campaign (${counts.campaigns ?? "…"})`],
     ["open", "Open Campaign"],
     ["saran", "Saran & Validasi"],
   ];
   const q = query.trim().toLowerCase();
   const matchQ = (c) => !q || (c.name || "").toLowerCase().includes(q) || (c.username || "").toLowerCase().includes(q);
-  const rows = section === "existing" ? (data?.existing || []).filter(matchQ)
-    : section === "toreach" ? (data?.to_reach || []).filter(matchQ)
-    : section === "meta" ? (data?.meta_candidates || []).filter(matchQ) : [];
+  const rows = (data?.existing || []).filter(matchQ);
+  // Peta tag dashboard + penanda Managed untuk baris Perlu di Reach: datanya
+  // menumpang pada tarikan kreator AMS (rentang terpilih), jadi cakupannya
+  // best-effort — username yang tidak ada di tarikan itu tampil tanpa penanda.
+  const tagsByUsername = {};
+  const managedSet = new Set();
+  ["existing", "to_reach", "meta_candidates"].forEach((k) => {
+    (data?.[k] || []).forEach((c) => {
+      const key = (c.username || "").toLowerCase();
+      if (!key) return;
+      if (c.tags) tagsByUsername[key] = { ...(tagsByUsername[key] || {}), ...c.tags };
+      if (c.managed) managedSet.add(key);
+    });
+  });
   const ongoing = (data?.campaigns || []).filter((c) => c.status === "Ongoing").length;
   const detailCampaign = (data?.campaigns || []).find((x) => x.campaign_id === detailCid) || null;
   const runSearch = async () => {
@@ -4385,10 +4438,9 @@ function TabProject({ periode }) {
           <AfMuted>AMS mengembalikan error: {data.error}. Coba rentang lain, atau cek lagi nanti.</AfMuted>
         ) : (
           <>
-            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 14 }}>
+            <div className="mp-grid6" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
               <AfTile label="Kreator existing" value={afNum(counts.existing)} accent="#D04C8F" sub="punya penjualan di rentang ini" />
-              <AfTile label="Perlu di-reach" value={afNum(counts.to_reach)} accent={ACCENT.c2} sub="rekomendasi tanpa penjualan" />
-              <AfTile label="Kandidat Affiliate Meta" value={afNum(counts.meta_candidates)} accent="#1E9E6F" sub="akun FB + penjualan sosmed" />
+              <AfTile label="Perlu di Reach" value={afNum(outreachTotal)} accent={ACCENT.c2} sub="daftar hubungi · laporan Okt 2026" />
               <AfTile label="Targeted campaign" value={afNum(counts.campaigns)} accent="#5EA9FF" sub={`${afNum(ongoing)} sedang jalan`} />
               <AfTile label="Managed terambil" value={`${afNum(counts.managed_fetched)} / ${afNum(counts.managed_reported)}`} accent="#A89F92" sub="pagination API tidak stabil" />
             </div>
@@ -4399,24 +4451,13 @@ function TabProject({ periode }) {
               {sections.map(([k, label]) => (
                 <PjBtn key={k} active={section === k} onClick={() => { setSection(k); setOpenContact(null); }}>{label}</PjBtn>
               ))}
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama / @username…"
-                style={{ marginLeft: "auto", background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 200 }} />
+              {section !== "reach" && (
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama / @username…"
+                  style={{ marginLeft: "auto", background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 200 }} />
+              )}
             </div>
 
-            {section === "meta" && (
-              <InfoNote>
-                Kandidat = affiliator dengan akun Facebook terhubung DAN penjualan lewat channel SocialMedia di rentang ini.
-                Shopee tidak bisa membuktikan dia aktif posting video di Facebook — status aktifnya dikonfirmasi manual di bawah.
-              </InfoNote>
-            )}
-            {section === "toreach" && (
-              <InfoNote>
-                Kolam rekomendasi Shopee dikurangi yang sudah punya penjualan. Klasifikasi arenanya dari platform yang terhubung
-                di profil — akun terhubung belum tentu berarti dia aktif di arena itu.
-              </InfoNote>
-            )}
-
-            {section === "toreach" && (
+            {section === "reach" && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
                 <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }} placeholder="Cari kreator lain di Shopee (nama/username)…"
                   style={{ background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 260 }} />
@@ -4424,7 +4465,7 @@ function TabProject({ periode }) {
                 <span style={{ fontSize: 12, color: "#A89F92" }}>Hasil pencarian hanya nama + ID (tanpa data arena/sosmed).</span>
               </div>
             )}
-            {section === "toreach" && searchRes && (
+            {section === "reach" && searchRes && (
               searchRes.error ? <AfMuted>Pencarian gagal: {searchRes.message || searchRes.error}.</AfMuted>
               : ((searchRes.response && searchRes.response.affiliate_list) || []).length === 0 ? <AfMuted>Tidak ada kreator yang cocok dengan "{searchQ}".</AfMuted>
               : (
@@ -4472,6 +4513,8 @@ function TabProject({ periode }) {
                   </table>
                 </div>
               )
+            ) : section === "reach" ? (
+              <OutreachPanel nonce={nonce} onInvite={(cr) => setInvite(cr)} onTotals={(d) => setOutreachTotal(d.total_creators)} tagsByUsername={tagsByUsername} managedSet={managedSet} />
             ) : rows.length === 0 ? (
               <AfMuted>{q ? "Tidak ada kreator yang cocok dengan pencarian." : "Tidak ada kreator di kelompok ini untuk rentang ini."}</AfMuted>
             ) : (
@@ -4479,9 +4522,7 @@ function TabProject({ periode }) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>
                     <th style={AF_THL}>Kreator</th><th style={AF_THW}>Arena</th>
-                    {section === "existing" && <><th style={AF_THW}>Penjualan</th><th style={AF_THW}>Pesanan</th><th style={AF_THW}>Klik</th></>}
-                    {section === "meta" && <><th style={AF_THW}>Penjualan sosmed</th><th style={AF_THW}>Pesanan</th><th style={AF_THW}>Klik</th><th style={AF_THW}>Status Meta</th></>}
-                    {section === "toreach" && <th style={AF_THW}>Populer di</th>}
+                    <th style={AF_THW}>Penjualan</th><th style={AF_THW}>Pesanan</th><th style={AF_THW}>Klik</th>
                     <th style={AF_THL}>Sosmed</th><th style={AF_THW}>Status reach</th><th style={AF_THW}>Aksi</th>
                   </tr></thead>
                   <tbody>
@@ -4490,30 +4531,14 @@ function TabProject({ periode }) {
                         <tr>
                           {creatorCell(c)}
                           <td style={AF_TD}><ArenaBadge arena={c.arena} basis={c.arena_basis} /></td>
-                          {section === "existing" && <><td style={AF_TD}>{afMoney(c.sales)}</td><td style={AF_TD}>{afNum(c.orders)}</td><td style={AF_TD}>{afNum(c.clicks)}</td></>}
-                          {section === "meta" && (
-                            <>
-                              <td style={AF_TD}>{afMoney(c.channels?.social)}</td><td style={AF_TD}>{afNum(c.orders)}</td><td style={AF_TD}>{afNum(c.clicks)}</td>
-                              <td style={AF_TD}>
-                                {c.tags?.meta_status === "confirmed" ? <Badge text="Aktif di FB ✓" color="#1E9E6F" />
-                                  : c.tags?.meta_status === "rejected" ? <Badge text="Bukan pemain FB" color="#A89F92" />
-                                  : (
-                                    <span style={{ display: "inline-flex", gap: 6 }}>
-                                      <PjBtn disabled={saving} onClick={() => saveTag(c.username, { meta_status: "confirmed" })}>Ya, aktif</PjBtn>
-                                      <PjBtn disabled={saving} onClick={() => saveTag(c.username, { meta_status: "rejected" })}>Bukan</PjBtn>
-                                    </span>
-                                  )}
-                              </td>
-                            </>
-                          )}
-                          {section === "toreach" && <td style={AF_TD}>{c.popular ? (SOCIAL_LABEL[c.popular] || c.popular) : "—"}</td>}
+                          <td style={AF_TD}>{afMoney(c.sales)}</td><td style={AF_TD}>{afNum(c.orders)}</td><td style={AF_TD}>{afNum(c.clicks)}</td>
                           <td style={AF_TDL}><SocialLinks socials={c.socials} /></td>
                           {reachCell(c)}
                           {actionCell(c)}
                         </tr>
                         {openContact === c.username && (
                           <tr key={`${c.username}-panel`}>
-                            <td colSpan={section === "meta" ? 9 : section === "existing" ? 8 : 7} style={{ padding: "0 0 12px", border: "none" }}>
+                            <td colSpan={8} style={{ padding: "0 0 12px", border: "none" }}>
                               <ContactPanel key={c.username} creator={c} onSave={saveTag} saving={saving} onInvite={(cr) => setInvite(cr)} />
                             </td>
                           </tr>
@@ -4527,8 +4552,6 @@ function TabProject({ periode }) {
           </>
         )}
       </Card>
-
-      <OutreachPanel nonce={nonce} onInvite={(cr) => setInvite(cr)} />
 
       {detailCampaign && (
         <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCid(null)} onChanged={() => setNonce((n) => n + 1)} />
