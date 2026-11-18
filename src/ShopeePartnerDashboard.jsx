@@ -4053,6 +4053,7 @@ function SuggestPanel({ onApply }) {
 const OUTREACH_STATUS_META = {
   belum: { label: "Belum dihubungi", color: "#A89F92" },
   sudah: { label: "Sudah dihubungi", color: "#1E9E6F" },
+  bergabung: { label: "Bergabung", color: "#A855F7" },
 };
 const OUTREACH_CHANNEL_META = {
   Facebook: { label: "Facebook", color: "#5EA9FF" },
@@ -4096,7 +4097,7 @@ function OutreachPanel({ nonce, onInvite }) {
         setData((prev) => prev && ({
           ...prev,
           creators: prev.creators.map((c) => ((c.username || "").toLowerCase() === key
-            ? { ...c, outreach_status: d.status.status, contacted_at: d.status.contacted_at, note: d.status.note ?? c.note }
+            ? { ...c, outreach_status: d.status.status, contacted_at: d.status.contacted_at, note: d.status.note ?? c.note, phone: d.status.phone ?? c.phone }
             : c)),
         }));
         setMarking(null);
@@ -4137,13 +4138,15 @@ function OutreachPanel({ nonce, onInvite }) {
   });
   const shown = creators.slice(0, limit);
   const sudahCount = (data?.creators || []).filter((c) => c.outreach_status === "sudah").length;
+  const gabungCount = (data?.creators || []).filter((c) => c.outreach_status === "bergabung").length;
 
   return (
-    <Card title="Daftar Hubungi — Laporan AMS Oktober 2026" subtitle={data ? `${afNum(data.total_creators)} kreator · ${afNum(data.total_orders)} pesanan · ${afMoney(data.total_sales)} · periode 1–31 Okt 2026 (Confirmed Orders) · ${afNum(sudahCount)} sudah dihubungi` : "Laporan AMS Oktober 2026 (Confirmed Orders)"}>
+    <Card title="Daftar Hubungi — Laporan AMS Oktober 2026" subtitle={data ? `${afNum(data.total_creators)} kreator · ${afNum(data.total_orders)} pesanan · ${afMoney(data.total_sales)} · periode 1–31 Okt 2026 (Confirmed Orders) · ${afNum(sudahCount)} sudah dihubungi · ${afNum(gabungCount)} bergabung` : "Laporan AMS Oktober 2026 (Confirmed Orders)"}>
       <InfoNote>
         Kreator di daftar ini sudah menghasilkan penjualan selama Oktober 2026 — daftar reaktivasi, bukan prospek baru.
         Shopee tidak membuka nomor HP/email kreator: hubungi lewat profil sosmednya, atau undang lewat targeted campaign.
-        Status di sini hanya catatan dashboard, tidak mengubah apa pun di Shopee.
+        Kalau kreator mengisi form pendaftaran (memberikan nomor WhatsApp), statusnya otomatis berubah menjadi Bergabung
+        dan nomornya tampil di daftar ini. Status di sini hanya catatan dashboard, tidak mengubah apa pun di Shopee.
       </InfoNote>
       {error ? <AfMuted>{error}</AfMuted> : !data ? <AfMuted>Memuat daftar hubungi…</AfMuted> : (
         <>
@@ -4155,7 +4158,7 @@ function OutreachPanel({ nonce, onInvite }) {
               <PjBtn key={k} active={channel === k} onClick={() => { setChannel(k); setLimit(50); }}>{k === "semua" ? "Semua" : k}</PjBtn>
             ))}
             <span style={{ fontSize: 12, color: "#A89F92" }}>Status:</span>
-            {["semua", "belum", "sudah"].map((k) => (
+            {["semua", "belum", "sudah", "bergabung"].map((k) => (
               <PjBtn key={k} active={statusF === k} onClick={() => { setStatusF(k); setLimit(50); }}>{k === "semua" ? "Semua" : OUTREACH_STATUS_META[k].label}</PjBtn>
             ))}
           </div>
@@ -4179,6 +4182,7 @@ function OutreachPanel({ nonce, onInvite }) {
                             <td style={AF_TDL}>
                               <div style={{ fontWeight: 600, color: "#F7F7FA" }}>{c.nickname || "—"}</div>
                               <div style={{ fontSize: 11, color: "#A89F92" }}>@{c.username}</div>
+                              {c.phone && <div style={{ fontSize: 11, color: "#A855F7", marginTop: 2 }}>WA: {c.phone}</div>}
                             </td>
                             <td style={AF_TDL}>
                               <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
