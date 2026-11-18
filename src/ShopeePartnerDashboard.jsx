@@ -9,7 +9,7 @@ import {
   ChevronsLeft, ChevronsRight, LayoutDashboard,
   Eye, MousePointerClick, Percent, ShoppingCart, Boxes, Banknote, TrendingUp, Briefcase,
   Sparkles, Send, X, ChevronDown, ChevronLeft, Check,
-  CheckCircle2, Clock, ShoppingBag,
+  CheckCircle2, Clock, ShoppingBag, MessageCircle, RefreshCw,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4351,6 +4351,223 @@ function TabProject({ periode }) {
   );
 }
 
+// ── Tab Chat: inbox Shopee + draft balasan AI (REVIEW MODE — tidak ada kirim otomatis) ──
+const postChat = async (path, body) => {
+  const r = await fetch(`https://api.qukis.id${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+};
+
+function chatTimeAgo(ns) {
+  if (!ns) return "";
+  const ms = ns / 1e6;
+  const diff = Date.now() - ms;
+  if (diff < 0) return "baru saja";
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "baru saja";
+  if (m < 60) return `${m} mnt lalu`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} jam lalu`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "kemarin";
+  if (d < 7) return `${d} hari lalu`;
+  return new Date(ms).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function chatClock(ns) {
+  if (!ns) return "";
+  return new Date(ns / 1e6).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+}
+
+function TabChat() {
+  const shop = (() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; } catch { return "mall"; } })();
+  const [convs, setConvs] = useState(null);
+  const [convErr, setConvErr] = useState("");
+  const [filter, setFilter] = useState("need");
+  const [query, setQuery] = useState("");
+  const [sel, setSel] = useState(null);
+  const [msgs, setMsgs] = useState(null);
+  const [msgsErr, setMsgsErr] = useState("");
+  const [nonce, setNonce] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [draftMeta, setDraftMeta] = useState(null);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftErr, setDraftErr] = useState("");
+  const [confirmSend, setConfirmSend] = useState(false);
+  const [sendBusy, setSendBusy] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
+
+  const loadConvs = async () => {
+    setConvErr("");
+    try {
+      const d = await fetch(`https://api.qukis.id/api/chat/conversations?shop=${shop}&_t=${Date.now()}`).then((r) => r.json());
+      if (!d.ok) { setConvErr(d.error || "gagal memuat"); return; }
+      setConvs(d.conversations || []);
+    } catch (e) { setConvErr("tidak bisa terhubung ke backend"); }
+  };
+  useEffect(() => { loadConvs(); }, [shop, nonce]);
+  useEffect(() => { const t = setInterval(() => setNonce((n) => n + 1), 60000); return () => clearInterval(t); }, []);
+
+  const makeDraft = async (cid, force) => {
+    setDraftBusy(true); setDraftErr(""); setDraftMeta(null);
+    try {
+      const d = await postChat(`/api/chat/draft?shop=${shop}`, { conversation_id: cid, force: !!force });
+      if (!d.ok) { setDraftErr(d.error || "gagal membuat draft"); return; }
+      setDraft(d.draft || "");
+      setDraftMeta({ escalate: !!d.escalate, reasons: d.reasons || [], cached: !!d.cached });
+    } catch (e) { setDraftErr("tidak bisa terhubung ke backend"); }
+    finally { setDraftBusy(false); }
+  };
+
+  const openConv = async (c, skipAutoDraft) => {
+    setSel(c); setMsgs(null); setMsgsErr(""); setDraft(""); setDraftMeta(null);
+    setDraftErr(""); setConfirmSend(false); setSendResult(null);
+    try {
+      const d = await fetch(`https://api.qukis.id/api/chat/messages?shop=${shop}&conversation_id=${c.conversation_id}&_t=${Date.now()}`).then((r) => r.json());
+      if (!d.ok) { setMsgsErr(d.error || "gagal memuat pesan"); return; }
+      setMsgs(d.messages || []);
+      if (c.buyer_last && !skipAutoDraft) makeDraft(c.conversation_id, false);
+    } catch (e) { setMsgsErr("tidak bisa terhubung ke backend"); }
+  };
+
+  const doSend = async () => {
+    if (!sel || !draft.trim()) return;
+    setSendBusy(true); setSendResult(null);
+    try {
+      const d = await postChat(`/api/chat/send?shop=${shop}`, { conversation_id: sel.conversation_id, to_id: sel.to_id, text: draft.trim() });
+      if (d.ok) {
+        setSendResult({ ok: true });
+        setConfirmSend(false);
+        setDraft("");
+        setDraftMeta(null);
+        loadConvs();
+        openConv({ ...sel, buyer_last: false }, true);
+      } else {
+        setSendResult({ ok: false, error: d.error || "gagal mengirim" });
+        setConfirmSend(false);
+      }
+    } catch (e) { setSendResult({ ok: false, error: "tidak bisa terhubung ke backend" }); setConfirmSend(false); }
+    finally { setSendBusy(false); }
+  };
+
+  const rejectDraft = async () => {
+    if (!sel) return;
+    await postChat(`/api/chat/draft-decision?shop=${shop}`, { conversation_id: sel.conversation_id, decision: "reject" });
+    setDraft(""); setDraftMeta(null);
+  };
+
+  const shown = (convs || []).filter((c) => {
+    if (filter === "need" && !c.buyer_last && c.unread_count === 0) return false;
+    if (query && !(c.to_name || "").toLowerCase().includes(query.toLowerCase())) return false;
+    return true;
+  });
+  const needCount = (convs || []).filter((c) => c.buyer_last || c.unread_count > 0).length;
+
+  const typeLabel = (m) => {
+    if (m.type === "text") return m.text;
+    if (m.type === "item" || m.type === "item_list") return `[Produk${m.item_id ? ` · ${m.item_id}` : ""}]`;
+    if (m.type === "voucher") return "[Voucher]";
+    if (m.type === "chat_order_invitation_card") return "[Kartu pesanan]";
+    if (m.type === "sticker") return "[Stiker]";
+    if (m.type === "image") return "[Gambar]";
+    return `[${m.type || "pesan"}]`;
+  };
+
+  return (
+    <div>
+      <InfoNote>
+        Review mode: AI hanya membuat draft — tidak ada pesan yang terkirim otomatis. Setiap kiriman perlu klik Kirim + konfirmasi, dan tercatat di log. Daftar diperbarui tiap 1 menit.
+      </InfoNote>
+      <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "flex-start" }}>
+        <div style={{ width: 340, flexShrink: 0 }}>
+          <Card title="Percakapan" subtitle={convs ? `${convs.length} percakapan · ${needCount} perlu dibalas` : "Memuat…"} right={<button type="button" onClick={() => setNonce((n) => n + 1)} style={BTN_D}><RefreshCw size={13} /> Muat ulang</button>}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              <button type="button" onClick={() => setFilter("need")} style={{ ...BTN_D, borderColor: filter === "need" ? "#FF9E45" : "#2A1B0F", color: filter === "need" ? "#FFB37A" : "#F7F7FA" }}>Perlu dibalas ({needCount})</button>
+              <button type="button" onClick={() => setFilter("all")} style={{ ...BTN_D, borderColor: filter === "all" ? "#FF9E45" : "#2A1B0F", color: filter === "all" ? "#FFB37A" : "#F7F7FA" }}>Semua</button>
+            </div>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama buyer…" style={{ ...INPUT_D, width: "100%", marginBottom: 8 }} />
+            {convErr && <InfoNote>Gagal memuat: {convErr}</InfoNote>}
+            {!convs && !convErr && <div style={{ fontSize: 12, color: "#A8A29A" }}>Memuat percakapan…</div>}
+            {convs && shown.length === 0 && <div style={{ fontSize: 12, color: "#A8A29A" }}>Tidak ada percakapan yang cocok.</div>}
+            <div style={{ maxHeight: 560, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+              {shown.map((c) => (
+                <button key={c.conversation_id} type="button" onClick={() => openConv(c, false)} style={{ textAlign: "left", width: "100%", padding: "8px 10px", borderRadius: 10, cursor: "pointer", background: sel && sel.conversation_id === c.conversation_id ? "#1C1108" : "transparent", border: sel && sel.conversation_id === c.conversation_id ? "1px solid #FF9E45" : "1px solid transparent" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#F7F7FA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.to_name || "(tanpa nama)"}</span>
+                    <span style={{ fontSize: 11, color: "#A8A29A", flexShrink: 0 }}>{chatTimeAgo(c.last_ts)}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#A8A29A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{c.latest_snippet || `[${c.latest_type || "pesan"}]`}</div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    {c.unread_count > 0 && <span style={{ fontSize: 11, color: "#0B0603", background: "#FF9E45", borderRadius: 8, padding: "1px 7px", fontWeight: 700 }}>{c.unread_count} baru</span>}
+                    {c.buyer_last && <span style={{ fontSize: 11, color: "#FFB37A" }}>Perlu dibalas</span>}
+                    {c.pinned && <span style={{ fontSize: 11, color: "#A8A29A" }}>Disematkan</span>}
+                    {c.mute && <span style={{ fontSize: 11, color: "#A8A29A" }}>Dibisukan</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: "#78716C", marginTop: 8, lineHeight: 1.5 }}>API Shopee hanya menampilkan ±100 percakapan terakhir per toko; histori yang lebih dalam tidak bisa ditarik.</div>
+          </Card>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!sel && (
+            <Card title="Pilih percakapan" subtitle="Klik salah satu percakapan di kiri untuk membaca riwayatnya dan menyiapkan balasan.">
+              <div style={{ fontSize: 12.5, color: "#A8A29A", lineHeight: 1.6 }}>Draft AI dibuat otomatis saat percakapan dibuka — tapi hanya kalau pesan terakhirnya dari buyer. Kamu selalu bisa mengedit draft sebelum mengirim.</div>
+            </Card>
+          )}
+          {sel && (
+            <Card title={`@${sel.to_name || "(tanpa nama)"}`} subtitle={sel.buyer_last ? "Pesan terakhir dari buyer — perlu dibalas" : "Pesan terakhir dari toko"} right={sel.unread_count > 0 ? <span style={{ fontSize: 11, color: "#0B0603", background: "#FF9E45", borderRadius: 8, padding: "2px 8px", fontWeight: 700 }}>{sel.unread_count} baru</span> : null}>
+              {msgsErr && <InfoNote>Gagal memuat pesan: {msgsErr}</InfoNote>}
+              {!msgs && !msgsErr && <div style={{ fontSize: 12, color: "#A8A29A" }}>Memuat riwayat…</div>}
+              {msgs && msgs.length === 0 && <div style={{ fontSize: 12, color: "#A8A29A" }}>Tidak ada pesan di percakapan ini.</div>}
+              {msgs && msgs.length > 0 && (
+                <div style={{ maxHeight: 380, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
+                  {msgs.map((m) => (
+                    <div key={m.message_id} style={{ alignSelf: m.from === "buyer" ? "flex-start" : "flex-end", maxWidth: "78%", background: m.from === "buyer" ? "#1C1108" : "#2A1B0F", border: "1px solid #3A2A18", borderRadius: 10, padding: "7px 10px" }}>
+                      <div style={{ fontSize: 12.5, color: "#F7F7FA", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{typeLabel(m)}</div>
+                      <div style={{ fontSize: 10.5, color: "#A8A29A", marginTop: 3, textAlign: "right" }}>{m.from === "buyer" ? "Buyer" : "Toko"} · {chatClock(m.ts)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ borderTop: "1px solid #2A1B0F", marginTop: 12, paddingTop: 12 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: "#F7F7FA" }}><Sparkles size={13} /> Draft balasan AI</span>
+                  {draftMeta && draftMeta.cached && <span style={{ fontSize: 11, color: "#A8A29A" }}>(draft tersimpan untuk pesan ini)</span>}
+                  <span style={{ flex: 1 }} />
+                  <button type="button" disabled={draftBusy} onClick={() => makeDraft(sel.conversation_id, true)} style={BTN_D}>{draftBusy ? "Menulis…" : "Buat ulang draft"}</button>
+                </div>
+                {draftErr && <InfoNote>Gagal membuat draft: {draftErr} — coba lagi, atau tulis balasan manual di bawah.</InfoNote>}
+                {draftMeta && draftMeta.escalate && (
+                  <div style={{ fontSize: 12, color: "#FCA5A5", background: "#2A0D0D", border: "1px solid #7F1D1D", borderRadius: 8, padding: "8px 10px", marginBottom: 8, lineHeight: 1.5 }}>
+                    Perlu manusia: pesan buyer mengandung kata sensitif ({draftMeta.reasons.join(", ")}). Baca riwayatnya baik-baik sebelum mengirim — draft tidak boleh menjanjikan refund/retur.
+                  </div>
+                )}
+                {draftBusy && !draft && <div style={{ fontSize: 12, color: "#A8A29A" }}>AI sedang menulis draft dari riwayat chat…</div>}
+                <textarea value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 2000))} rows={4} placeholder={draftBusy ? "Menunggu draft…" : "Tulis balasan di sini, atau tunggu draft AI…"} style={{ ...INPUT_D, width: "100%", resize: "vertical", lineHeight: 1.5 }} />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                  <button type="button" disabled={!draft.trim() || sendBusy} onClick={() => setConfirmSend(true)} style={{ ...BTN_D, borderColor: "#FF9E45", color: "#FFB37A", opacity: !draft.trim() || sendBusy ? 0.5 : 1 }}><Send size={13} /> Kirim ke buyer</button>
+                  {draft && <button type="button" disabled={sendBusy} onClick={rejectDraft} style={BTN_D}>Tolak draft</button>}
+                  <span style={{ fontSize: 11, color: "#78716C" }}>{draft.length}/2000</span>
+                </div>
+                {confirmSend && (
+                  <ConfirmBar text={`Kirim pesan ini ke @${sel.to_name}? Pesan akan terkirim sungguhan lewat akun toko dan tercatat di log.`} busy={sendBusy} onYes={doSend} onNo={() => setConfirmSend(false)} />
+                )}
+                {sendResult && sendResult.ok && <div style={{ fontSize: 12, color: "#86EFAC", marginTop: 8 }}>Pesan terkirim.</div>}
+                {sendResult && !sendResult.ok && <div style={{ fontSize: 12, color: "#FCA5A5", marginTop: 8 }}>Gagal mengirim: {sendResult.error}</div>}
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 const MENU = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "pesanan", label: "Pesanan", icon: Package },
@@ -4359,6 +4576,7 @@ const MENU = [
   { key: "affiliate", label: "Affiliate", icon: Users2 },
   { key: "live", label: "Live", icon: Radio },
   { key: "project", label: "Project", icon: Briefcase },
+  { key: "chat", label: "Chat", icon: MessageCircle },
 ];
 
 const TITLES = {
@@ -4370,6 +4588,7 @@ const TITLES = {
   lazada: ["Lazada", "Laporan penjualan toko Lazada Generos Official Store"],
   live: ["Live", "Statistik penjualan dari siaran langsung"],
   project: ["Project", "Ruang kerja proyek — Affiliate Management System"],
+  chat: ["Chat", "Inbox Shopee + draft balasan AI (review mode)"],
 };
 
 
@@ -4711,6 +4930,7 @@ export default function ShopeePartnerDashboard() {
             {tab === "lazada" && <TabOverview periode={periode} />}
             {tab === "live" && <TabLive />}
             {tab === "project" && <TabProject periode={periode} />}
+            {tab === "chat" && <TabChat />}
             </>)}
           </div>
         </div>
