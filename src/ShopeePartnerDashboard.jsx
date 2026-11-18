@@ -4386,6 +4386,7 @@ function TabChat() {
   const shop = (() => { try { return localStorage.getItem("mp_toko") === "star" ? "star" : "mall"; } catch { return "mall"; } })();
   const [convs, setConvs] = useState(null);
   const [convErr, setConvErr] = useState("");
+  const [draftReady, setDraftReady] = useState({});
   const [filter, setFilter] = useState("need");
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(null);
@@ -4407,6 +4408,12 @@ function TabChat() {
       if (!d.ok) { setConvErr(d.error || "gagal memuat"); return; }
       setConvs(d.conversations || []);
     } catch (e) { setConvErr("tidak bisa terhubung ke backend"); }
+    try {
+      const q = await fetch(`https://api.qukis.id/api/chat/drafts?shop=${shop}&_t=${Date.now()}`).then((r) => r.json());
+      const map = {};
+      (q.drafts || []).forEach((x) => { map[x.conversation_id] = true; });
+      setDraftReady(map);
+    } catch (e) { /* abaikan — badge draft tidak tampil */ }
   };
   useEffect(() => { loadConvs(); }, [shop, nonce]);
   useEffect(() => { const t = setInterval(() => setNonce((n) => n + 1), 60000); return () => clearInterval(t); }, []);
@@ -4469,6 +4476,7 @@ function TabChat() {
     if (!sel) return;
     await postChat(`/api/chat/draft-decision?shop=${shop}`, { conversation_id: sel.conversation_id, decision: "reject" });
     setDraft(""); setDraftMeta(null);
+    loadConvs();
   };
 
   const shown = (convs || []).filter((c) => {
@@ -4515,6 +4523,7 @@ function TabChat() {
                   <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                     {c.unread_count > 0 && <span style={{ fontSize: 11, color: "#0B0603", background: "#FF9E45", borderRadius: 8, padding: "1px 7px", fontWeight: 700 }}>{c.unread_count} baru</span>}
                     {c.buyer_last && <span style={{ fontSize: 11, color: "#FFB37A" }}>Perlu dibalas</span>}
+                    {draftReady[c.conversation_id] && <span style={{ fontSize: 11, color: "#86EFAC" }}>Draft AI siap</span>}
                     {c.pinned && <span style={{ fontSize: 11, color: "#A8A29A" }}>Disematkan</span>}
                     {c.mute && <span style={{ fontSize: 11, color: "#A8A29A" }}>Dibisukan</span>}
                   </div>
