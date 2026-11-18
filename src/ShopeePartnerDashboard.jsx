@@ -4429,7 +4429,19 @@ function TabChat() {
       const d = await fetch(`https://api.qukis.id/api/chat/messages?shop=${shop}&conversation_id=${c.conversation_id}&_t=${Date.now()}`).then((r) => r.json());
       if (!d.ok) { setMsgsErr(d.error || "gagal memuat pesan"); return; }
       setMsgs(d.messages || []);
-      if (c.buyer_last && !skipAutoDraft) makeDraft(c.conversation_id, false);
+      // Kalau sudah ada draft tersimpan untuk percakapan ini, tampilkan langsung.
+      let haveDraft = false;
+      try {
+        const q = await fetch(`https://api.qukis.id/api/chat/drafts?shop=${shop}&_t=${Date.now()}`).then((r) => r.json());
+        const found = (q.drafts || []).find((x) => x.conversation_id === c.conversation_id);
+        if (found && found.draft) {
+          setDraft(found.draft);
+          setDraftMeta({ escalate: !!found.escalate, reasons: found.reasons || [], cached: true });
+          haveDraft = true;
+        }
+      } catch (e) { /* abaikan — lanjut buat draft baru */ }
+      const lastIsBuyer = (d.messages || []).length > 0 && d.messages[d.messages.length - 1].from === "buyer";
+      if ((c.buyer_last || lastIsBuyer) && !skipAutoDraft && !haveDraft) makeDraft(c.conversation_id, false);
     } catch (e) { setMsgsErr("tidak bisa terhubung ke backend"); }
   };
 
