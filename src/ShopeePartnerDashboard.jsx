@@ -4043,6 +4043,199 @@ function SuggestPanel({ onApply }) {
   );
 }
 
+// ── Daftar Hubungi: kreator dari laporan AMS Oktober 2026 (file XLSX) ──
+// Daftar ini TERPISAH dari to-reach: semua kreator di sini sudah punya
+// penjualan selama Oktober 2026, jadi ini daftar reaktivasi/outreach,
+// bukan prospek baru. Status hubungi disimpan di backend milik dashboard
+// (bukan ke Shopee). "Undang Campaign" menyelesaikan affiliate_id lewat
+// affiliate-search (cocok persis username) lalu membuka InviteModal yang
+// sama seperti daftar lain — undangan tetap lewat konfirmasi 2 langkah.
+const OUTREACH_STATUS_META = {
+  belum: { label: "Belum dihubungi", color: "#A89F92" },
+  sudah: { label: "Sudah dihubungi", color: "#1E9E6F" },
+};
+const OUTREACH_CHANNEL_META = {
+  Facebook: { label: "Facebook", color: "#5EA9FF" },
+  Instagram: { label: "Instagram", color: "#D04C8F" },
+};
+
+function OutreachPanel({ nonce, onInvite }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [channel, setChannel] = useState("semua");
+  const [statusF, setStatusF] = useState("semua");
+  const [limit, setLimit] = useState(50);
+  const [marking, setMarking] = useState(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [resolving, setResolving] = useState(null);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const d = await fetch(`https://api.qukis.id/api/ams/outreach?nonce=${nonce}`).then((r) => r.json());
+        if (!active) return;
+        if (d && d.ok) { setData(d); setError(""); }
+        else setError("Data daftar hubungi tidak bisa dimuat.");
+      } catch {
+        if (active) setError("Data daftar hubungi tidak bisa dimuat (backend tidak terjangkau).");
+      }
+    })();
+    return () => { active = false; };
+  }, [nonce]);
+
+  const setStatus = async (username, status, noteText) => {
+    setBusy(true);
+    try {
+      const d = await postAms("/api/ams/outreach-status", { username, status, note: noteText });
+      if (d && d.ok) {
+        const key = (username || "").toLowerCase();
+        setData((prev) => prev && ({
+          ...prev,
+          creators: prev.creators.map((c) => ((c.username || "").toLowerCase() === key
+            ? { ...c, outreach_status: d.status.status, contacted_at: d.status.contacted_at, note: d.status.note ?? c.note }
+            : c)),
+        }));
+        setMarking(null);
+        setNote("");
+      } else {
+        setNotice(`Gagal menyimpan status: ${amsErr(d)}`);
+      }
+    } catch {
+      setNotice("Gagal menyimpan status: tidak bisa terhubung ke backend.");
+    }
+    setBusy(false);
+  };
+
+  const inviteCreator = async (c) => {
+    setResolving(c.username);
+    setNotice("");
+    try {
+      const d = await fetch(`https://api.qukis.id/api/ams/affiliate-search?name=${encodeURIComponent(c.username)}`).then((r) => r.json());
+      const list = (d.response && d.response.affiliate_list) || [];
+      const exact = list.find((a) => (a.user_name || "").toLowerCase() === (c.username || "").toLowerCase());
+      if (exact) {
+        onInvite({ name: c.nickname || c.username, username: c.username, affiliate_id: exact.affiliate_id, socials: [], arena: "unknown", arena_basis: "", fromOutreach: true });
+      } else {
+        setNotice(`@${c.username} tidak ketemu persis di pencarian affiliator Shopee — tidak bisa diundang lewat API. Coba cari manual di bagian "Perlu di-reach".`);
+      }
+    } catch {
+      setNotice("Pencarian affiliator gagal: tidak bisa terhubung ke backend.");
+    }
+    setResolving(null);
+  };
+
+  const q = query.trim().toLowerCase();
+  const creators = (data?.creators || []).filter((c) => {
+    if (q && !(c.nickname || "").toLowerCase().includes(q) && !(c.username || "").toLowerCase().includes(q)) return false;
+    if (channel !== "semua" && !((c.channels || {})[channel] && (c.channels[channel].orders || 0) > 0)) return false;
+    if (statusF !== "semua" && (c.outreach_status || "belum") !== statusF) return false;
+    return true;
+  });
+  const shown = creators.slice(0, limit);
+  const sudahCount = (data?.creators || []).filter((c) => c.outreach_status === "sudah").length;
+
+  return (
+    <Card title="Daftar Hubungi — Laporan AMS Oktober 2026" subtitle={data ? `${afNum(data.total_creators)} kreator · ${afNum(data.total_orders)} pesanan · ${afMoney(data.total_sales)} · periode 1–31 Okt 2026 (Confirmed Orders) · ${afNum(sudahCount)} sudah dihubungi` : "Laporan AMS Oktober 2026 (Confirmed Orders)"}>
+      <InfoNote>
+        Kreator di daftar ini sudah menghasilkan penjualan selama Oktober 2026 — daftar reaktivasi, bukan prospek baru.
+        Shopee tidak membuka nomor HP/email kreator: hubungi lewat profil sosmednya, atau undang lewat targeted campaign.
+        Status di sini hanya catatan dashboard, tidak mengubah apa pun di Shopee.
+      </InfoNote>
+      {error ? <AfMuted>{error}</AfMuted> : !data ? <AfMuted>Memuat daftar hubungi…</AfMuted> : (
+        <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 12, marginBottom: 12 }}>
+            <input value={query} onChange={(e) => { setQuery(e.target.value); setLimit(50); }} placeholder="Cari nama / @username…"
+              style={{ background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif", minWidth: 200 }} />
+            <span style={{ fontSize: 12, color: "#A89F92" }}>Channel:</span>
+            {["semua", "Facebook", "Instagram"].map((k) => (
+              <PjBtn key={k} active={channel === k} onClick={() => { setChannel(k); setLimit(50); }}>{k === "semua" ? "Semua" : k}</PjBtn>
+            ))}
+            <span style={{ fontSize: 12, color: "#A89F92" }}>Status:</span>
+            {["semua", "belum", "sudah"].map((k) => (
+              <PjBtn key={k} active={statusF === k} onClick={() => { setStatusF(k); setLimit(50); }}>{k === "semua" ? "Semua" : OUTREACH_STATUS_META[k].label}</PjBtn>
+            ))}
+          </div>
+          {notice && <InfoNote>{notice}</InfoNote>}
+          {creators.length === 0 ? (
+            <AfMuted>Tidak ada kreator yang cocok dengan filter ini.</AfMuted>
+          ) : (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>
+                    <th style={AF_THL}>Kreator</th><th style={AF_THL}>Channel</th><th style={AF_THW}>Pesanan</th>
+                    <th style={AF_THW}>Penjualan</th><th style={AF_THW}>Komisi</th><th style={AF_THW}>Status</th><th style={AF_THW}>Aksi</th>
+                  </tr></thead>
+                  <tbody>
+                    {shown.map((c) => {
+                      const st = c.outreach_status || "belum";
+                      return (
+                        <React.Fragment key={c.username}>
+                          <tr>
+                            <td style={AF_TDL}>
+                              <div style={{ fontWeight: 600, color: "#F7F7FA" }}>{c.nickname || "—"}</div>
+                              <div style={{ fontSize: 11, color: "#A89F92" }}>@{c.username}</div>
+                            </td>
+                            <td style={AF_TDL}>
+                              <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                                {Object.keys(c.channels || {}).map((ch) => {
+                                  const m = OUTREACH_CHANNEL_META[ch] || { label: ch, color: "#A89F92" };
+                                  return <Badge key={ch} text={`${m.label} · ${afNum(c.channels[ch].orders)}`} color={m.color} />;
+                                })}
+                              </span>
+                            </td>
+                            <td style={AF_TD}>{afNum(c.orders)}</td>
+                            <td style={AF_TD}>{afMoney(c.sales)}</td>
+                            <td style={AF_TD}>{afMoney(c.commission)}</td>
+                            <td style={AF_TD}>
+                              <Badge text={OUTREACH_STATUS_META[st].label} color={OUTREACH_STATUS_META[st].color} />
+                              {c.note && <div style={{ fontSize: 11, color: "#A89F92", marginTop: 3, maxWidth: 180, whiteSpace: "normal" }}>{c.note}</div>}
+                            </td>
+                            <td style={AF_TD}>
+                              <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                                <PjBtn disabled={resolving === c.username} onClick={() => inviteCreator(c)}>{resolving === c.username ? "Mencari ID…" : "Undang Campaign"}</PjBtn>
+                                {st === "belum" ? (
+                                  <PjBtn disabled={busy} onClick={() => { setMarking(c.username); setNote(""); }}>Sudah dihubungi</PjBtn>
+                                ) : (
+                                  <PjBtn disabled={busy} onClick={() => setStatus(c.username, "belum", c.note || "")}>Batalkan</PjBtn>
+                                )}
+                              </span>
+                            </td>
+                          </tr>
+                          {marking === c.username && (
+                            <tr key={`${c.username}-mark`}>
+                              <td colSpan={7} style={{ padding: "0 0 12px", border: "none" }}>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} placeholder="Catatan (opsional, mis. sudah DM 18 Nov, menunggu balasan)…"
+                                    style={{ flex: 1, background: "#0B0603", border: "1px solid #2A1B0F", borderRadius: 8, color: "#F7F7FA", fontSize: 12, padding: "7px 10px", fontFamily: "Inter, sans-serif" }} />
+                                  <PjBtn disabled={busy} onClick={() => setStatus(c.username, "sudah", note)}>Simpan</PjBtn>
+                                  <PjBtn disabled={busy} onClick={() => { setMarking(null); setNote(""); }}>Batal</PjBtn>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#A89F92" }}>
+                Menampilkan {afNum(shown.length)} dari {afNum(creators.length)} kreator (urut penjualan tertinggi).
+                {creators.length > shown.length && <> <PjBtn onClick={() => setLimit((l) => l + 50)}>Tampilkan 50 lagi</PjBtn></>}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
 function TabProject({ periode }) {
   const { dRange, rangeClamped } = (() => {
     const today = isoDaysAgo(0);
@@ -4331,6 +4524,8 @@ function TabProject({ periode }) {
         )}
       </Card>
 
+      <OutreachPanel nonce={nonce} onInvite={(cr) => setInvite(cr)} />
+
       {detailCampaign && (
         <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCid(null)} onChanged={() => setNonce((n) => n + 1)} />
       )}
@@ -4345,7 +4540,14 @@ function TabProject({ periode }) {
       </Card>
       {invite && (
         <InviteModal c={invite} campaigns={data?.campaigns || []} onClose={() => setInvite(null)}
-          onInvited={(cr) => { saveTag(cr.username, { reach_status: "dihubungi" }); setNonce((n) => n + 1); }} />
+          onInvited={async (cr) => {
+            if (cr.fromOutreach) {
+              try { await postAms("/api/ams/outreach-status", { username: cr.username, status: "sudah" }); } catch { /* abaikan — status bisa ditandai manual */ }
+            } else {
+              saveTag(cr.username, { reach_status: "dihubungi" });
+            }
+            setNonce((n) => n + 1);
+          }} />
       )}
     </>
   );
