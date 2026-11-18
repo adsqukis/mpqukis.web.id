@@ -4422,7 +4422,7 @@ function TabChat() {
     setDraftBusy(true); setDraftErr(""); setDraftMeta(null);
     try {
       const d = await postChat(`/api/chat/draft?shop=${shop}`, { conversation_id: cid, force: !!force });
-      if (!d.ok) { setDraftErr(d.error || "gagal membuat draft"); return; }
+      if (!d.ok) { setDraftErr(d.error === "empty_conversation" ? "riwayat percakapan ini kosong di API Shopee, jadi draft tidak bisa dibuat" : (d.error || "gagal membuat draft")); return; }
       setDraft(d.draft || "");
       setDraftMeta({ escalate: !!d.escalate, reasons: d.reasons || [], cached: !!d.cached });
     } catch (e) { setDraftErr("tidak bisa terhubung ke backend"); }
@@ -4447,8 +4447,9 @@ function TabChat() {
           haveDraft = true;
         }
       } catch (e) { /* abaikan — lanjut buat draft baru */ }
-      const lastIsBuyer = (d.messages || []).length > 0 && d.messages[d.messages.length - 1].from === "buyer";
-      if ((c.buyer_last || lastIsBuyer) && !skipAutoDraft && !haveDraft) makeDraft(c.conversation_id, false);
+      const hasMsgs = (d.messages || []).length > 0;
+      const lastIsBuyer = hasMsgs && d.messages[d.messages.length - 1].from === "buyer";
+      if (hasMsgs && (c.buyer_last || lastIsBuyer) && !skipAutoDraft && !haveDraft) makeDraft(c.conversation_id, false);
     } catch (e) { setMsgsErr("tidak bisa terhubung ke backend"); }
   };
 
@@ -4543,7 +4544,7 @@ function TabChat() {
             <Card title={`@${sel.to_name || "(tanpa nama)"}`} subtitle={sel.buyer_last ? "Pesan terakhir dari buyer — perlu dibalas" : "Pesan terakhir dari toko"} right={sel.unread_count > 0 ? <span style={{ fontSize: 11, color: "#0B0603", background: "#FF9E45", borderRadius: 8, padding: "2px 8px", fontWeight: 700 }}>{sel.unread_count} baru</span> : null}>
               {msgsErr && <InfoNote>Gagal memuat pesan: {msgsErr}</InfoNote>}
               {!msgs && !msgsErr && <div style={{ fontSize: 12, color: "#A8A29A" }}>Memuat riwayat…</div>}
-              {msgs && msgs.length === 0 && <div style={{ fontSize: 12, color: "#A8A29A" }}>Tidak ada pesan di percakapan ini.</div>}
+              {msgs && msgs.length === 0 && <InfoNote>Riwayat percakapan ini kosong di API Shopee — pesannya tidak bisa ditarik, jadi draft AI tidak bisa dibuat. Balasan masih bisa ditulis manual di bawah, atau cek langsung di aplikasi Shopee.</InfoNote>}
               {msgs && msgs.length > 0 && (
                 <div style={{ maxHeight: 380, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
                   {msgs.map((m) => (
@@ -4559,7 +4560,7 @@ function TabChat() {
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: "#F7F7FA" }}><Sparkles size={13} /> Draft balasan AI</span>
                   {draftMeta && draftMeta.cached && <span style={{ fontSize: 11, color: "#A8A29A" }}>(draft tersimpan untuk pesan ini)</span>}
                   <span style={{ flex: 1 }} />
-                  <button type="button" disabled={draftBusy} onClick={() => makeDraft(sel.conversation_id, true)} style={BTN_D}>{draftBusy ? "Menulis…" : "Buat ulang draft"}</button>
+                  {!(msgs && msgs.length === 0) && <button type="button" disabled={draftBusy} onClick={() => makeDraft(sel.conversation_id, true)} style={BTN_D}>{draftBusy ? "Menulis…" : "Buat ulang draft"}</button>}
                 </div>
                 {draftErr && <InfoNote>Gagal membuat draft: {draftErr} — coba lagi, atau tulis balasan manual di bawah.</InfoNote>}
                 {draftMeta && draftMeta.escalate && (
